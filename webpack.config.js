@@ -6,10 +6,13 @@
    imports React.
 */
 
-const path = require("path");
-const TerserPlugin = require("terser-webpack-plugin");
+import path from "path";
+import TerserPlugin from "terser-webpack-plugin";
+import SpeedMeasurePlugin from "speed-measure-webpack-plugin";
 
-module.exports = {
+const smp = new SpeedMeasurePlugin();
+
+export default smp.wrap({
   entry: {
     index: "./client/App.jsx",
   },
@@ -25,7 +28,7 @@ module.exports = {
     ],
   },
   optimization: {
-    minimize: true,
+    minimize: false, // SET TO TRUE FOR PRODUCTION
     minimizer: [
       new TerserPlugin({
         extractComments: false,
@@ -34,7 +37,7 @@ module.exports = {
   },
   mode: "production",
   output: {
-    path: path.resolve(__dirname, "hosted"),
+    path: path.resolve(path.dirname("./"), "hosted"),
     filename: "[name]Bundle.js",
   },
-};
+});

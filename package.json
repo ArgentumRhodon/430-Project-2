@@ -3,9 +3,10 @@
   "version": "1.0.0",
   "description": "A Chat App",
   "main": "electron/main.js",
+  "type": "module",
   "scripts": {
     "start": "electron .",
-    "webpack": "webpack",
+    "webpack": "webpack --watch",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "electronmon": {
@@ -23,6 +24,7 @@
     "electron": "^29.1.6",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
+    "speed-measure-webpack-plugin": "^1.5.0",
     "terser-webpack-plugin": "^5.3.10",
     "webpack": "^5.91.0",
     "webpack-cli": "^5.1.4"

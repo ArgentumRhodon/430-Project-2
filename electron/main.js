@@ -1,6 +1,4 @@
-const { app, BrowserWindow, screen } = require("electron");
-const path = require("path");
-const nonce = require("nonce")();
+import { app, BrowserWindow, screen } from "electron";
 
 let mainWindow;
 
