@@ -1,8 +1,13 @@
 const React = require("react");
 const { createRoot } = require("react-dom/client");
+const { Button, ConfigProvider } = require("antd");
 
 const App = () => {
-  return <h1>App Index</h1>;
+  return (
+    <ConfigProvider csp={{ nonce: 1 }}>
+      <Button type="primary">Press Me</Button>
+    </ConfigProvider>
+  );
 };
 
 const init = () => {

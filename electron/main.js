@@ -1,13 +1,24 @@
 const { app, BrowserWindow, screen } = require("electron");
+const path = require("path");
+const nonce = require("nonce")();
 
 let mainWindow;
 
-const createMainWindow = (dim) => {
+const createMainWindow = () => {
   const display = screen.getPrimaryDisplay();
   const { width, height } = display.workAreaSize;
 
-  mainWindow = new BrowserWindow({ width, height });
+  mainWindow = new BrowserWindow({
+    width,
+    height,
+    webPreferences: {
+      contextIsolation: true,
+      sandbox: true,
+    },
+  });
   mainWindow.loadFile("./hosted/index.html");
+
+  mainWindow.webContents.openDevTools();
 
   mainWindow.removeMenu();
 };
