@@ -18,7 +18,7 @@ const createMainWindow = () => {
 
   mainWindow.webContents.openDevTools();
 
-  mainWindow.removeMenu();
+  // mainWindow.removeMenu();
 };
 
 app.whenReady().then(() => {

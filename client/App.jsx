@@ -1,114 +1,96 @@
-import React from "react";
+import React, { useState } from "react";
 import { createRoot } from "react-dom/client";
 
-import { Layout, Menu, theme } from "antd";
-const { Header, Content, Footer, Sider } = Layout;
-import {
-  AppstoreOutlined,
-  BarChartOutlined,
-  CloudOutlined,
-  ShopOutlined,
-  TeamOutlined,
-  UploadOutlined,
-  UserOutlined,
-  VideoCameraOutlined,
-} from "@ant-design/icons";
-const items = [
-  UserOutlined,
-  VideoCameraOutlined,
-  UploadOutlined,
-  BarChartOutlined,
-  CloudOutlined,
-  AppstoreOutlined,
-  TeamOutlined,
-  ShopOutlined,
-  UserOutlined,
-  VideoCameraOutlined,
-  UploadOutlined,
-  BarChartOutlined,
-  CloudOutlined,
-  AppstoreOutlined,
-  TeamOutlined,
-  ShopOutlined,
-  UserOutlined,
-  VideoCameraOutlined,
-  UploadOutlined,
-  BarChartOutlined,
-  CloudOutlined,
-  AppstoreOutlined,
-  TeamOutlined,
-  ShopOutlined,
-  UserOutlined,
-  VideoCameraOutlined,
-  UploadOutlined,
-  BarChartOutlined,
-  CloudOutlined,
-  AppstoreOutlined,
-  TeamOutlined,
-  ShopOutlined,
-].map((icon, index) => ({
-  key: String(index + 1),
-  icon: React.createElement(icon),
-  label: `nav ${index + 1}`,
-}));
+import { Layout, Menu, Input, theme, ConfigProvider } from "antd";
+const { Sider, Content, Footer } = Layout;
+
+const siderStyle = {
+  overflow: "auto",
+  position: "fixed",
+  height: "100vh",
+  left: 0,
+  top: 0,
+  bottom: 0,
+};
+
+const innerLayoutStyle = {
+  marginLeft: 200,
+};
+
+const contentStyles = {
+  overflow: "initial",
+  minHeight: "100vh",
+};
+
+const footerStyles = {
+  position: "fixed",
+  bottom: 0,
+  left: 200,
+  right: 0,
+};
+
+const menuStyle = {
+  height: "100%",
+};
+
+const channels = [
+  { label: "#general", key: 0 },
+  { label: "#help", key: 1 },
+];
+
+const appTheme = {
+  algorithm: theme.darkAlgorithm,
+  components: {
+    Menu: {
+      itemSelectedBg: "rgba(255, 255, 255, 0.3)",
+      itemSelectedColor: "fff",
+    },
+  },
+};
+
 const App = () => {
-  const {
-    token: { colorBgContainer, borderRadiusLG },
-  } = theme.useToken();
+  const [message, setMessage] = useState("");
+  const [placeholder, setPlaceholder] = useState("Message #general");
+
+  const onSend = (e) => {
+    if (!e.target.value) return;
+
+    if (e.code === "Enter") {
+      console.log(message);
+      setMessage("");
+    }
+  };
+
+  const onMenuSelect = (e) => {
+    const channel = channels.find((channel) => channel.key == e.key);
+    setPlaceholder(`Message ${channel.label}`);
+  };
 
   return (
-    <Layout hasSider>
-      <Sider
-        style={{
-          overflow: "auto",
-          height: "100vh",
-          position: "fixed",
-          left: 0,
-          top: 0,
-          bottom: 0,
-        }}
-      >
-        <Menu
-          theme="dark"
-          mode="inline"
-          defaultSelectedKeys={["4"]}
-          items={items}
-        ></Menu>
-      </Sider>
-      <Layout style={{ marginLeft: 200 }}>
-        <Content
-          style={{
-            margin: "8px",
-            overflow: "initial",
-          }}
-        >
-          <div
-            style={{
-              padding: 24,
-              textAlign: "center",
-              background: colorBgContainer,
-              borderRadius: borderRadiusLG,
-            }}
-          >
-            <p>long content</p>
-            {
-              // indicates very long content
-              Array.from(
-                {
-                  length: 100,
-                },
-                (_, index) => (
-                  <React.Fragment key={index}>
-                    {index % 20 === 0 && index ? "more" : "..."}
-                    <br />
-                  </React.Fragment>
-                )
-              )
-            }
-          </div>
-        </Content>
+    <ConfigProvider theme={appTheme}>
+      <Layout>
+        <Sider style={siderStyle}>
+          <Menu
+            mode="vertical"
+            defaultSelectedKeys={["0"]}
+            items={channels}
+            style={menuStyle}
+            onSelect={onMenuSelect}
+          />
+        </Sider>
+        <Layout style={innerLayoutStyle}>
+          <Content style={contentStyles}></Content>
+          <Footer style={footerStyles}>
+            <Input
+              placeholder={placeholder}
+              onInput={(e) => setMessage(e.target.value)}
+              onKeyDown={onSend}
+              value={message}
+            />
+          </Footer>
+        </Layout>
       </Layout>
-    </Layout>
+    </ConfigProvider>
   );
 };
 
