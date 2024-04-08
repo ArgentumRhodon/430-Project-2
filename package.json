@@ -31,6 +31,7 @@
   },
   "dependencies": {
     "antd": "^5.16.0",
-    "nonce": "^1.0.4"
+    "nonce": "^1.0.4",
+    "socket.io-client": "^4.7.5"
   }
 }

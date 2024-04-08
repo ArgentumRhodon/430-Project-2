@@ -1,9 +1,15 @@
 import React, { useState } from "react";
 import { createRoot } from "react-dom/client";
+import io from "socket.io-client";
 
 import { Layout, Menu, Input, theme, ConfigProvider } from "antd";
 const { Sider, Content, Footer } = Layout;
 
+// Socket Server Connection
+
+const socket = io.connect("http://localhost:3001");
+
+// Style objects
 const siderStyle = {
   overflow: "auto",
   position: "fixed",
@@ -34,8 +40,8 @@ const menuStyle = {
 };
 
 const channels = [
-  { label: "#general", key: 0 },
-  { label: "#help", key: 1 },
+  { label: "general", key: 0 },
+  { label: "help", key: 1 },
 ];
 
 const appTheme = {
@@ -57,6 +63,7 @@ const App = () => {
 
     if (e.code === "Enter") {
       console.log(message);
+      socket.emit("message", message);
       setMessage("");
     }
   };
@@ -64,6 +71,8 @@ const App = () => {
   const onMenuSelect = (e) => {
     const channel = channels.find((channel) => channel.key == e.key);
     setPlaceholder(`Message ${channel.label}`);
+    setMessage("");
+    socket.emit("room change", channel.label);
   };
 
   return (
