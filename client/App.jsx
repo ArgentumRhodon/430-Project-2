@@ -1,13 +1,9 @@
 import React, { useState } from "react";
 import { createRoot } from "react-dom/client";
-import io from "socket.io-client";
+import useSocket from "./hooks/useSocket";
 
 import { Layout, Menu, Input, theme, ConfigProvider } from "antd";
 const { Sider, Content, Footer } = Layout;
-
-// Socket Server Connection
-
-const socket = io.connect("http://localhost:3001");
 
 // Style objects
 const siderStyle = {
@@ -26,6 +22,7 @@ const innerLayoutStyle = {
 const contentStyles = {
   overflow: "initial",
   minHeight: "100vh",
+  padding: "1rem",
 };
 
 const footerStyles = {
@@ -56,7 +53,9 @@ const appTheme = {
 
 const App = () => {
   const [message, setMessage] = useState("");
+  const [messages, setMessages] = useState([]);
   const [placeholder, setPlaceholder] = useState("Message #general");
+  const socket = useSocket();
 
   const onSend = (e) => {
     if (!e.target.value) return;
@@ -68,10 +67,13 @@ const App = () => {
     }
   };
 
+  socket.on("message", (msg) => setMessages([...messages, msg]));
+
   const onMenuSelect = (e) => {
     const channel = channels.find((channel) => channel.key == e.key);
     setPlaceholder(`Message ${channel.label}`);
     setMessage("");
+    setMessages([]);
     socket.emit("room change", channel.label);
   };
 
@@ -88,7 +90,11 @@ const App = () => {
           />
         </Sider>
         <Layout style={innerLayoutStyle}>
-          <Content style={contentStyles}></Content>
+          <Content style={contentStyles}>
+            {messages.map((msg) => (
+              <p>{msg}</p>
+            ))}
+          </Content>
           <Footer style={footerStyles}>
             <Input
               placeholder={placeholder}

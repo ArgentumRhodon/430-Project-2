@@ -4784,6 +4784,11 @@ Object.assign(esm_lookup, {
  */
 
 
+;// CONCATENATED MODULE: ./client/hooks/useSocket.js
+
+const socket = esm_lookup.connect("http://localhost:3001");
+const useSocket = () => socket;
+/* harmony default export */ const hooks_useSocket = (useSocket);
 ;// CONCATENATED MODULE: ./node_modules/@babel/runtime/helpers/esm/arrayLikeToArray.js
 function _arrayLikeToArray(arr, len) {
   if (len == null || len > arr.length) len = arr.length;
@@ -32416,10 +32421,6 @@ const {
   Footer: App_Footer
 } = es_layout;
 
-// Socket Server Connection
-
-const socket = esm_lookup.connect("http://localhost:3001");
-
 // Style objects
 const siderStyle = {
   overflow: "auto",
@@ -32434,7 +32435,8 @@ const innerLayoutStyle = {
 };
 const contentStyles = {
   overflow: "initial",
-  minHeight: "100vh"
+  minHeight: "100vh",
+  padding: "1rem"
 };
 const footerStyles = {
   position: "fixed",
@@ -32463,7 +32465,9 @@ const appTheme = {
 };
 const App = () => {
   const [message, setMessage] = (0,react.useState)("");
+  const [messages, setMessages] = (0,react.useState)([]);
   const [placeholder, setPlaceholder] = (0,react.useState)("Message #general");
+  const socket = hooks_useSocket();
   const onSend = e => {
     if (!e.target.value) return;
     if (e.code === "Enter") {
@@ -32472,10 +32476,12 @@ const App = () => {
       setMessage("");
     }
   };
+  socket.on("message", msg => setMessages([...messages, msg]));
   const onMenuSelect = e => {
     const channel = channels.find(channel => channel.key == e.key);
     setPlaceholder(`Message ${channel.label}`);
     setMessage("");
+    setMessages([]);
     socket.emit("room change", channel.label);
   };
   return /*#__PURE__*/react.createElement(config_provider, {
@@ -32492,7 +32498,7 @@ const App = () => {
     style: innerLayoutStyle
   }, /*#__PURE__*/react.createElement(App_Content, {
     style: contentStyles
-  }), /*#__PURE__*/react.createElement(App_Footer, {
+  }, messages.map(msg => /*#__PURE__*/react.createElement("p", null, msg))), /*#__PURE__*/react.createElement(App_Footer, {
     style: footerStyles
   }, /*#__PURE__*/react.createElement(input, {
     placeholder: placeholder,
