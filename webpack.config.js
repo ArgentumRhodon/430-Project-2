@@ -16,6 +16,9 @@ export default smp.wrap({
   entry: {
     index: "./client/App.jsx",
   },
+  resolve: {
+    extensions: [".js", ".jsx"],
+  },
   module: {
     rules: [
       {

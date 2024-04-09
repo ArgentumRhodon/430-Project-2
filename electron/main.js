@@ -16,8 +16,6 @@ const createMainWindow = () => {
   });
   mainWindow.loadFile("./hosted/index.html");
 
-  mainWindow.webContents.openDevTools();
-
   // mainWindow.removeMenu();
 };
 

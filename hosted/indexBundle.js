@@ -719,4076 +719,6 @@ var react = __webpack_require__(540);
 var react_namespaceObject = /*#__PURE__*/__webpack_require__.t(react, 2);
 // EXTERNAL MODULE: ./node_modules/react-dom/client.js
 var client = __webpack_require__(338);
-;// CONCATENATED MODULE: ./node_modules/engine.io-parser/build/esm/commons.js
-const PACKET_TYPES = Object.create(null); // no Map = no polyfill
-PACKET_TYPES["open"] = "0";
-PACKET_TYPES["close"] = "1";
-PACKET_TYPES["ping"] = "2";
-PACKET_TYPES["pong"] = "3";
-PACKET_TYPES["message"] = "4";
-PACKET_TYPES["upgrade"] = "5";
-PACKET_TYPES["noop"] = "6";
-const PACKET_TYPES_REVERSE = Object.create(null);
-Object.keys(PACKET_TYPES).forEach((key) => {
-    PACKET_TYPES_REVERSE[PACKET_TYPES[key]] = key;
-});
-const ERROR_PACKET = { type: "error", data: "parser error" };
-
-
-;// CONCATENATED MODULE: ./node_modules/engine.io-parser/build/esm/encodePacket.browser.js
-
-const withNativeBlob = typeof Blob === "function" ||
-    (typeof Blob !== "undefined" &&
-        Object.prototype.toString.call(Blob) === "[object BlobConstructor]");
-const withNativeArrayBuffer = typeof ArrayBuffer === "function";
-// ArrayBuffer.isView method is not defined in IE10
-const isView = (obj) => {
-    return typeof ArrayBuffer.isView === "function"
-        ? ArrayBuffer.isView(obj)
-        : obj && obj.buffer instanceof ArrayBuffer;
-};
-const encodePacket = ({ type, data }, supportsBinary, callback) => {
-    if (withNativeBlob && data instanceof Blob) {
-        if (supportsBinary) {
-            return callback(data);
-        }
-        else {
-            return encodeBlobAsBase64(data, callback);
-        }
-    }
-    else if (withNativeArrayBuffer &&
-        (data instanceof ArrayBuffer || isView(data))) {
-        if (supportsBinary) {
-            return callback(data);
-        }
-        else {
-            return encodeBlobAsBase64(new Blob([data]), callback);
-        }
-    }
-    // plain string
-    return callback(PACKET_TYPES[type] + (data || ""));
-};
-const encodeBlobAsBase64 = (data, callback) => {
-    const fileReader = new FileReader();
-    fileReader.onload = function () {
-        const content = fileReader.result.split(",")[1];
-        callback("b" + (content || ""));
-    };
-    return fileReader.readAsDataURL(data);
-};
-function encodePacket_browser_toArray(data) {
-    if (data instanceof Uint8Array) {
-        return data;
-    }
-    else if (data instanceof ArrayBuffer) {
-        return new Uint8Array(data);
-    }
-    else {
-        return new Uint8Array(data.buffer, data.byteOffset, data.byteLength);
-    }
-}
-let TEXT_ENCODER;
-function encodePacketToBinary(packet, callback) {
-    if (withNativeBlob && packet.data instanceof Blob) {
-        return packet.data.arrayBuffer().then(encodePacket_browser_toArray).then(callback);
-    }
-    else if (withNativeArrayBuffer &&
-        (packet.data instanceof ArrayBuffer || isView(packet.data))) {
-        return callback(encodePacket_browser_toArray(packet.data));
-    }
-    encodePacket(packet, false, (encoded) => {
-        if (!TEXT_ENCODER) {
-            TEXT_ENCODER = new TextEncoder();
-        }
-        callback(TEXT_ENCODER.encode(encoded));
-    });
-}
-
-
-;// CONCATENATED MODULE: ./node_modules/engine.io-parser/build/esm/contrib/base64-arraybuffer.js
-// imported from https://github.com/socketio/base64-arraybuffer
-const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/';
-// Use a lookup table to find the index.
-const lookup = typeof Uint8Array === 'undefined' ? [] : new Uint8Array(256);
-for (let i = 0; i < chars.length; i++) {
-    lookup[chars.charCodeAt(i)] = i;
-}
-const encode = (arraybuffer) => {
-    let bytes = new Uint8Array(arraybuffer), i, len = bytes.length, base64 = '';
-    for (i = 0; i < len; i += 3) {
-        base64 += chars[bytes[i] >> 2];
-        base64 += chars[((bytes[i] & 3) << 4) | (bytes[i + 1] >> 4)];
-        base64 += chars[((bytes[i + 1] & 15) << 2) | (bytes[i + 2] >> 6)];
-        base64 += chars[bytes[i + 2] & 63];
-    }
-    if (len % 3 === 2) {
-        base64 = base64.substring(0, base64.length - 1) + '=';
-    }
-    else if (len % 3 === 1) {
-        base64 = base64.substring(0, base64.length - 2) + '==';
-    }
-    return base64;
-};
-const decode = (base64) => {
-    let bufferLength = base64.length * 0.75, len = base64.length, i, p = 0, encoded1, encoded2, encoded3, encoded4;
-    if (base64[base64.length - 1] === '=') {
-        bufferLength--;
-        if (base64[base64.length - 2] === '=') {
-            bufferLength--;
-        }
-    }
-    const arraybuffer = new ArrayBuffer(bufferLength), bytes = new Uint8Array(arraybuffer);
-    for (i = 0; i < len; i += 4) {
-        encoded1 = lookup[base64.charCodeAt(i)];
-        encoded2 = lookup[base64.charCodeAt(i + 1)];
-        encoded3 = lookup[base64.charCodeAt(i + 2)];
-        encoded4 = lookup[base64.charCodeAt(i + 3)];
-        bytes[p++] = (encoded1 << 2) | (encoded2 >> 4);
-        bytes[p++] = ((encoded2 & 15) << 4) | (encoded3 >> 2);
-        bytes[p++] = ((encoded3 & 3) << 6) | (encoded4 & 63);
-    }
-    return arraybuffer;
-};
-
-;// CONCATENATED MODULE: ./node_modules/engine.io-parser/build/esm/decodePacket.browser.js
-
-
-const decodePacket_browser_withNativeArrayBuffer = typeof ArrayBuffer === "function";
-const decodePacket = (encodedPacket, binaryType) => {
-    if (typeof encodedPacket !== "string") {
-        return {
-            type: "message",
-            data: mapBinary(encodedPacket, binaryType),
-        };
-    }
-    const type = encodedPacket.charAt(0);
-    if (type === "b") {
-        return {
-            type: "message",
-            data: decodeBase64Packet(encodedPacket.substring(1), binaryType),
-        };
-    }
-    const packetType = PACKET_TYPES_REVERSE[type];
-    if (!packetType) {
-        return ERROR_PACKET;
-    }
-    return encodedPacket.length > 1
-        ? {
-            type: PACKET_TYPES_REVERSE[type],
-            data: encodedPacket.substring(1),
-        }
-        : {
-            type: PACKET_TYPES_REVERSE[type],
-        };
-};
-const decodeBase64Packet = (data, binaryType) => {
-    if (decodePacket_browser_withNativeArrayBuffer) {
-        const decoded = decode(data);
-        return mapBinary(decoded, binaryType);
-    }
-    else {
-        return { base64: true, data }; // fallback for old browsers
-    }
-};
-const mapBinary = (data, binaryType) => {
-    switch (binaryType) {
-        case "blob":
-            if (data instanceof Blob) {
-                // from WebSocket + binaryType "blob"
-                return data;
-            }
-            else {
-                // from HTTP long-polling or WebTransport
-                return new Blob([data]);
-            }
-        case "arraybuffer":
-        default:
-            if (data instanceof ArrayBuffer) {
-                // from HTTP long-polling (base64) or WebSocket + binaryType "arraybuffer"
-                return data;
-            }
-            else {
-                // from WebTransport (Uint8Array)
-                return data.buffer;
-            }
-    }
-};
-
-;// CONCATENATED MODULE: ./node_modules/engine.io-parser/build/esm/index.js
-
-
-
-const SEPARATOR = String.fromCharCode(30); // see https://en.wikipedia.org/wiki/Delimiter#ASCII_delimited_text
-const encodePayload = (packets, callback) => {
-    // some packets may be added to the array while encoding, so the initial length must be saved
-    const length = packets.length;
-    const encodedPackets = new Array(length);
-    let count = 0;
-    packets.forEach((packet, i) => {
-        // force base64 encoding for binary packets
-        encodePacket(packet, false, (encodedPacket) => {
-            encodedPackets[i] = encodedPacket;
-            if (++count === length) {
-                callback(encodedPackets.join(SEPARATOR));
-            }
-        });
-    });
-};
-const decodePayload = (encodedPayload, binaryType) => {
-    const encodedPackets = encodedPayload.split(SEPARATOR);
-    const packets = [];
-    for (let i = 0; i < encodedPackets.length; i++) {
-        const decodedPacket = decodePacket(encodedPackets[i], binaryType);
-        packets.push(decodedPacket);
-        if (decodedPacket.type === "error") {
-            break;
-        }
-    }
-    return packets;
-};
-function createPacketEncoderStream() {
-    // @ts-expect-error
-    return new TransformStream({
-        transform(packet, controller) {
-            encodePacketToBinary(packet, (encodedPacket) => {
-                const payloadLength = encodedPacket.length;
-                let header;
-                // inspired by the WebSocket format: https://developer.mozilla.org/en-US/docs/Web/API/WebSockets_API/Writing_WebSocket_servers#decoding_payload_length
-                if (payloadLength < 126) {
-                    header = new Uint8Array(1);
-                    new DataView(header.buffer).setUint8(0, payloadLength);
-                }
-                else if (payloadLength < 65536) {
-                    header = new Uint8Array(3);
-                    const view = new DataView(header.buffer);
-                    view.setUint8(0, 126);
-                    view.setUint16(1, payloadLength);
-                }
-                else {
-                    header = new Uint8Array(9);
-                    const view = new DataView(header.buffer);
-                    view.setUint8(0, 127);
-                    view.setBigUint64(1, BigInt(payloadLength));
-                }
-                // first bit indicates whether the payload is plain text (0) or binary (1)
-                if (packet.data && typeof packet.data !== "string") {
-                    header[0] |= 0x80;
-                }
-                controller.enqueue(header);
-                controller.enqueue(encodedPacket);
-            });
-        },
-    });
-}
-let TEXT_DECODER;
-function totalLength(chunks) {
-    return chunks.reduce((acc, chunk) => acc + chunk.length, 0);
-}
-function concatChunks(chunks, size) {
-    if (chunks[0].length === size) {
-        return chunks.shift();
-    }
-    const buffer = new Uint8Array(size);
-    let j = 0;
-    for (let i = 0; i < size; i++) {
-        buffer[i] = chunks[0][j++];
-        if (j === chunks[0].length) {
-            chunks.shift();
-            j = 0;
-        }
-    }
-    if (chunks.length && j < chunks[0].length) {
-        chunks[0] = chunks[0].slice(j);
-    }
-    return buffer;
-}
-function createPacketDecoderStream(maxPayload, binaryType) {
-    if (!TEXT_DECODER) {
-        TEXT_DECODER = new TextDecoder();
-    }
-    const chunks = [];
-    let state = 0 /* READ_HEADER */;
-    let expectedLength = -1;
-    let isBinary = false;
-    // @ts-expect-error
-    return new TransformStream({
-        transform(chunk, controller) {
-            chunks.push(chunk);
-            while (true) {
-                if (state === 0 /* READ_HEADER */) {
-                    if (totalLength(chunks) < 1) {
-                        break;
-                    }
-                    const header = concatChunks(chunks, 1);
-                    isBinary = (header[0] & 0x80) === 0x80;
-                    expectedLength = header[0] & 0x7f;
-                    if (expectedLength < 126) {
-                        state = 3 /* READ_PAYLOAD */;
-                    }
-                    else if (expectedLength === 126) {
-                        state = 1 /* READ_EXTENDED_LENGTH_16 */;
-                    }
-                    else {
-                        state = 2 /* READ_EXTENDED_LENGTH_64 */;
-                    }
-                }
-                else if (state === 1 /* READ_EXTENDED_LENGTH_16 */) {
-                    if (totalLength(chunks) < 2) {
-                        break;
-                    }
-                    const headerArray = concatChunks(chunks, 2);
-                    expectedLength = new DataView(headerArray.buffer, headerArray.byteOffset, headerArray.length).getUint16(0);
-                    state = 3 /* READ_PAYLOAD */;
-                }
-                else if (state === 2 /* READ_EXTENDED_LENGTH_64 */) {
-                    if (totalLength(chunks) < 8) {
-                        break;
-                    }
-                    const headerArray = concatChunks(chunks, 8);
-                    const view = new DataView(headerArray.buffer, headerArray.byteOffset, headerArray.length);
-                    const n = view.getUint32(0);
-                    if (n > Math.pow(2, 53 - 32) - 1) {
-                        // the maximum safe integer in JavaScript is 2^53 - 1
-                        controller.enqueue(ERROR_PACKET);
-                        break;
-                    }
-                    expectedLength = n * Math.pow(2, 32) + view.getUint32(4);
-                    state = 3 /* READ_PAYLOAD */;
-                }
-                else {
-                    if (totalLength(chunks) < expectedLength) {
-                        break;
-                    }
-                    const data = concatChunks(chunks, expectedLength);
-                    controller.enqueue(decodePacket(isBinary ? data : TEXT_DECODER.decode(data), binaryType));
-                    state = 0 /* READ_HEADER */;
-                }
-                if (expectedLength === 0 || expectedLength > maxPayload) {
-                    controller.enqueue(ERROR_PACKET);
-                    break;
-                }
-            }
-        },
-    });
-}
-const protocol = 4;
-
-
-;// CONCATENATED MODULE: ./node_modules/@socket.io/component-emitter/index.mjs
-/**
- * Initialize a new `Emitter`.
- *
- * @api public
- */
-
-function Emitter(obj) {
-  if (obj) return mixin(obj);
-}
-
-/**
- * Mixin the emitter properties.
- *
- * @param {Object} obj
- * @return {Object}
- * @api private
- */
-
-function mixin(obj) {
-  for (var key in Emitter.prototype) {
-    obj[key] = Emitter.prototype[key];
-  }
-  return obj;
-}
-
-/**
- * Listen on the given `event` with `fn`.
- *
- * @param {String} event
- * @param {Function} fn
- * @return {Emitter}
- * @api public
- */
-
-Emitter.prototype.on =
-Emitter.prototype.addEventListener = function(event, fn){
-  this._callbacks = this._callbacks || {};
-  (this._callbacks['$' + event] = this._callbacks['$' + event] || [])
-    .push(fn);
-  return this;
-};
-
-/**
- * Adds an `event` listener that will be invoked a single
- * time then automatically removed.
- *
- * @param {String} event
- * @param {Function} fn
- * @return {Emitter}
- * @api public
- */
-
-Emitter.prototype.once = function(event, fn){
-  function on() {
-    this.off(event, on);
-    fn.apply(this, arguments);
-  }
-
-  on.fn = fn;
-  this.on(event, on);
-  return this;
-};
-
-/**
- * Remove the given callback for `event` or all
- * registered callbacks.
- *
- * @param {String} event
- * @param {Function} fn
- * @return {Emitter}
- * @api public
- */
-
-Emitter.prototype.off =
-Emitter.prototype.removeListener =
-Emitter.prototype.removeAllListeners =
-Emitter.prototype.removeEventListener = function(event, fn){
-  this._callbacks = this._callbacks || {};
-
-  // all
-  if (0 == arguments.length) {
-    this._callbacks = {};
-    return this;
-  }
-
-  // specific event
-  var callbacks = this._callbacks['$' + event];
-  if (!callbacks) return this;
-
-  // remove all handlers
-  if (1 == arguments.length) {
-    delete this._callbacks['$' + event];
-    return this;
-  }
-
-  // remove specific handler
-  var cb;
-  for (var i = 0; i < callbacks.length; i++) {
-    cb = callbacks[i];
-    if (cb === fn || cb.fn === fn) {
-      callbacks.splice(i, 1);
-      break;
-    }
-  }
-
-  // Remove event specific arrays for event types that no
-  // one is subscribed for to avoid memory leak.
-  if (callbacks.length === 0) {
-    delete this._callbacks['$' + event];
-  }
-
-  return this;
-};
-
-/**
- * Emit `event` with the given args.
- *
- * @param {String} event
- * @param {Mixed} ...
- * @return {Emitter}
- */
-
-Emitter.prototype.emit = function(event){
-  this._callbacks = this._callbacks || {};
-
-  var args = new Array(arguments.length - 1)
-    , callbacks = this._callbacks['$' + event];
-
-  for (var i = 1; i < arguments.length; i++) {
-    args[i - 1] = arguments[i];
-  }
-
-  if (callbacks) {
-    callbacks = callbacks.slice(0);
-    for (var i = 0, len = callbacks.length; i < len; ++i) {
-      callbacks[i].apply(this, args);
-    }
-  }
-
-  return this;
-};
-
-// alias used for reserved events (protected method)
-Emitter.prototype.emitReserved = Emitter.prototype.emit;
-
-/**
- * Return array of callbacks for `event`.
- *
- * @param {String} event
- * @return {Array}
- * @api public
- */
-
-Emitter.prototype.listeners = function(event){
-  this._callbacks = this._callbacks || {};
-  return this._callbacks['$' + event] || [];
-};
-
-/**
- * Check if this emitter has `event` handlers.
- *
- * @param {String} event
- * @return {Boolean}
- * @api public
- */
-
-Emitter.prototype.hasListeners = function(event){
-  return !! this.listeners(event).length;
-};
-
-;// CONCATENATED MODULE: ./node_modules/engine.io-client/build/esm/globalThis.browser.js
-const globalThisShim = (() => {
-    if (typeof self !== "undefined") {
-        return self;
-    }
-    else if (typeof window !== "undefined") {
-        return window;
-    }
-    else {
-        return Function("return this")();
-    }
-})();
-
-;// CONCATENATED MODULE: ./node_modules/engine.io-client/build/esm/util.js
-
-function pick(obj, ...attr) {
-    return attr.reduce((acc, k) => {
-        if (obj.hasOwnProperty(k)) {
-            acc[k] = obj[k];
-        }
-        return acc;
-    }, {});
-}
-// Keep a reference to the real timeout functions so they can be used when overridden
-const NATIVE_SET_TIMEOUT = globalThisShim.setTimeout;
-const NATIVE_CLEAR_TIMEOUT = globalThisShim.clearTimeout;
-function installTimerFunctions(obj, opts) {
-    if (opts.useNativeTimers) {
-        obj.setTimeoutFn = NATIVE_SET_TIMEOUT.bind(globalThisShim);
-        obj.clearTimeoutFn = NATIVE_CLEAR_TIMEOUT.bind(globalThisShim);
-    }
-    else {
-        obj.setTimeoutFn = globalThisShim.setTimeout.bind(globalThisShim);
-        obj.clearTimeoutFn = globalThisShim.clearTimeout.bind(globalThisShim);
-    }
-}
-// base64 encoded buffers are about 33% bigger (https://en.wikipedia.org/wiki/Base64)
-const BASE64_OVERHEAD = 1.33;
-// we could also have used `new Blob([obj]).size`, but it isn't supported in IE9
-function byteLength(obj) {
-    if (typeof obj === "string") {
-        return utf8Length(obj);
-    }
-    // arraybuffer or blob
-    return Math.ceil((obj.byteLength || obj.size) * BASE64_OVERHEAD);
-}
-function utf8Length(str) {
-    let c = 0, length = 0;
-    for (let i = 0, l = str.length; i < l; i++) {
-        c = str.charCodeAt(i);
-        if (c < 0x80) {
-            length += 1;
-        }
-        else if (c < 0x800) {
-            length += 2;
-        }
-        else if (c < 0xd800 || c >= 0xe000) {
-            length += 3;
-        }
-        else {
-            i++;
-            length += 4;
-        }
-    }
-    return length;
-}
-
-;// CONCATENATED MODULE: ./node_modules/engine.io-client/build/esm/contrib/parseqs.js
-// imported from https://github.com/galkn/querystring
-/**
- * Compiles a querystring
- * Returns string representation of the object
- *
- * @param {Object}
- * @api private
- */
-function parseqs_encode(obj) {
-    let str = '';
-    for (let i in obj) {
-        if (obj.hasOwnProperty(i)) {
-            if (str.length)
-                str += '&';
-            str += encodeURIComponent(i) + '=' + encodeURIComponent(obj[i]);
-        }
-    }
-    return str;
-}
-/**
- * Parses a simple querystring into an object
- *
- * @param {String} qs
- * @api private
- */
-function parseqs_decode(qs) {
-    let qry = {};
-    let pairs = qs.split('&');
-    for (let i = 0, l = pairs.length; i < l; i++) {
-        let pair = pairs[i].split('=');
-        qry[decodeURIComponent(pair[0])] = decodeURIComponent(pair[1]);
-    }
-    return qry;
-}
-
-;// CONCATENATED MODULE: ./node_modules/engine.io-client/build/esm/transport.js
-
-
-
-
-class TransportError extends Error {
-    constructor(reason, description, context) {
-        super(reason);
-        this.description = description;
-        this.context = context;
-        this.type = "TransportError";
-    }
-}
-class Transport extends Emitter {
-    /**
-     * Transport abstract constructor.
-     *
-     * @param {Object} opts - options
-     * @protected
-     */
-    constructor(opts) {
-        super();
-        this.writable = false;
-        installTimerFunctions(this, opts);
-        this.opts = opts;
-        this.query = opts.query;
-        this.socket = opts.socket;
-    }
-    /**
-     * Emits an error.
-     *
-     * @param {String} reason
-     * @param description
-     * @param context - the error context
-     * @return {Transport} for chaining
-     * @protected
-     */
-    onError(reason, description, context) {
-        super.emitReserved("error", new TransportError(reason, description, context));
-        return this;
-    }
-    /**
-     * Opens the transport.
-     */
-    open() {
-        this.readyState = "opening";
-        this.doOpen();
-        return this;
-    }
-    /**
-     * Closes the transport.
-     */
-    close() {
-        if (this.readyState === "opening" || this.readyState === "open") {
-            this.doClose();
-            this.onClose();
-        }
-        return this;
-    }
-    /**
-     * Sends multiple packets.
-     *
-     * @param {Array} packets
-     */
-    send(packets) {
-        if (this.readyState === "open") {
-            this.write(packets);
-        }
-        else {
-            // this might happen if the transport was silently closed in the beforeunload event handler
-        }
-    }
-    /**
-     * Called upon open
-     *
-     * @protected
-     */
-    onOpen() {
-        this.readyState = "open";
-        this.writable = true;
-        super.emitReserved("open");
-    }
-    /**
-     * Called with data.
-     *
-     * @param {String} data
-     * @protected
-     */
-    onData(data) {
-        const packet = decodePacket(data, this.socket.binaryType);
-        this.onPacket(packet);
-    }
-    /**
-     * Called with a decoded packet.
-     *
-     * @protected
-     */
-    onPacket(packet) {
-        super.emitReserved("packet", packet);
-    }
-    /**
-     * Called upon close.
-     *
-     * @protected
-     */
-    onClose(details) {
-        this.readyState = "closed";
-        super.emitReserved("close", details);
-    }
-    /**
-     * Pauses the transport, in order not to lose packets during an upgrade.
-     *
-     * @param onPause
-     */
-    pause(onPause) { }
-    createUri(schema, query = {}) {
-        return (schema +
-            "://" +
-            this._hostname() +
-            this._port() +
-            this.opts.path +
-            this._query(query));
-    }
-    _hostname() {
-        const hostname = this.opts.hostname;
-        return hostname.indexOf(":") === -1 ? hostname : "[" + hostname + "]";
-    }
-    _port() {
-        if (this.opts.port &&
-            ((this.opts.secure && Number(this.opts.port !== 443)) ||
-                (!this.opts.secure && Number(this.opts.port) !== 80))) {
-            return ":" + this.opts.port;
-        }
-        else {
-            return "";
-        }
-    }
-    _query(query) {
-        const encodedQuery = parseqs_encode(query);
-        return encodedQuery.length ? "?" + encodedQuery : "";
-    }
-}
-
-;// CONCATENATED MODULE: ./node_modules/engine.io-client/build/esm/contrib/yeast.js
-// imported from https://github.com/unshiftio/yeast
-
-const alphabet = '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz-_'.split(''), yeast_length = 64, map = {};
-let seed = 0, i = 0, prev;
-/**
- * Return a string representing the specified number.
- *
- * @param {Number} num The number to convert.
- * @returns {String} The string representation of the number.
- * @api public
- */
-function yeast_encode(num) {
-    let encoded = '';
-    do {
-        encoded = alphabet[num % yeast_length] + encoded;
-        num = Math.floor(num / yeast_length);
-    } while (num > 0);
-    return encoded;
-}
-/**
- * Return the integer value specified by the given string.
- *
- * @param {String} str The string to convert.
- * @returns {Number} The integer value represented by the string.
- * @api public
- */
-function yeast_decode(str) {
-    let decoded = 0;
-    for (i = 0; i < str.length; i++) {
-        decoded = decoded * yeast_length + map[str.charAt(i)];
-    }
-    return decoded;
-}
-/**
- * Yeast: A tiny growing id generator.
- *
- * @returns {String} A unique id.
- * @api public
- */
-function yeast() {
-    const now = yeast_encode(+new Date());
-    if (now !== prev)
-        return seed = 0, prev = now;
-    return now + '.' + yeast_encode(seed++);
-}
-//
-// Map each character to its index.
-//
-for (; i < yeast_length; i++)
-    map[alphabet[i]] = i;
-
-;// CONCATENATED MODULE: ./node_modules/engine.io-client/build/esm/contrib/has-cors.js
-// imported from https://github.com/component/has-cors
-let value = false;
-try {
-    value = typeof XMLHttpRequest !== 'undefined' &&
-        'withCredentials' in new XMLHttpRequest();
-}
-catch (err) {
-    // if XMLHttp support is disabled in IE then it will throw
-    // when trying to create
-}
-const hasCORS = value;
-
-;// CONCATENATED MODULE: ./node_modules/engine.io-client/build/esm/transports/xmlhttprequest.browser.js
-// browser shim for xmlhttprequest module
-
-
-function XHR(opts) {
-    const xdomain = opts.xdomain;
-    // XMLHttpRequest can be disabled on IE
-    try {
-        if ("undefined" !== typeof XMLHttpRequest && (!xdomain || hasCORS)) {
-            return new XMLHttpRequest();
-        }
-    }
-    catch (e) { }
-    if (!xdomain) {
-        try {
-            return new globalThisShim[["Active"].concat("Object").join("X")]("Microsoft.XMLHTTP");
-        }
-        catch (e) { }
-    }
-}
-function createCookieJar() { }
-
-;// CONCATENATED MODULE: ./node_modules/engine.io-client/build/esm/transports/polling.js
-
-
-
-
-
-
-
-function empty() { }
-const hasXHR2 = (function () {
-    const xhr = new XHR({
-        xdomain: false,
-    });
-    return null != xhr.responseType;
-})();
-class Polling extends Transport {
-    /**
-     * XHR Polling constructor.
-     *
-     * @param {Object} opts
-     * @package
-     */
-    constructor(opts) {
-        super(opts);
-        this.polling = false;
-        if (typeof location !== "undefined") {
-            const isSSL = "https:" === location.protocol;
-            let port = location.port;
-            // some user agents have empty `location.port`
-            if (!port) {
-                port = isSSL ? "443" : "80";
-            }
-            this.xd =
-                (typeof location !== "undefined" &&
-                    opts.hostname !== location.hostname) ||
-                    port !== opts.port;
-        }
-        /**
-         * XHR supports binary
-         */
-        const forceBase64 = opts && opts.forceBase64;
-        this.supportsBinary = hasXHR2 && !forceBase64;
-        if (this.opts.withCredentials) {
-            this.cookieJar = createCookieJar();
-        }
-    }
-    get name() {
-        return "polling";
-    }
-    /**
-     * Opens the socket (triggers polling). We write a PING message to determine
-     * when the transport is open.
-     *
-     * @protected
-     */
-    doOpen() {
-        this.poll();
-    }
-    /**
-     * Pauses polling.
-     *
-     * @param {Function} onPause - callback upon buffers are flushed and transport is paused
-     * @package
-     */
-    pause(onPause) {
-        this.readyState = "pausing";
-        const pause = () => {
-            this.readyState = "paused";
-            onPause();
-        };
-        if (this.polling || !this.writable) {
-            let total = 0;
-            if (this.polling) {
-                total++;
-                this.once("pollComplete", function () {
-                    --total || pause();
-                });
-            }
-            if (!this.writable) {
-                total++;
-                this.once("drain", function () {
-                    --total || pause();
-                });
-            }
-        }
-        else {
-            pause();
-        }
-    }
-    /**
-     * Starts polling cycle.
-     *
-     * @private
-     */
-    poll() {
-        this.polling = true;
-        this.doPoll();
-        this.emitReserved("poll");
-    }
-    /**
-     * Overloads onData to detect payloads.
-     *
-     * @protected
-     */
-    onData(data) {
-        const callback = (packet) => {
-            // if its the first message we consider the transport open
-            if ("opening" === this.readyState && packet.type === "open") {
-                this.onOpen();
-            }
-            // if its a close packet, we close the ongoing requests
-            if ("close" === packet.type) {
-                this.onClose({ description: "transport closed by the server" });
-                return false;
-            }
-            // otherwise bypass onData and handle the message
-            this.onPacket(packet);
-        };
-        // decode payload
-        decodePayload(data, this.socket.binaryType).forEach(callback);
-        // if an event did not trigger closing
-        if ("closed" !== this.readyState) {
-            // if we got data we're not polling
-            this.polling = false;
-            this.emitReserved("pollComplete");
-            if ("open" === this.readyState) {
-                this.poll();
-            }
-            else {
-            }
-        }
-    }
-    /**
-     * For polling, send a close packet.
-     *
-     * @protected
-     */
-    doClose() {
-        const close = () => {
-            this.write([{ type: "close" }]);
-        };
-        if ("open" === this.readyState) {
-            close();
-        }
-        else {
-            // in case we're trying to close while
-            // handshaking is in progress (GH-164)
-            this.once("open", close);
-        }
-    }
-    /**
-     * Writes a packets payload.
-     *
-     * @param {Array} packets - data packets
-     * @protected
-     */
-    write(packets) {
-        this.writable = false;
-        encodePayload(packets, (data) => {
-            this.doWrite(data, () => {
-                this.writable = true;
-                this.emitReserved("drain");
-            });
-        });
-    }
-    /**
-     * Generates uri for connection.
-     *
-     * @private
-     */
-    uri() {
-        const schema = this.opts.secure ? "https" : "http";
-        const query = this.query || {};
-        // cache busting is forced
-        if (false !== this.opts.timestampRequests) {
-            query[this.opts.timestampParam] = yeast();
-        }
-        if (!this.supportsBinary && !query.sid) {
-            query.b64 = 1;
-        }
-        return this.createUri(schema, query);
-    }
-    /**
-     * Creates a request.
-     *
-     * @param {String} method
-     * @private
-     */
-    request(opts = {}) {
-        Object.assign(opts, { xd: this.xd, cookieJar: this.cookieJar }, this.opts);
-        return new Request(this.uri(), opts);
-    }
-    /**
-     * Sends data.
-     *
-     * @param {String} data to send.
-     * @param {Function} called upon flush.
-     * @private
-     */
-    doWrite(data, fn) {
-        const req = this.request({
-            method: "POST",
-            data: data,
-        });
-        req.on("success", fn);
-        req.on("error", (xhrStatus, context) => {
-            this.onError("xhr post error", xhrStatus, context);
-        });
-    }
-    /**
-     * Starts a poll cycle.
-     *
-     * @private
-     */
-    doPoll() {
-        const req = this.request();
-        req.on("data", this.onData.bind(this));
-        req.on("error", (xhrStatus, context) => {
-            this.onError("xhr poll error", xhrStatus, context);
-        });
-        this.pollXhr = req;
-    }
-}
-class Request extends Emitter {
-    /**
-     * Request constructor
-     *
-     * @param {Object} options
-     * @package
-     */
-    constructor(uri, opts) {
-        super();
-        installTimerFunctions(this, opts);
-        this.opts = opts;
-        this.method = opts.method || "GET";
-        this.uri = uri;
-        this.data = undefined !== opts.data ? opts.data : null;
-        this.create();
-    }
-    /**
-     * Creates the XHR object and sends the request.
-     *
-     * @private
-     */
-    create() {
-        var _a;
-        const opts = pick(this.opts, "agent", "pfx", "key", "passphrase", "cert", "ca", "ciphers", "rejectUnauthorized", "autoUnref");
-        opts.xdomain = !!this.opts.xd;
-        const xhr = (this.xhr = new XHR(opts));
-        try {
-            xhr.open(this.method, this.uri, true);
-            try {
-                if (this.opts.extraHeaders) {
-                    xhr.setDisableHeaderCheck && xhr.setDisableHeaderCheck(true);
-                    for (let i in this.opts.extraHeaders) {
-                        if (this.opts.extraHeaders.hasOwnProperty(i)) {
-                            xhr.setRequestHeader(i, this.opts.extraHeaders[i]);
-                        }
-                    }
-                }
-            }
-            catch (e) { }
-            if ("POST" === this.method) {
-                try {
-                    xhr.setRequestHeader("Content-type", "text/plain;charset=UTF-8");
-                }
-                catch (e) { }
-            }
-            try {
-                xhr.setRequestHeader("Accept", "*/*");
-            }
-            catch (e) { }
-            (_a = this.opts.cookieJar) === null || _a === void 0 ? void 0 : _a.addCookies(xhr);
-            // ie6 check
-            if ("withCredentials" in xhr) {
-                xhr.withCredentials = this.opts.withCredentials;
-            }
-            if (this.opts.requestTimeout) {
-                xhr.timeout = this.opts.requestTimeout;
-            }
-            xhr.onreadystatechange = () => {
-                var _a;
-                if (xhr.readyState === 3) {
-                    (_a = this.opts.cookieJar) === null || _a === void 0 ? void 0 : _a.parseCookies(xhr);
-                }
-                if (4 !== xhr.readyState)
-                    return;
-                if (200 === xhr.status || 1223 === xhr.status) {
-                    this.onLoad();
-                }
-                else {
-                    // make sure the `error` event handler that's user-set
-                    // does not throw in the same tick and gets caught here
-                    this.setTimeoutFn(() => {
-                        this.onError(typeof xhr.status === "number" ? xhr.status : 0);
-                    }, 0);
-                }
-            };
-            xhr.send(this.data);
-        }
-        catch (e) {
-            // Need to defer since .create() is called directly from the constructor
-            // and thus the 'error' event can only be only bound *after* this exception
-            // occurs.  Therefore, also, we cannot throw here at all.
-            this.setTimeoutFn(() => {
-                this.onError(e);
-            }, 0);
-            return;
-        }
-        if (typeof document !== "undefined") {
-            this.index = Request.requestsCount++;
-            Request.requests[this.index] = this;
-        }
-    }
-    /**
-     * Called upon error.
-     *
-     * @private
-     */
-    onError(err) {
-        this.emitReserved("error", err, this.xhr);
-        this.cleanup(true);
-    }
-    /**
-     * Cleans up house.
-     *
-     * @private
-     */
-    cleanup(fromError) {
-        if ("undefined" === typeof this.xhr || null === this.xhr) {
-            return;
-        }
-        this.xhr.onreadystatechange = empty;
-        if (fromError) {
-            try {
-                this.xhr.abort();
-            }
-            catch (e) { }
-        }
-        if (typeof document !== "undefined") {
-            delete Request.requests[this.index];
-        }
-        this.xhr = null;
-    }
-    /**
-     * Called upon load.
-     *
-     * @private
-     */
-    onLoad() {
-        const data = this.xhr.responseText;
-        if (data !== null) {
-            this.emitReserved("data", data);
-            this.emitReserved("success");
-            this.cleanup();
-        }
-    }
-    /**
-     * Aborts the request.
-     *
-     * @package
-     */
-    abort() {
-        this.cleanup();
-    }
-}
-Request.requestsCount = 0;
-Request.requests = {};
-/**
- * Aborts pending requests when unloading the window. This is needed to prevent
- * memory leaks (e.g. when using IE) and to ensure that no spurious error is
- * emitted.
- */
-if (typeof document !== "undefined") {
-    // @ts-ignore
-    if (typeof attachEvent === "function") {
-        // @ts-ignore
-        attachEvent("onunload", unloadHandler);
-    }
-    else if (typeof addEventListener === "function") {
-        const terminationEvent = "onpagehide" in globalThisShim ? "pagehide" : "unload";
-        addEventListener(terminationEvent, unloadHandler, false);
-    }
-}
-function unloadHandler() {
-    for (let i in Request.requests) {
-        if (Request.requests.hasOwnProperty(i)) {
-            Request.requests[i].abort();
-        }
-    }
-}
-
-;// CONCATENATED MODULE: ./node_modules/engine.io-client/build/esm/transports/websocket-constructor.browser.js
-
-const nextTick = (() => {
-    const isPromiseAvailable = typeof Promise === "function" && typeof Promise.resolve === "function";
-    if (isPromiseAvailable) {
-        return (cb) => Promise.resolve().then(cb);
-    }
-    else {
-        return (cb, setTimeoutFn) => setTimeoutFn(cb, 0);
-    }
-})();
-const WebSocket = globalThisShim.WebSocket || globalThisShim.MozWebSocket;
-const usingBrowserWebSocket = true;
-const defaultBinaryType = "arraybuffer";
-
-;// CONCATENATED MODULE: ./node_modules/engine.io-client/build/esm/transports/websocket.js
-
-
-
-
-
-// detect ReactNative environment
-const isReactNative = typeof navigator !== "undefined" &&
-    typeof navigator.product === "string" &&
-    navigator.product.toLowerCase() === "reactnative";
-class WS extends Transport {
-    /**
-     * WebSocket transport constructor.
-     *
-     * @param {Object} opts - connection options
-     * @protected
-     */
-    constructor(opts) {
-        super(opts);
-        this.supportsBinary = !opts.forceBase64;
-    }
-    get name() {
-        return "websocket";
-    }
-    doOpen() {
-        if (!this.check()) {
-            // let probe timeout
-            return;
-        }
-        const uri = this.uri();
-        const protocols = this.opts.protocols;
-        // React Native only supports the 'headers' option, and will print a warning if anything else is passed
-        const opts = isReactNative
-            ? {}
-            : pick(this.opts, "agent", "perMessageDeflate", "pfx", "key", "passphrase", "cert", "ca", "ciphers", "rejectUnauthorized", "localAddress", "protocolVersion", "origin", "maxPayload", "family", "checkServerIdentity");
-        if (this.opts.extraHeaders) {
-            opts.headers = this.opts.extraHeaders;
-        }
-        try {
-            this.ws =
-                usingBrowserWebSocket && !isReactNative
-                    ? protocols
-                        ? new WebSocket(uri, protocols)
-                        : new WebSocket(uri)
-                    : new WebSocket(uri, protocols, opts);
-        }
-        catch (err) {
-            return this.emitReserved("error", err);
-        }
-        this.ws.binaryType = this.socket.binaryType;
-        this.addEventListeners();
-    }
-    /**
-     * Adds event listeners to the socket
-     *
-     * @private
-     */
-    addEventListeners() {
-        this.ws.onopen = () => {
-            if (this.opts.autoUnref) {
-                this.ws._socket.unref();
-            }
-            this.onOpen();
-        };
-        this.ws.onclose = (closeEvent) => this.onClose({
-            description: "websocket connection closed",
-            context: closeEvent,
-        });
-        this.ws.onmessage = (ev) => this.onData(ev.data);
-        this.ws.onerror = (e) => this.onError("websocket error", e);
-    }
-    write(packets) {
-        this.writable = false;
-        // encodePacket efficient as it uses WS framing
-        // no need for encodePayload
-        for (let i = 0; i < packets.length; i++) {
-            const packet = packets[i];
-            const lastPacket = i === packets.length - 1;
-            encodePacket(packet, this.supportsBinary, (data) => {
-                // always create a new object (GH-437)
-                const opts = {};
-                if (!usingBrowserWebSocket) {
-                    if (packet.options) {
-                        opts.compress = packet.options.compress;
-                    }
-                    if (this.opts.perMessageDeflate) {
-                        const len = 
-                        // @ts-ignore
-                        "string" === typeof data ? Buffer.byteLength(data) : data.length;
-                        if (len < this.opts.perMessageDeflate.threshold) {
-                            opts.compress = false;
-                        }
-                    }
-                }
-                // Sometimes the websocket has already been closed but the browser didn't
-                // have a chance of informing us about it yet, in that case send will
-                // throw an error
-                try {
-                    if (usingBrowserWebSocket) {
-                        // TypeError is thrown when passing the second argument on Safari
-                        this.ws.send(data);
-                    }
-                    else {
-                        this.ws.send(data, opts);
-                    }
-                }
-                catch (e) {
-                }
-                if (lastPacket) {
-                    // fake drain
-                    // defer to next tick to allow Socket to clear writeBuffer
-                    nextTick(() => {
-                        this.writable = true;
-                        this.emitReserved("drain");
-                    }, this.setTimeoutFn);
-                }
-            });
-        }
-    }
-    doClose() {
-        if (typeof this.ws !== "undefined") {
-            this.ws.close();
-            this.ws = null;
-        }
-    }
-    /**
-     * Generates uri for connection.
-     *
-     * @private
-     */
-    uri() {
-        const schema = this.opts.secure ? "wss" : "ws";
-        const query = this.query || {};
-        // append timestamp to URI
-        if (this.opts.timestampRequests) {
-            query[this.opts.timestampParam] = yeast();
-        }
-        // communicate binary support capabilities
-        if (!this.supportsBinary) {
-            query.b64 = 1;
-        }
-        return this.createUri(schema, query);
-    }
-    /**
-     * Feature detection for WebSocket.
-     *
-     * @return {Boolean} whether this transport is available.
-     * @private
-     */
-    check() {
-        return !!WebSocket;
-    }
-}
-
-;// CONCATENATED MODULE: ./node_modules/engine.io-client/build/esm/transports/webtransport.js
-
-
-
-class WT extends Transport {
-    get name() {
-        return "webtransport";
-    }
-    doOpen() {
-        // @ts-ignore
-        if (typeof WebTransport !== "function") {
-            return;
-        }
-        // @ts-ignore
-        this.transport = new WebTransport(this.createUri("https"), this.opts.transportOptions[this.name]);
-        this.transport.closed
-            .then(() => {
-            this.onClose();
-        })
-            .catch((err) => {
-            this.onError("webtransport error", err);
-        });
-        // note: we could have used async/await, but that would require some additional polyfills
-        this.transport.ready.then(() => {
-            this.transport.createBidirectionalStream().then((stream) => {
-                const decoderStream = createPacketDecoderStream(Number.MAX_SAFE_INTEGER, this.socket.binaryType);
-                const reader = stream.readable.pipeThrough(decoderStream).getReader();
-                const encoderStream = createPacketEncoderStream();
-                encoderStream.readable.pipeTo(stream.writable);
-                this.writer = encoderStream.writable.getWriter();
-                const read = () => {
-                    reader
-                        .read()
-                        .then(({ done, value }) => {
-                        if (done) {
-                            return;
-                        }
-                        this.onPacket(value);
-                        read();
-                    })
-                        .catch((err) => {
-                    });
-                };
-                read();
-                const packet = { type: "open" };
-                if (this.query.sid) {
-                    packet.data = `{"sid":"${this.query.sid}"}`;
-                }
-                this.writer.write(packet).then(() => this.onOpen());
-            });
-        });
-    }
-    write(packets) {
-        this.writable = false;
-        for (let i = 0; i < packets.length; i++) {
-            const packet = packets[i];
-            const lastPacket = i === packets.length - 1;
-            this.writer.write(packet).then(() => {
-                if (lastPacket) {
-                    nextTick(() => {
-                        this.writable = true;
-                        this.emitReserved("drain");
-                    }, this.setTimeoutFn);
-                }
-            });
-        }
-    }
-    doClose() {
-        var _a;
-        (_a = this.transport) === null || _a === void 0 ? void 0 : _a.close();
-    }
-}
-
-;// CONCATENATED MODULE: ./node_modules/engine.io-client/build/esm/transports/index.js
-
-
-
-const transports = {
-    websocket: WS,
-    webtransport: WT,
-    polling: Polling,
-};
-
-;// CONCATENATED MODULE: ./node_modules/engine.io-client/build/esm/contrib/parseuri.js
-// imported from https://github.com/galkn/parseuri
-/**
- * Parses a URI
- *
- * Note: we could also have used the built-in URL object, but it isn't supported on all platforms.
- *
- * See:
- * - https://developer.mozilla.org/en-US/docs/Web/API/URL
- * - https://caniuse.com/url
- * - https://www.rfc-editor.org/rfc/rfc3986#appendix-B
- *
- * History of the parse() method:
- * - first commit: https://github.com/socketio/socket.io-client/commit/4ee1d5d94b3906a9c052b459f1a818b15f38f91c
- * - export into its own module: https://github.com/socketio/engine.io-client/commit/de2c561e4564efeb78f1bdb1ba39ef81b2822cb3
- * - reimport: https://github.com/socketio/engine.io-client/commit/df32277c3f6d622eec5ed09f493cae3f3391d242
- *
- * @author Steven Levithan <stevenlevithan.com> (MIT license)
- * @api private
- */
-const re = /^(?:(?![^:@\/?#]+:[^:@\/]*@)(http|https|ws|wss):\/\/)?((?:(([^:@\/?#]*)(?::([^:@\/?#]*))?)?@)?((?:[a-f0-9]{0,4}:){2,7}[a-f0-9]{0,4}|[^:\/?#]*)(?::(\d*))?)(((\/(?:[^?#](?![^?#\/]*\.[^?#\/.]+(?:[?#]|$)))*\/?)?([^?#\/]*))(?:\?([^#]*))?(?:#(.*))?)/;
-const parts = [
-    'source', 'protocol', 'authority', 'userInfo', 'user', 'password', 'host', 'port', 'relative', 'path', 'directory', 'file', 'query', 'anchor'
-];
-function parse(str) {
-    if (str.length > 2000) {
-        throw "URI too long";
-    }
-    const src = str, b = str.indexOf('['), e = str.indexOf(']');
-    if (b != -1 && e != -1) {
-        str = str.substring(0, b) + str.substring(b, e).replace(/:/g, ';') + str.substring(e, str.length);
-    }
-    let m = re.exec(str || ''), uri = {}, i = 14;
-    while (i--) {
-        uri[parts[i]] = m[i] || '';
-    }
-    if (b != -1 && e != -1) {
-        uri.source = src;
-        uri.host = uri.host.substring(1, uri.host.length - 1).replace(/;/g, ':');
-        uri.authority = uri.authority.replace('[', '').replace(']', '').replace(/;/g, ':');
-        uri.ipv6uri = true;
-    }
-    uri.pathNames = pathNames(uri, uri['path']);
-    uri.queryKey = queryKey(uri, uri['query']);
-    return uri;
-}
-function pathNames(obj, path) {
-    const regx = /\/{2,9}/g, names = path.replace(regx, "/").split("/");
-    if (path.slice(0, 1) == '/' || path.length === 0) {
-        names.splice(0, 1);
-    }
-    if (path.slice(-1) == '/') {
-        names.splice(names.length - 1, 1);
-    }
-    return names;
-}
-function queryKey(uri, query) {
-    const data = {};
-    query.replace(/(?:^|&)([^&=]*)=?([^&]*)/g, function ($0, $1, $2) {
-        if ($1) {
-            data[$1] = $2;
-        }
-    });
-    return data;
-}
-
-;// CONCATENATED MODULE: ./node_modules/engine.io-client/build/esm/socket.js
-
-
-
-
-
-
-
-class Socket extends Emitter {
-    /**
-     * Socket constructor.
-     *
-     * @param {String|Object} uri - uri or options
-     * @param {Object} opts - options
-     */
-    constructor(uri, opts = {}) {
-        super();
-        this.binaryType = defaultBinaryType;
-        this.writeBuffer = [];
-        if (uri && "object" === typeof uri) {
-            opts = uri;
-            uri = null;
-        }
-        if (uri) {
-            uri = parse(uri);
-            opts.hostname = uri.host;
-            opts.secure = uri.protocol === "https" || uri.protocol === "wss";
-            opts.port = uri.port;
-            if (uri.query)
-                opts.query = uri.query;
-        }
-        else if (opts.host) {
-            opts.hostname = parse(opts.host).host;
-        }
-        installTimerFunctions(this, opts);
-        this.secure =
-            null != opts.secure
-                ? opts.secure
-                : typeof location !== "undefined" && "https:" === location.protocol;
-        if (opts.hostname && !opts.port) {
-            // if no port is specified manually, use the protocol default
-            opts.port = this.secure ? "443" : "80";
-        }
-        this.hostname =
-            opts.hostname ||
-                (typeof location !== "undefined" ? location.hostname : "localhost");
-        this.port =
-            opts.port ||
-                (typeof location !== "undefined" && location.port
-                    ? location.port
-                    : this.secure
-                        ? "443"
-                        : "80");
-        this.transports = opts.transports || [
-            "polling",
-            "websocket",
-            "webtransport",
-        ];
-        this.writeBuffer = [];
-        this.prevBufferLen = 0;
-        this.opts = Object.assign({
-            path: "/engine.io",
-            agent: false,
-            withCredentials: false,
-            upgrade: true,
-            timestampParam: "t",
-            rememberUpgrade: false,
-            addTrailingSlash: true,
-            rejectUnauthorized: true,
-            perMessageDeflate: {
-                threshold: 1024,
-            },
-            transportOptions: {},
-            closeOnBeforeunload: false,
-        }, opts);
-        this.opts.path =
-            this.opts.path.replace(/\/$/, "") +
-                (this.opts.addTrailingSlash ? "/" : "");
-        if (typeof this.opts.query === "string") {
-            this.opts.query = parseqs_decode(this.opts.query);
-        }
-        // set on handshake
-        this.id = null;
-        this.upgrades = null;
-        this.pingInterval = null;
-        this.pingTimeout = null;
-        // set on heartbeat
-        this.pingTimeoutTimer = null;
-        if (typeof addEventListener === "function") {
-            if (this.opts.closeOnBeforeunload) {
-                // Firefox closes the connection when the "beforeunload" event is emitted but not Chrome. This event listener
-                // ensures every browser behaves the same (no "disconnect" event at the Socket.IO level when the page is
-                // closed/reloaded)
-                this.beforeunloadEventListener = () => {
-                    if (this.transport) {
-                        // silently close the transport
-                        this.transport.removeAllListeners();
-                        this.transport.close();
-                    }
-                };
-                addEventListener("beforeunload", this.beforeunloadEventListener, false);
-            }
-            if (this.hostname !== "localhost") {
-                this.offlineEventListener = () => {
-                    this.onClose("transport close", {
-                        description: "network connection lost",
-                    });
-                };
-                addEventListener("offline", this.offlineEventListener, false);
-            }
-        }
-        this.open();
-    }
-    /**
-     * Creates transport of the given type.
-     *
-     * @param {String} name - transport name
-     * @return {Transport}
-     * @private
-     */
-    createTransport(name) {
-        const query = Object.assign({}, this.opts.query);
-        // append engine.io protocol identifier
-        query.EIO = protocol;
-        // transport name
-        query.transport = name;
-        // session id if we already have one
-        if (this.id)
-            query.sid = this.id;
-        const opts = Object.assign({}, this.opts, {
-            query,
-            socket: this,
-            hostname: this.hostname,
-            secure: this.secure,
-            port: this.port,
-        }, this.opts.transportOptions[name]);
-        return new transports[name](opts);
-    }
-    /**
-     * Initializes transport to use and starts probe.
-     *
-     * @private
-     */
-    open() {
-        let transport;
-        if (this.opts.rememberUpgrade &&
-            Socket.priorWebsocketSuccess &&
-            this.transports.indexOf("websocket") !== -1) {
-            transport = "websocket";
-        }
-        else if (0 === this.transports.length) {
-            // Emit error on next tick so it can be listened to
-            this.setTimeoutFn(() => {
-                this.emitReserved("error", "No transports available");
-            }, 0);
-            return;
-        }
-        else {
-            transport = this.transports[0];
-        }
-        this.readyState = "opening";
-        // Retry with the next transport if the transport is disabled (jsonp: false)
-        try {
-            transport = this.createTransport(transport);
-        }
-        catch (e) {
-            this.transports.shift();
-            this.open();
-            return;
-        }
-        transport.open();
-        this.setTransport(transport);
-    }
-    /**
-     * Sets the current transport. Disables the existing one (if any).
-     *
-     * @private
-     */
-    setTransport(transport) {
-        if (this.transport) {
-            this.transport.removeAllListeners();
-        }
-        // set up transport
-        this.transport = transport;
-        // set up transport listeners
-        transport
-            .on("drain", this.onDrain.bind(this))
-            .on("packet", this.onPacket.bind(this))
-            .on("error", this.onError.bind(this))
-            .on("close", (reason) => this.onClose("transport close", reason));
-    }
-    /**
-     * Probes a transport.
-     *
-     * @param {String} name - transport name
-     * @private
-     */
-    probe(name) {
-        let transport = this.createTransport(name);
-        let failed = false;
-        Socket.priorWebsocketSuccess = false;
-        const onTransportOpen = () => {
-            if (failed)
-                return;
-            transport.send([{ type: "ping", data: "probe" }]);
-            transport.once("packet", (msg) => {
-                if (failed)
-                    return;
-                if ("pong" === msg.type && "probe" === msg.data) {
-                    this.upgrading = true;
-                    this.emitReserved("upgrading", transport);
-                    if (!transport)
-                        return;
-                    Socket.priorWebsocketSuccess = "websocket" === transport.name;
-                    this.transport.pause(() => {
-                        if (failed)
-                            return;
-                        if ("closed" === this.readyState)
-                            return;
-                        cleanup();
-                        this.setTransport(transport);
-                        transport.send([{ type: "upgrade" }]);
-                        this.emitReserved("upgrade", transport);
-                        transport = null;
-                        this.upgrading = false;
-                        this.flush();
-                    });
-                }
-                else {
-                    const err = new Error("probe error");
-                    // @ts-ignore
-                    err.transport = transport.name;
-                    this.emitReserved("upgradeError", err);
-                }
-            });
-        };
-        function freezeTransport() {
-            if (failed)
-                return;
-            // Any callback called by transport should be ignored since now
-            failed = true;
-            cleanup();
-            transport.close();
-            transport = null;
-        }
-        // Handle any error that happens while probing
-        const onerror = (err) => {
-            const error = new Error("probe error: " + err);
-            // @ts-ignore
-            error.transport = transport.name;
-            freezeTransport();
-            this.emitReserved("upgradeError", error);
-        };
-        function onTransportClose() {
-            onerror("transport closed");
-        }
-        // When the socket is closed while we're probing
-        function onclose() {
-            onerror("socket closed");
-        }
-        // When the socket is upgraded while we're probing
-        function onupgrade(to) {
-            if (transport && to.name !== transport.name) {
-                freezeTransport();
-            }
-        }
-        // Remove all listeners on the transport and on self
-        const cleanup = () => {
-            transport.removeListener("open", onTransportOpen);
-            transport.removeListener("error", onerror);
-            transport.removeListener("close", onTransportClose);
-            this.off("close", onclose);
-            this.off("upgrading", onupgrade);
-        };
-        transport.once("open", onTransportOpen);
-        transport.once("error", onerror);
-        transport.once("close", onTransportClose);
-        this.once("close", onclose);
-        this.once("upgrading", onupgrade);
-        if (this.upgrades.indexOf("webtransport") !== -1 &&
-            name !== "webtransport") {
-            // favor WebTransport
-            this.setTimeoutFn(() => {
-                if (!failed) {
-                    transport.open();
-                }
-            }, 200);
-        }
-        else {
-            transport.open();
-        }
-    }
-    /**
-     * Called when connection is deemed open.
-     *
-     * @private
-     */
-    onOpen() {
-        this.readyState = "open";
-        Socket.priorWebsocketSuccess = "websocket" === this.transport.name;
-        this.emitReserved("open");
-        this.flush();
-        // we check for `readyState` in case an `open`
-        // listener already closed the socket
-        if ("open" === this.readyState && this.opts.upgrade) {
-            let i = 0;
-            const l = this.upgrades.length;
-            for (; i < l; i++) {
-                this.probe(this.upgrades[i]);
-            }
-        }
-    }
-    /**
-     * Handles a packet.
-     *
-     * @private
-     */
-    onPacket(packet) {
-        if ("opening" === this.readyState ||
-            "open" === this.readyState ||
-            "closing" === this.readyState) {
-            this.emitReserved("packet", packet);
-            // Socket is live - any packet counts
-            this.emitReserved("heartbeat");
-            this.resetPingTimeout();
-            switch (packet.type) {
-                case "open":
-                    this.onHandshake(JSON.parse(packet.data));
-                    break;
-                case "ping":
-                    this.sendPacket("pong");
-                    this.emitReserved("ping");
-                    this.emitReserved("pong");
-                    break;
-                case "error":
-                    const err = new Error("server error");
-                    // @ts-ignore
-                    err.code = packet.data;
-                    this.onError(err);
-                    break;
-                case "message":
-                    this.emitReserved("data", packet.data);
-                    this.emitReserved("message", packet.data);
-                    break;
-            }
-        }
-        else {
-        }
-    }
-    /**
-     * Called upon handshake completion.
-     *
-     * @param {Object} data - handshake obj
-     * @private
-     */
-    onHandshake(data) {
-        this.emitReserved("handshake", data);
-        this.id = data.sid;
-        this.transport.query.sid = data.sid;
-        this.upgrades = this.filterUpgrades(data.upgrades);
-        this.pingInterval = data.pingInterval;
-        this.pingTimeout = data.pingTimeout;
-        this.maxPayload = data.maxPayload;
-        this.onOpen();
-        // In case open handler closes socket
-        if ("closed" === this.readyState)
-            return;
-        this.resetPingTimeout();
-    }
-    /**
-     * Sets and resets ping timeout timer based on server pings.
-     *
-     * @private
-     */
-    resetPingTimeout() {
-        this.clearTimeoutFn(this.pingTimeoutTimer);
-        this.pingTimeoutTimer = this.setTimeoutFn(() => {
-            this.onClose("ping timeout");
-        }, this.pingInterval + this.pingTimeout);
-        if (this.opts.autoUnref) {
-            this.pingTimeoutTimer.unref();
-        }
-    }
-    /**
-     * Called on `drain` event
-     *
-     * @private
-     */
-    onDrain() {
-        this.writeBuffer.splice(0, this.prevBufferLen);
-        // setting prevBufferLen = 0 is very important
-        // for example, when upgrading, upgrade packet is sent over,
-        // and a nonzero prevBufferLen could cause problems on `drain`
-        this.prevBufferLen = 0;
-        if (0 === this.writeBuffer.length) {
-            this.emitReserved("drain");
-        }
-        else {
-            this.flush();
-        }
-    }
-    /**
-     * Flush write buffers.
-     *
-     * @private
-     */
-    flush() {
-        if ("closed" !== this.readyState &&
-            this.transport.writable &&
-            !this.upgrading &&
-            this.writeBuffer.length) {
-            const packets = this.getWritablePackets();
-            this.transport.send(packets);
-            // keep track of current length of writeBuffer
-            // splice writeBuffer and callbackBuffer on `drain`
-            this.prevBufferLen = packets.length;
-            this.emitReserved("flush");
-        }
-    }
-    /**
-     * Ensure the encoded size of the writeBuffer is below the maxPayload value sent by the server (only for HTTP
-     * long-polling)
-     *
-     * @private
-     */
-    getWritablePackets() {
-        const shouldCheckPayloadSize = this.maxPayload &&
-            this.transport.name === "polling" &&
-            this.writeBuffer.length > 1;
-        if (!shouldCheckPayloadSize) {
-            return this.writeBuffer;
-        }
-        let payloadSize = 1; // first packet type
-        for (let i = 0; i < this.writeBuffer.length; i++) {
-            const data = this.writeBuffer[i].data;
-            if (data) {
-                payloadSize += byteLength(data);
-            }
-            if (i > 0 && payloadSize > this.maxPayload) {
-                return this.writeBuffer.slice(0, i);
-            }
-            payloadSize += 2; // separator + packet type
-        }
-        return this.writeBuffer;
-    }
-    /**
-     * Sends a message.
-     *
-     * @param {String} msg - message.
-     * @param {Object} options.
-     * @param {Function} callback function.
-     * @return {Socket} for chaining.
-     */
-    write(msg, options, fn) {
-        this.sendPacket("message", msg, options, fn);
-        return this;
-    }
-    send(msg, options, fn) {
-        this.sendPacket("message", msg, options, fn);
-        return this;
-    }
-    /**
-     * Sends a packet.
-     *
-     * @param {String} type: packet type.
-     * @param {String} data.
-     * @param {Object} options.
-     * @param {Function} fn - callback function.
-     * @private
-     */
-    sendPacket(type, data, options, fn) {
-        if ("function" === typeof data) {
-            fn = data;
-            data = undefined;
-        }
-        if ("function" === typeof options) {
-            fn = options;
-            options = null;
-        }
-        if ("closing" === this.readyState || "closed" === this.readyState) {
-            return;
-        }
-        options = options || {};
-        options.compress = false !== options.compress;
-        const packet = {
-            type: type,
-            data: data,
-            options: options,
-        };
-        this.emitReserved("packetCreate", packet);
-        this.writeBuffer.push(packet);
-        if (fn)
-            this.once("flush", fn);
-        this.flush();
-    }
-    /**
-     * Closes the connection.
-     */
-    close() {
-        const close = () => {
-            this.onClose("forced close");
-            this.transport.close();
-        };
-        const cleanupAndClose = () => {
-            this.off("upgrade", cleanupAndClose);
-            this.off("upgradeError", cleanupAndClose);
-            close();
-        };
-        const waitForUpgrade = () => {
-            // wait for upgrade to finish since we can't send packets while pausing a transport
-            this.once("upgrade", cleanupAndClose);
-            this.once("upgradeError", cleanupAndClose);
-        };
-        if ("opening" === this.readyState || "open" === this.readyState) {
-            this.readyState = "closing";
-            if (this.writeBuffer.length) {
-                this.once("drain", () => {
-                    if (this.upgrading) {
-                        waitForUpgrade();
-                    }
-                    else {
-                        close();
-                    }
-                });
-            }
-            else if (this.upgrading) {
-                waitForUpgrade();
-            }
-            else {
-                close();
-            }
-        }
-        return this;
-    }
-    /**
-     * Called upon transport error
-     *
-     * @private
-     */
-    onError(err) {
-        Socket.priorWebsocketSuccess = false;
-        this.emitReserved("error", err);
-        this.onClose("transport error", err);
-    }
-    /**
-     * Called upon transport close.
-     *
-     * @private
-     */
-    onClose(reason, description) {
-        if ("opening" === this.readyState ||
-            "open" === this.readyState ||
-            "closing" === this.readyState) {
-            // clear timers
-            this.clearTimeoutFn(this.pingTimeoutTimer);
-            // stop event from firing again for transport
-            this.transport.removeAllListeners("close");
-            // ensure transport won't stay open
-            this.transport.close();
-            // ignore further transport communication
-            this.transport.removeAllListeners();
-            if (typeof removeEventListener === "function") {
-                removeEventListener("beforeunload", this.beforeunloadEventListener, false);
-                removeEventListener("offline", this.offlineEventListener, false);
-            }
-            // set ready state
-            this.readyState = "closed";
-            // clear session id
-            this.id = null;
-            // emit close event
-            this.emitReserved("close", reason, description);
-            // clean buffers after, so users can still
-            // grab the buffers on `close` event
-            this.writeBuffer = [];
-            this.prevBufferLen = 0;
-        }
-    }
-    /**
-     * Filters upgrades, returning only those matching client transports.
-     *
-     * @param {Array} upgrades - server upgrades
-     * @private
-     */
-    filterUpgrades(upgrades) {
-        const filteredUpgrades = [];
-        let i = 0;
-        const j = upgrades.length;
-        for (; i < j; i++) {
-            if (~this.transports.indexOf(upgrades[i]))
-                filteredUpgrades.push(upgrades[i]);
-        }
-        return filteredUpgrades;
-    }
-}
-Socket.protocol = protocol;
-
-;// CONCATENATED MODULE: ./node_modules/engine.io-client/build/esm/index.js
-
-
-const esm_protocol = Socket.protocol;
-
-
-
-
-
-
-;// CONCATENATED MODULE: ./node_modules/socket.io-client/build/esm/url.js
-
-/**
- * URL parser.
- *
- * @param uri - url
- * @param path - the request path of the connection
- * @param loc - An object meant to mimic window.location.
- *        Defaults to window.location.
- * @public
- */
-function url(uri, path = "", loc) {
-    let obj = uri;
-    // default to window.location
-    loc = loc || (typeof location !== "undefined" && location);
-    if (null == uri)
-        uri = loc.protocol + "//" + loc.host;
-    // relative path support
-    if (typeof uri === "string") {
-        if ("/" === uri.charAt(0)) {
-            if ("/" === uri.charAt(1)) {
-                uri = loc.protocol + uri;
-            }
-            else {
-                uri = loc.host + uri;
-            }
-        }
-        if (!/^(https?|wss?):\/\//.test(uri)) {
-            if ("undefined" !== typeof loc) {
-                uri = loc.protocol + "//" + uri;
-            }
-            else {
-                uri = "https://" + uri;
-            }
-        }
-        // parse
-        obj = parse(uri);
-    }
-    // make sure we treat `localhost:80` and `localhost` equally
-    if (!obj.port) {
-        if (/^(http|ws)$/.test(obj.protocol)) {
-            obj.port = "80";
-        }
-        else if (/^(http|ws)s$/.test(obj.protocol)) {
-            obj.port = "443";
-        }
-    }
-    obj.path = obj.path || "/";
-    const ipv6 = obj.host.indexOf(":") !== -1;
-    const host = ipv6 ? "[" + obj.host + "]" : obj.host;
-    // define unique id
-    obj.id = obj.protocol + "://" + host + ":" + obj.port + path;
-    // define href
-    obj.href =
-        obj.protocol +
-            "://" +
-            host +
-            (loc && loc.port === obj.port ? "" : ":" + obj.port);
-    return obj;
-}
-
-;// CONCATENATED MODULE: ./node_modules/socket.io-parser/build/esm/is-binary.js
-const is_binary_withNativeArrayBuffer = typeof ArrayBuffer === "function";
-const is_binary_isView = (obj) => {
-    return typeof ArrayBuffer.isView === "function"
-        ? ArrayBuffer.isView(obj)
-        : obj.buffer instanceof ArrayBuffer;
-};
-const is_binary_toString = Object.prototype.toString;
-const is_binary_withNativeBlob = typeof Blob === "function" ||
-    (typeof Blob !== "undefined" &&
-        is_binary_toString.call(Blob) === "[object BlobConstructor]");
-const withNativeFile = typeof File === "function" ||
-    (typeof File !== "undefined" &&
-        is_binary_toString.call(File) === "[object FileConstructor]");
-/**
- * Returns true if obj is a Buffer, an ArrayBuffer, a Blob or a File.
- *
- * @private
- */
-function isBinary(obj) {
-    return ((is_binary_withNativeArrayBuffer && (obj instanceof ArrayBuffer || is_binary_isView(obj))) ||
-        (is_binary_withNativeBlob && obj instanceof Blob) ||
-        (withNativeFile && obj instanceof File));
-}
-function hasBinary(obj, toJSON) {
-    if (!obj || typeof obj !== "object") {
-        return false;
-    }
-    if (Array.isArray(obj)) {
-        for (let i = 0, l = obj.length; i < l; i++) {
-            if (hasBinary(obj[i])) {
-                return true;
-            }
-        }
-        return false;
-    }
-    if (isBinary(obj)) {
-        return true;
-    }
-    if (obj.toJSON &&
-        typeof obj.toJSON === "function" &&
-        arguments.length === 1) {
-        return hasBinary(obj.toJSON(), true);
-    }
-    for (const key in obj) {
-        if (Object.prototype.hasOwnProperty.call(obj, key) && hasBinary(obj[key])) {
-            return true;
-        }
-    }
-    return false;
-}
-
-;// CONCATENATED MODULE: ./node_modules/socket.io-parser/build/esm/binary.js
-
-/**
- * Replaces every Buffer | ArrayBuffer | Blob | File in packet with a numbered placeholder.
- *
- * @param {Object} packet - socket.io event packet
- * @return {Object} with deconstructed packet and list of buffers
- * @public
- */
-function deconstructPacket(packet) {
-    const buffers = [];
-    const packetData = packet.data;
-    const pack = packet;
-    pack.data = _deconstructPacket(packetData, buffers);
-    pack.attachments = buffers.length; // number of binary 'attachments'
-    return { packet: pack, buffers: buffers };
-}
-function _deconstructPacket(data, buffers) {
-    if (!data)
-        return data;
-    if (isBinary(data)) {
-        const placeholder = { _placeholder: true, num: buffers.length };
-        buffers.push(data);
-        return placeholder;
-    }
-    else if (Array.isArray(data)) {
-        const newData = new Array(data.length);
-        for (let i = 0; i < data.length; i++) {
-            newData[i] = _deconstructPacket(data[i], buffers);
-        }
-        return newData;
-    }
-    else if (typeof data === "object" && !(data instanceof Date)) {
-        const newData = {};
-        for (const key in data) {
-            if (Object.prototype.hasOwnProperty.call(data, key)) {
-                newData[key] = _deconstructPacket(data[key], buffers);
-            }
-        }
-        return newData;
-    }
-    return data;
-}
-/**
- * Reconstructs a binary packet from its placeholder packet and buffers
- *
- * @param {Object} packet - event packet with placeholders
- * @param {Array} buffers - binary buffers to put in placeholder positions
- * @return {Object} reconstructed packet
- * @public
- */
-function reconstructPacket(packet, buffers) {
-    packet.data = _reconstructPacket(packet.data, buffers);
-    delete packet.attachments; // no longer useful
-    return packet;
-}
-function _reconstructPacket(data, buffers) {
-    if (!data)
-        return data;
-    if (data && data._placeholder === true) {
-        const isIndexValid = typeof data.num === "number" &&
-            data.num >= 0 &&
-            data.num < buffers.length;
-        if (isIndexValid) {
-            return buffers[data.num]; // appropriate buffer (should be natural order anyway)
-        }
-        else {
-            throw new Error("illegal attachments");
-        }
-    }
-    else if (Array.isArray(data)) {
-        for (let i = 0; i < data.length; i++) {
-            data[i] = _reconstructPacket(data[i], buffers);
-        }
-    }
-    else if (typeof data === "object") {
-        for (const key in data) {
-            if (Object.prototype.hasOwnProperty.call(data, key)) {
-                data[key] = _reconstructPacket(data[key], buffers);
-            }
-        }
-    }
-    return data;
-}
-
-;// CONCATENATED MODULE: ./node_modules/socket.io-parser/build/esm/index.js
-
-
-
-/**
- * These strings must not be used as event names, as they have a special meaning.
- */
-const RESERVED_EVENTS = [
-    "connect",
-    "connect_error",
-    "disconnect",
-    "disconnecting",
-    "newListener",
-    "removeListener", // used by the Node.js EventEmitter
-];
-/**
- * Protocol version.
- *
- * @public
- */
-const build_esm_protocol = 5;
-var PacketType;
-(function (PacketType) {
-    PacketType[PacketType["CONNECT"] = 0] = "CONNECT";
-    PacketType[PacketType["DISCONNECT"] = 1] = "DISCONNECT";
-    PacketType[PacketType["EVENT"] = 2] = "EVENT";
-    PacketType[PacketType["ACK"] = 3] = "ACK";
-    PacketType[PacketType["CONNECT_ERROR"] = 4] = "CONNECT_ERROR";
-    PacketType[PacketType["BINARY_EVENT"] = 5] = "BINARY_EVENT";
-    PacketType[PacketType["BINARY_ACK"] = 6] = "BINARY_ACK";
-})(PacketType || (PacketType = {}));
-/**
- * A socket.io Encoder instance
- */
-class Encoder {
-    /**
-     * Encoder constructor
-     *
-     * @param {function} replacer - custom replacer to pass down to JSON.parse
-     */
-    constructor(replacer) {
-        this.replacer = replacer;
-    }
-    /**
-     * Encode a packet as a single string if non-binary, or as a
-     * buffer sequence, depending on packet type.
-     *
-     * @param {Object} obj - packet object
-     */
-    encode(obj) {
-        if (obj.type === PacketType.EVENT || obj.type === PacketType.ACK) {
-            if (hasBinary(obj)) {
-                return this.encodeAsBinary({
-                    type: obj.type === PacketType.EVENT
-                        ? PacketType.BINARY_EVENT
-                        : PacketType.BINARY_ACK,
-                    nsp: obj.nsp,
-                    data: obj.data,
-                    id: obj.id,
-                });
-            }
-        }
-        return [this.encodeAsString(obj)];
-    }
-    /**
-     * Encode packet as string.
-     */
-    encodeAsString(obj) {
-        // first is type
-        let str = "" + obj.type;
-        // attachments if we have them
-        if (obj.type === PacketType.BINARY_EVENT ||
-            obj.type === PacketType.BINARY_ACK) {
-            str += obj.attachments + "-";
-        }
-        // if we have a namespace other than `/`
-        // we append it followed by a comma `,`
-        if (obj.nsp && "/" !== obj.nsp) {
-            str += obj.nsp + ",";
-        }
-        // immediately followed by the id
-        if (null != obj.id) {
-            str += obj.id;
-        }
-        // json data
-        if (null != obj.data) {
-            str += JSON.stringify(obj.data, this.replacer);
-        }
-        return str;
-    }
-    /**
-     * Encode packet as 'buffer sequence' by removing blobs, and
-     * deconstructing packet into object with placeholders and
-     * a list of buffers.
-     */
-    encodeAsBinary(obj) {
-        const deconstruction = deconstructPacket(obj);
-        const pack = this.encodeAsString(deconstruction.packet);
-        const buffers = deconstruction.buffers;
-        buffers.unshift(pack); // add packet info to beginning of data list
-        return buffers; // write all the buffers
-    }
-}
-// see https://stackoverflow.com/questions/8511281/check-if-a-value-is-an-object-in-javascript
-function isObject(value) {
-    return Object.prototype.toString.call(value) === "[object Object]";
-}
-/**
- * A socket.io Decoder instance
- *
- * @return {Object} decoder
- */
-class Decoder extends Emitter {
-    /**
-     * Decoder constructor
-     *
-     * @param {function} reviver - custom reviver to pass down to JSON.stringify
-     */
-    constructor(reviver) {
-        super();
-        this.reviver = reviver;
-    }
-    /**
-     * Decodes an encoded packet string into packet JSON.
-     *
-     * @param {String} obj - encoded packet
-     */
-    add(obj) {
-        let packet;
-        if (typeof obj === "string") {
-            if (this.reconstructor) {
-                throw new Error("got plaintext data when reconstructing a packet");
-            }
-            packet = this.decodeString(obj);
-            const isBinaryEvent = packet.type === PacketType.BINARY_EVENT;
-            if (isBinaryEvent || packet.type === PacketType.BINARY_ACK) {
-                packet.type = isBinaryEvent ? PacketType.EVENT : PacketType.ACK;
-                // binary packet's json
-                this.reconstructor = new BinaryReconstructor(packet);
-                // no attachments, labeled binary but no binary data to follow
-                if (packet.attachments === 0) {
-                    super.emitReserved("decoded", packet);
-                }
-            }
-            else {
-                // non-binary full packet
-                super.emitReserved("decoded", packet);
-            }
-        }
-        else if (isBinary(obj) || obj.base64) {
-            // raw binary data
-            if (!this.reconstructor) {
-                throw new Error("got binary data when not reconstructing a packet");
-            }
-            else {
-                packet = this.reconstructor.takeBinaryData(obj);
-                if (packet) {
-                    // received final buffer
-                    this.reconstructor = null;
-                    super.emitReserved("decoded", packet);
-                }
-            }
-        }
-        else {
-            throw new Error("Unknown type: " + obj);
-        }
-    }
-    /**
-     * Decode a packet String (JSON data)
-     *
-     * @param {String} str
-     * @return {Object} packet
-     */
-    decodeString(str) {
-        let i = 0;
-        // look up type
-        const p = {
-            type: Number(str.charAt(0)),
-        };
-        if (PacketType[p.type] === undefined) {
-            throw new Error("unknown packet type " + p.type);
-        }
-        // look up attachments if type binary
-        if (p.type === PacketType.BINARY_EVENT ||
-            p.type === PacketType.BINARY_ACK) {
-            const start = i + 1;
-            while (str.charAt(++i) !== "-" && i != str.length) { }
-            const buf = str.substring(start, i);
-            if (buf != Number(buf) || str.charAt(i) !== "-") {
-                throw new Error("Illegal attachments");
-            }
-            p.attachments = Number(buf);
-        }
-        // look up namespace (if any)
-        if ("/" === str.charAt(i + 1)) {
-            const start = i + 1;
-            while (++i) {
-                const c = str.charAt(i);
-                if ("," === c)
-                    break;
-                if (i === str.length)
-                    break;
-            }
-            p.nsp = str.substring(start, i);
-        }
-        else {
-            p.nsp = "/";
-        }
-        // look up id
-        const next = str.charAt(i + 1);
-        if ("" !== next && Number(next) == next) {
-            const start = i + 1;
-            while (++i) {
-                const c = str.charAt(i);
-                if (null == c || Number(c) != c) {
-                    --i;
-                    break;
-                }
-                if (i === str.length)
-                    break;
-            }
-            p.id = Number(str.substring(start, i + 1));
-        }
-        // look up json data
-        if (str.charAt(++i)) {
-            const payload = this.tryParse(str.substr(i));
-            if (Decoder.isPayloadValid(p.type, payload)) {
-                p.data = payload;
-            }
-            else {
-                throw new Error("invalid payload");
-            }
-        }
-        return p;
-    }
-    tryParse(str) {
-        try {
-            return JSON.parse(str, this.reviver);
-        }
-        catch (e) {
-            return false;
-        }
-    }
-    static isPayloadValid(type, payload) {
-        switch (type) {
-            case PacketType.CONNECT:
-                return isObject(payload);
-            case PacketType.DISCONNECT:
-                return payload === undefined;
-            case PacketType.CONNECT_ERROR:
-                return typeof payload === "string" || isObject(payload);
-            case PacketType.EVENT:
-            case PacketType.BINARY_EVENT:
-                return (Array.isArray(payload) &&
-                    (typeof payload[0] === "number" ||
-                        (typeof payload[0] === "string" &&
-                            RESERVED_EVENTS.indexOf(payload[0]) === -1)));
-            case PacketType.ACK:
-            case PacketType.BINARY_ACK:
-                return Array.isArray(payload);
-        }
-    }
-    /**
-     * Deallocates a parser's resources
-     */
-    destroy() {
-        if (this.reconstructor) {
-            this.reconstructor.finishedReconstruction();
-            this.reconstructor = null;
-        }
-    }
-}
-/**
- * A manager of a binary event's 'buffer sequence'. Should
- * be constructed whenever a packet of type BINARY_EVENT is
- * decoded.
- *
- * @param {Object} packet
- * @return {BinaryReconstructor} initialized reconstructor
- */
-class BinaryReconstructor {
-    constructor(packet) {
-        this.packet = packet;
-        this.buffers = [];
-        this.reconPack = packet;
-    }
-    /**
-     * Method to be called when binary data received from connection
-     * after a BINARY_EVENT packet.
-     *
-     * @param {Buffer | ArrayBuffer} binData - the raw binary data received
-     * @return {null | Object} returns null if more binary data is expected or
-     *   a reconstructed packet object if all buffers have been received.
-     */
-    takeBinaryData(binData) {
-        this.buffers.push(binData);
-        if (this.buffers.length === this.reconPack.attachments) {
-            // done with buffer list
-            const packet = reconstructPacket(this.reconPack, this.buffers);
-            this.finishedReconstruction();
-            return packet;
-        }
-        return null;
-    }
-    /**
-     * Cleans up binary packet reconstruction variables.
-     */
-    finishedReconstruction() {
-        this.reconPack = null;
-        this.buffers = [];
-    }
-}
-
-;// CONCATENATED MODULE: ./node_modules/socket.io-client/build/esm/on.js
-function on(obj, ev, fn) {
-    obj.on(ev, fn);
-    return function subDestroy() {
-        obj.off(ev, fn);
-    };
-}
-
-;// CONCATENATED MODULE: ./node_modules/socket.io-client/build/esm/socket.js
-
-
-
-/**
- * Internal events.
- * These events can't be emitted by the user.
- */
-const socket_RESERVED_EVENTS = Object.freeze({
-    connect: 1,
-    connect_error: 1,
-    disconnect: 1,
-    disconnecting: 1,
-    // EventEmitter reserved events: https://nodejs.org/api/events.html#events_event_newlistener
-    newListener: 1,
-    removeListener: 1,
-});
-/**
- * A Socket is the fundamental class for interacting with the server.
- *
- * A Socket belongs to a certain Namespace (by default /) and uses an underlying {@link Manager} to communicate.
- *
- * @example
- * const socket = io();
- *
- * socket.on("connect", () => {
- *   console.log("connected");
- * });
- *
- * // send an event to the server
- * socket.emit("foo", "bar");
- *
- * socket.on("foobar", () => {
- *   // an event was received from the server
- * });
- *
- * // upon disconnection
- * socket.on("disconnect", (reason) => {
- *   console.log(`disconnected due to ${reason}`);
- * });
- */
-class socket_Socket extends Emitter {
-    /**
-     * `Socket` constructor.
-     */
-    constructor(io, nsp, opts) {
-        super();
-        /**
-         * Whether the socket is currently connected to the server.
-         *
-         * @example
-         * const socket = io();
-         *
-         * socket.on("connect", () => {
-         *   console.log(socket.connected); // true
-         * });
-         *
-         * socket.on("disconnect", () => {
-         *   console.log(socket.connected); // false
-         * });
-         */
-        this.connected = false;
-        /**
-         * Whether the connection state was recovered after a temporary disconnection. In that case, any missed packets will
-         * be transmitted by the server.
-         */
-        this.recovered = false;
-        /**
-         * Buffer for packets received before the CONNECT packet
-         */
-        this.receiveBuffer = [];
-        /**
-         * Buffer for packets that will be sent once the socket is connected
-         */
-        this.sendBuffer = [];
-        /**
-         * The queue of packets to be sent with retry in case of failure.
-         *
-         * Packets are sent one by one, each waiting for the server acknowledgement, in order to guarantee the delivery order.
-         * @private
-         */
-        this._queue = [];
-        /**
-         * A sequence to generate the ID of the {@link QueuedPacket}.
-         * @private
-         */
-        this._queueSeq = 0;
-        this.ids = 0;
-        /**
-         * A map containing acknowledgement handlers.
-         *
-         * The `withError` attribute is used to differentiate handlers that accept an error as first argument:
-         *
-         * - `socket.emit("test", (err, value) => { ... })` with `ackTimeout` option
-         * - `socket.timeout(5000).emit("test", (err, value) => { ... })`
-         * - `const value = await socket.emitWithAck("test")`
-         *
-         * From those that don't:
-         *
-         * - `socket.emit("test", (value) => { ... });`
-         *
-         * In the first case, the handlers will be called with an error when:
-         *
-         * - the timeout is reached
-         * - the socket gets disconnected
-         *
-         * In the second case, the handlers will be simply discarded upon disconnection, since the client will never receive
-         * an acknowledgement from the server.
-         *
-         * @private
-         */
-        this.acks = {};
-        this.flags = {};
-        this.io = io;
-        this.nsp = nsp;
-        if (opts && opts.auth) {
-            this.auth = opts.auth;
-        }
-        this._opts = Object.assign({}, opts);
-        if (this.io._autoConnect)
-            this.open();
-    }
-    /**
-     * Whether the socket is currently disconnected
-     *
-     * @example
-     * const socket = io();
-     *
-     * socket.on("connect", () => {
-     *   console.log(socket.disconnected); // false
-     * });
-     *
-     * socket.on("disconnect", () => {
-     *   console.log(socket.disconnected); // true
-     * });
-     */
-    get disconnected() {
-        return !this.connected;
-    }
-    /**
-     * Subscribe to open, close and packet events
-     *
-     * @private
-     */
-    subEvents() {
-        if (this.subs)
-            return;
-        const io = this.io;
-        this.subs = [
-            on(io, "open", this.onopen.bind(this)),
-            on(io, "packet", this.onpacket.bind(this)),
-            on(io, "error", this.onerror.bind(this)),
-            on(io, "close", this.onclose.bind(this)),
-        ];
-    }
-    /**
-     * Whether the Socket will try to reconnect when its Manager connects or reconnects.
-     *
-     * @example
-     * const socket = io();
-     *
-     * console.log(socket.active); // true
-     *
-     * socket.on("disconnect", (reason) => {
-     *   if (reason === "io server disconnect") {
-     *     // the disconnection was initiated by the server, you need to manually reconnect
-     *     console.log(socket.active); // false
-     *   }
-     *   // else the socket will automatically try to reconnect
-     *   console.log(socket.active); // true
-     * });
-     */
-    get active() {
-        return !!this.subs;
-    }
-    /**
-     * "Opens" the socket.
-     *
-     * @example
-     * const socket = io({
-     *   autoConnect: false
-     * });
-     *
-     * socket.connect();
-     */
-    connect() {
-        if (this.connected)
-            return this;
-        this.subEvents();
-        if (!this.io["_reconnecting"])
-            this.io.open(); // ensure open
-        if ("open" === this.io._readyState)
-            this.onopen();
-        return this;
-    }
-    /**
-     * Alias for {@link connect()}.
-     */
-    open() {
-        return this.connect();
-    }
-    /**
-     * Sends a `message` event.
-     *
-     * This method mimics the WebSocket.send() method.
-     *
-     * @see https://developer.mozilla.org/en-US/docs/Web/API/WebSocket/send
-     *
-     * @example
-     * socket.send("hello");
-     *
-     * // this is equivalent to
-     * socket.emit("message", "hello");
-     *
-     * @return self
-     */
-    send(...args) {
-        args.unshift("message");
-        this.emit.apply(this, args);
-        return this;
-    }
-    /**
-     * Override `emit`.
-     * If the event is in `events`, it's emitted normally.
-     *
-     * @example
-     * socket.emit("hello", "world");
-     *
-     * // all serializable datastructures are supported (no need to call JSON.stringify)
-     * socket.emit("hello", 1, "2", { 3: ["4"], 5: Uint8Array.from([6]) });
-     *
-     * // with an acknowledgement from the server
-     * socket.emit("hello", "world", (val) => {
-     *   // ...
-     * });
-     *
-     * @return self
-     */
-    emit(ev, ...args) {
-        if (socket_RESERVED_EVENTS.hasOwnProperty(ev)) {
-            throw new Error('"' + ev.toString() + '" is a reserved event name');
-        }
-        args.unshift(ev);
-        if (this._opts.retries && !this.flags.fromQueue && !this.flags.volatile) {
-            this._addToQueue(args);
-            return this;
-        }
-        const packet = {
-            type: PacketType.EVENT,
-            data: args,
-        };
-        packet.options = {};
-        packet.options.compress = this.flags.compress !== false;
-        // event ack callback
-        if ("function" === typeof args[args.length - 1]) {
-            const id = this.ids++;
-            const ack = args.pop();
-            this._registerAckCallback(id, ack);
-            packet.id = id;
-        }
-        const isTransportWritable = this.io.engine &&
-            this.io.engine.transport &&
-            this.io.engine.transport.writable;
-        const discardPacket = this.flags.volatile && (!isTransportWritable || !this.connected);
-        if (discardPacket) {
-        }
-        else if (this.connected) {
-            this.notifyOutgoingListeners(packet);
-            this.packet(packet);
-        }
-        else {
-            this.sendBuffer.push(packet);
-        }
-        this.flags = {};
-        return this;
-    }
-    /**
-     * @private
-     */
-    _registerAckCallback(id, ack) {
-        var _a;
-        const timeout = (_a = this.flags.timeout) !== null && _a !== void 0 ? _a : this._opts.ackTimeout;
-        if (timeout === undefined) {
-            this.acks[id] = ack;
-            return;
-        }
-        // @ts-ignore
-        const timer = this.io.setTimeoutFn(() => {
-            delete this.acks[id];
-            for (let i = 0; i < this.sendBuffer.length; i++) {
-                if (this.sendBuffer[i].id === id) {
-                    this.sendBuffer.splice(i, 1);
-                }
-            }
-            ack.call(this, new Error("operation has timed out"));
-        }, timeout);
-        const fn = (...args) => {
-            // @ts-ignore
-            this.io.clearTimeoutFn(timer);
-            ack.apply(this, args);
-        };
-        fn.withError = true;
-        this.acks[id] = fn;
-    }
-    /**
-     * Emits an event and waits for an acknowledgement
-     *
-     * @example
-     * // without timeout
-     * const response = await socket.emitWithAck("hello", "world");
-     *
-     * // with a specific timeout
-     * try {
-     *   const response = await socket.timeout(1000).emitWithAck("hello", "world");
-     * } catch (err) {
-     *   // the server did not acknowledge the event in the given delay
-     * }
-     *
-     * @return a Promise that will be fulfilled when the server acknowledges the event
-     */
-    emitWithAck(ev, ...args) {
-        return new Promise((resolve, reject) => {
-            const fn = (arg1, arg2) => {
-                return arg1 ? reject(arg1) : resolve(arg2);
-            };
-            fn.withError = true;
-            args.push(fn);
-            this.emit(ev, ...args);
-        });
-    }
-    /**
-     * Add the packet to the queue.
-     * @param args
-     * @private
-     */
-    _addToQueue(args) {
-        let ack;
-        if (typeof args[args.length - 1] === "function") {
-            ack = args.pop();
-        }
-        const packet = {
-            id: this._queueSeq++,
-            tryCount: 0,
-            pending: false,
-            args,
-            flags: Object.assign({ fromQueue: true }, this.flags),
-        };
-        args.push((err, ...responseArgs) => {
-            if (packet !== this._queue[0]) {
-                // the packet has already been acknowledged
-                return;
-            }
-            const hasError = err !== null;
-            if (hasError) {
-                if (packet.tryCount > this._opts.retries) {
-                    this._queue.shift();
-                    if (ack) {
-                        ack(err);
-                    }
-                }
-            }
-            else {
-                this._queue.shift();
-                if (ack) {
-                    ack(null, ...responseArgs);
-                }
-            }
-            packet.pending = false;
-            return this._drainQueue();
-        });
-        this._queue.push(packet);
-        this._drainQueue();
-    }
-    /**
-     * Send the first packet of the queue, and wait for an acknowledgement from the server.
-     * @param force - whether to resend a packet that has not been acknowledged yet
-     *
-     * @private
-     */
-    _drainQueue(force = false) {
-        if (!this.connected || this._queue.length === 0) {
-            return;
-        }
-        const packet = this._queue[0];
-        if (packet.pending && !force) {
-            return;
-        }
-        packet.pending = true;
-        packet.tryCount++;
-        this.flags = packet.flags;
-        this.emit.apply(this, packet.args);
-    }
-    /**
-     * Sends a packet.
-     *
-     * @param packet
-     * @private
-     */
-    packet(packet) {
-        packet.nsp = this.nsp;
-        this.io._packet(packet);
-    }
-    /**
-     * Called upon engine `open`.
-     *
-     * @private
-     */
-    onopen() {
-        if (typeof this.auth == "function") {
-            this.auth((data) => {
-                this._sendConnectPacket(data);
-            });
-        }
-        else {
-            this._sendConnectPacket(this.auth);
-        }
-    }
-    /**
-     * Sends a CONNECT packet to initiate the Socket.IO session.
-     *
-     * @param data
-     * @private
-     */
-    _sendConnectPacket(data) {
-        this.packet({
-            type: PacketType.CONNECT,
-            data: this._pid
-                ? Object.assign({ pid: this._pid, offset: this._lastOffset }, data)
-                : data,
-        });
-    }
-    /**
-     * Called upon engine or manager `error`.
-     *
-     * @param err
-     * @private
-     */
-    onerror(err) {
-        if (!this.connected) {
-            this.emitReserved("connect_error", err);
-        }
-    }
-    /**
-     * Called upon engine `close`.
-     *
-     * @param reason
-     * @param description
-     * @private
-     */
-    onclose(reason, description) {
-        this.connected = false;
-        delete this.id;
-        this.emitReserved("disconnect", reason, description);
-        this._clearAcks();
-    }
-    /**
-     * Clears the acknowledgement handlers upon disconnection, since the client will never receive an acknowledgement from
-     * the server.
-     *
-     * @private
-     */
-    _clearAcks() {
-        Object.keys(this.acks).forEach((id) => {
-            const isBuffered = this.sendBuffer.some((packet) => String(packet.id) === id);
-            if (!isBuffered) {
-                // note: handlers that do not accept an error as first argument are ignored here
-                const ack = this.acks[id];
-                delete this.acks[id];
-                if (ack.withError) {
-                    ack.call(this, new Error("socket has been disconnected"));
-                }
-            }
-        });
-    }
-    /**
-     * Called with socket packet.
-     *
-     * @param packet
-     * @private
-     */
-    onpacket(packet) {
-        const sameNamespace = packet.nsp === this.nsp;
-        if (!sameNamespace)
-            return;
-        switch (packet.type) {
-            case PacketType.CONNECT:
-                if (packet.data && packet.data.sid) {
-                    this.onconnect(packet.data.sid, packet.data.pid);
-                }
-                else {
-                    this.emitReserved("connect_error", new Error("It seems you are trying to reach a Socket.IO server in v2.x with a v3.x client, but they are not compatible (more information here: https://socket.io/docs/v3/migrating-from-2-x-to-3-0/)"));
-                }
-                break;
-            case PacketType.EVENT:
-            case PacketType.BINARY_EVENT:
-                this.onevent(packet);
-                break;
-            case PacketType.ACK:
-            case PacketType.BINARY_ACK:
-                this.onack(packet);
-                break;
-            case PacketType.DISCONNECT:
-                this.ondisconnect();
-                break;
-            case PacketType.CONNECT_ERROR:
-                this.destroy();
-                const err = new Error(packet.data.message);
-                // @ts-ignore
-                err.data = packet.data.data;
-                this.emitReserved("connect_error", err);
-                break;
-        }
-    }
-    /**
-     * Called upon a server event.
-     *
-     * @param packet
-     * @private
-     */
-    onevent(packet) {
-        const args = packet.data || [];
-        if (null != packet.id) {
-            args.push(this.ack(packet.id));
-        }
-        if (this.connected) {
-            this.emitEvent(args);
-        }
-        else {
-            this.receiveBuffer.push(Object.freeze(args));
-        }
-    }
-    emitEvent(args) {
-        if (this._anyListeners && this._anyListeners.length) {
-            const listeners = this._anyListeners.slice();
-            for (const listener of listeners) {
-                listener.apply(this, args);
-            }
-        }
-        super.emit.apply(this, args);
-        if (this._pid && args.length && typeof args[args.length - 1] === "string") {
-            this._lastOffset = args[args.length - 1];
-        }
-    }
-    /**
-     * Produces an ack callback to emit with an event.
-     *
-     * @private
-     */
-    ack(id) {
-        const self = this;
-        let sent = false;
-        return function (...args) {
-            // prevent double callbacks
-            if (sent)
-                return;
-            sent = true;
-            self.packet({
-                type: PacketType.ACK,
-                id: id,
-                data: args,
-            });
-        };
-    }
-    /**
-     * Called upon a server acknowledgement.
-     *
-     * @param packet
-     * @private
-     */
-    onack(packet) {
-        const ack = this.acks[packet.id];
-        if (typeof ack !== "function") {
-            return;
-        }
-        delete this.acks[packet.id];
-        // @ts-ignore FIXME ack is incorrectly inferred as 'never'
-        if (ack.withError) {
-            packet.data.unshift(null);
-        }
-        // @ts-ignore
-        ack.apply(this, packet.data);
-    }
-    /**
-     * Called upon server connect.
-     *
-     * @private
-     */
-    onconnect(id, pid) {
-        this.id = id;
-        this.recovered = pid && this._pid === pid;
-        this._pid = pid; // defined only if connection state recovery is enabled
-        this.connected = true;
-        this.emitBuffered();
-        this.emitReserved("connect");
-        this._drainQueue(true);
-    }
-    /**
-     * Emit buffered events (received and emitted).
-     *
-     * @private
-     */
-    emitBuffered() {
-        this.receiveBuffer.forEach((args) => this.emitEvent(args));
-        this.receiveBuffer = [];
-        this.sendBuffer.forEach((packet) => {
-            this.notifyOutgoingListeners(packet);
-            this.packet(packet);
-        });
-        this.sendBuffer = [];
-    }
-    /**
-     * Called upon server disconnect.
-     *
-     * @private
-     */
-    ondisconnect() {
-        this.destroy();
-        this.onclose("io server disconnect");
-    }
-    /**
-     * Called upon forced client/server side disconnections,
-     * this method ensures the manager stops tracking us and
-     * that reconnections don't get triggered for this.
-     *
-     * @private
-     */
-    destroy() {
-        if (this.subs) {
-            // clean subscriptions to avoid reconnections
-            this.subs.forEach((subDestroy) => subDestroy());
-            this.subs = undefined;
-        }
-        this.io["_destroy"](this);
-    }
-    /**
-     * Disconnects the socket manually. In that case, the socket will not try to reconnect.
-     *
-     * If this is the last active Socket instance of the {@link Manager}, the low-level connection will be closed.
-     *
-     * @example
-     * const socket = io();
-     *
-     * socket.on("disconnect", (reason) => {
-     *   // console.log(reason); prints "io client disconnect"
-     * });
-     *
-     * socket.disconnect();
-     *
-     * @return self
-     */
-    disconnect() {
-        if (this.connected) {
-            this.packet({ type: PacketType.DISCONNECT });
-        }
-        // remove socket from pool
-        this.destroy();
-        if (this.connected) {
-            // fire events
-            this.onclose("io client disconnect");
-        }
-        return this;
-    }
-    /**
-     * Alias for {@link disconnect()}.
-     *
-     * @return self
-     */
-    close() {
-        return this.disconnect();
-    }
-    /**
-     * Sets the compress flag.
-     *
-     * @example
-     * socket.compress(false).emit("hello");
-     *
-     * @param compress - if `true`, compresses the sending data
-     * @return self
-     */
-    compress(compress) {
-        this.flags.compress = compress;
-        return this;
-    }
-    /**
-     * Sets a modifier for a subsequent event emission that the event message will be dropped when this socket is not
-     * ready to send messages.
-     *
-     * @example
-     * socket.volatile.emit("hello"); // the server may or may not receive it
-     *
-     * @returns self
-     */
-    get volatile() {
-        this.flags.volatile = true;
-        return this;
-    }
-    /**
-     * Sets a modifier for a subsequent event emission that the callback will be called with an error when the
-     * given number of milliseconds have elapsed without an acknowledgement from the server:
-     *
-     * @example
-     * socket.timeout(5000).emit("my-event", (err) => {
-     *   if (err) {
-     *     // the server did not acknowledge the event in the given delay
-     *   }
-     * });
-     *
-     * @returns self
-     */
-    timeout(timeout) {
-        this.flags.timeout = timeout;
-        return this;
-    }
-    /**
-     * Adds a listener that will be fired when any event is emitted. The event name is passed as the first argument to the
-     * callback.
-     *
-     * @example
-     * socket.onAny((event, ...args) => {
-     *   console.log(`got ${event}`);
-     * });
-     *
-     * @param listener
-     */
-    onAny(listener) {
-        this._anyListeners = this._anyListeners || [];
-        this._anyListeners.push(listener);
-        return this;
-    }
-    /**
-     * Adds a listener that will be fired when any event is emitted. The event name is passed as the first argument to the
-     * callback. The listener is added to the beginning of the listeners array.
-     *
-     * @example
-     * socket.prependAny((event, ...args) => {
-     *   console.log(`got event ${event}`);
-     * });
-     *
-     * @param listener
-     */
-    prependAny(listener) {
-        this._anyListeners = this._anyListeners || [];
-        this._anyListeners.unshift(listener);
-        return this;
-    }
-    /**
-     * Removes the listener that will be fired when any event is emitted.
-     *
-     * @example
-     * const catchAllListener = (event, ...args) => {
-     *   console.log(`got event ${event}`);
-     * }
-     *
-     * socket.onAny(catchAllListener);
-     *
-     * // remove a specific listener
-     * socket.offAny(catchAllListener);
-     *
-     * // or remove all listeners
-     * socket.offAny();
-     *
-     * @param listener
-     */
-    offAny(listener) {
-        if (!this._anyListeners) {
-            return this;
-        }
-        if (listener) {
-            const listeners = this._anyListeners;
-            for (let i = 0; i < listeners.length; i++) {
-                if (listener === listeners[i]) {
-                    listeners.splice(i, 1);
-                    return this;
-                }
-            }
-        }
-        else {
-            this._anyListeners = [];
-        }
-        return this;
-    }
-    /**
-     * Returns an array of listeners that are listening for any event that is specified. This array can be manipulated,
-     * e.g. to remove listeners.
-     */
-    listenersAny() {
-        return this._anyListeners || [];
-    }
-    /**
-     * Adds a listener that will be fired when any event is emitted. The event name is passed as the first argument to the
-     * callback.
-     *
-     * Note: acknowledgements sent to the server are not included.
-     *
-     * @example
-     * socket.onAnyOutgoing((event, ...args) => {
-     *   console.log(`sent event ${event}`);
-     * });
-     *
-     * @param listener
-     */
-    onAnyOutgoing(listener) {
-        this._anyOutgoingListeners = this._anyOutgoingListeners || [];
-        this._anyOutgoingListeners.push(listener);
-        return this;
-    }
-    /**
-     * Adds a listener that will be fired when any event is emitted. The event name is passed as the first argument to the
-     * callback. The listener is added to the beginning of the listeners array.
-     *
-     * Note: acknowledgements sent to the server are not included.
-     *
-     * @example
-     * socket.prependAnyOutgoing((event, ...args) => {
-     *   console.log(`sent event ${event}`);
-     * });
-     *
-     * @param listener
-     */
-    prependAnyOutgoing(listener) {
-        this._anyOutgoingListeners = this._anyOutgoingListeners || [];
-        this._anyOutgoingListeners.unshift(listener);
-        return this;
-    }
-    /**
-     * Removes the listener that will be fired when any event is emitted.
-     *
-     * @example
-     * const catchAllListener = (event, ...args) => {
-     *   console.log(`sent event ${event}`);
-     * }
-     *
-     * socket.onAnyOutgoing(catchAllListener);
-     *
-     * // remove a specific listener
-     * socket.offAnyOutgoing(catchAllListener);
-     *
-     * // or remove all listeners
-     * socket.offAnyOutgoing();
-     *
-     * @param [listener] - the catch-all listener (optional)
-     */
-    offAnyOutgoing(listener) {
-        if (!this._anyOutgoingListeners) {
-            return this;
-        }
-        if (listener) {
-            const listeners = this._anyOutgoingListeners;
-            for (let i = 0; i < listeners.length; i++) {
-                if (listener === listeners[i]) {
-                    listeners.splice(i, 1);
-                    return this;
-                }
-            }
-        }
-        else {
-            this._anyOutgoingListeners = [];
-        }
-        return this;
-    }
-    /**
-     * Returns an array of listeners that are listening for any event that is specified. This array can be manipulated,
-     * e.g. to remove listeners.
-     */
-    listenersAnyOutgoing() {
-        return this._anyOutgoingListeners || [];
-    }
-    /**
-     * Notify the listeners for each packet sent
-     *
-     * @param packet
-     *
-     * @private
-     */
-    notifyOutgoingListeners(packet) {
-        if (this._anyOutgoingListeners && this._anyOutgoingListeners.length) {
-            const listeners = this._anyOutgoingListeners.slice();
-            for (const listener of listeners) {
-                listener.apply(this, packet.data);
-            }
-        }
-    }
-}
-
-;// CONCATENATED MODULE: ./node_modules/socket.io-client/build/esm/contrib/backo2.js
-/**
- * Initialize backoff timer with `opts`.
- *
- * - `min` initial timeout in milliseconds [100]
- * - `max` max timeout [10000]
- * - `jitter` [0]
- * - `factor` [2]
- *
- * @param {Object} opts
- * @api public
- */
-function Backoff(opts) {
-    opts = opts || {};
-    this.ms = opts.min || 100;
-    this.max = opts.max || 10000;
-    this.factor = opts.factor || 2;
-    this.jitter = opts.jitter > 0 && opts.jitter <= 1 ? opts.jitter : 0;
-    this.attempts = 0;
-}
-/**
- * Return the backoff duration.
- *
- * @return {Number}
- * @api public
- */
-Backoff.prototype.duration = function () {
-    var ms = this.ms * Math.pow(this.factor, this.attempts++);
-    if (this.jitter) {
-        var rand = Math.random();
-        var deviation = Math.floor(rand * this.jitter * ms);
-        ms = (Math.floor(rand * 10) & 1) == 0 ? ms - deviation : ms + deviation;
-    }
-    return Math.min(ms, this.max) | 0;
-};
-/**
- * Reset the number of attempts.
- *
- * @api public
- */
-Backoff.prototype.reset = function () {
-    this.attempts = 0;
-};
-/**
- * Set the minimum duration
- *
- * @api public
- */
-Backoff.prototype.setMin = function (min) {
-    this.ms = min;
-};
-/**
- * Set the maximum duration
- *
- * @api public
- */
-Backoff.prototype.setMax = function (max) {
-    this.max = max;
-};
-/**
- * Set the jitter
- *
- * @api public
- */
-Backoff.prototype.setJitter = function (jitter) {
-    this.jitter = jitter;
-};
-
-;// CONCATENATED MODULE: ./node_modules/socket.io-client/build/esm/manager.js
-
-
-
-
-
-
-class Manager extends Emitter {
-    constructor(uri, opts) {
-        var _a;
-        super();
-        this.nsps = {};
-        this.subs = [];
-        if (uri && "object" === typeof uri) {
-            opts = uri;
-            uri = undefined;
-        }
-        opts = opts || {};
-        opts.path = opts.path || "/socket.io";
-        this.opts = opts;
-        installTimerFunctions(this, opts);
-        this.reconnection(opts.reconnection !== false);
-        this.reconnectionAttempts(opts.reconnectionAttempts || Infinity);
-        this.reconnectionDelay(opts.reconnectionDelay || 1000);
-        this.reconnectionDelayMax(opts.reconnectionDelayMax || 5000);
-        this.randomizationFactor((_a = opts.randomizationFactor) !== null && _a !== void 0 ? _a : 0.5);
-        this.backoff = new Backoff({
-            min: this.reconnectionDelay(),
-            max: this.reconnectionDelayMax(),
-            jitter: this.randomizationFactor(),
-        });
-        this.timeout(null == opts.timeout ? 20000 : opts.timeout);
-        this._readyState = "closed";
-        this.uri = uri;
-        const _parser = opts.parser || socket_io_parser_build_esm_namespaceObject;
-        this.encoder = new _parser.Encoder();
-        this.decoder = new _parser.Decoder();
-        this._autoConnect = opts.autoConnect !== false;
-        if (this._autoConnect)
-            this.open();
-    }
-    reconnection(v) {
-        if (!arguments.length)
-            return this._reconnection;
-        this._reconnection = !!v;
-        return this;
-    }
-    reconnectionAttempts(v) {
-        if (v === undefined)
-            return this._reconnectionAttempts;
-        this._reconnectionAttempts = v;
-        return this;
-    }
-    reconnectionDelay(v) {
-        var _a;
-        if (v === undefined)
-            return this._reconnectionDelay;
-        this._reconnectionDelay = v;
-        (_a = this.backoff) === null || _a === void 0 ? void 0 : _a.setMin(v);
-        return this;
-    }
-    randomizationFactor(v) {
-        var _a;
-        if (v === undefined)
-            return this._randomizationFactor;
-        this._randomizationFactor = v;
-        (_a = this.backoff) === null || _a === void 0 ? void 0 : _a.setJitter(v);
-        return this;
-    }
-    reconnectionDelayMax(v) {
-        var _a;
-        if (v === undefined)
-            return this._reconnectionDelayMax;
-        this._reconnectionDelayMax = v;
-        (_a = this.backoff) === null || _a === void 0 ? void 0 : _a.setMax(v);
-        return this;
-    }
-    timeout(v) {
-        if (!arguments.length)
-            return this._timeout;
-        this._timeout = v;
-        return this;
-    }
-    /**
-     * Starts trying to reconnect if reconnection is enabled and we have not
-     * started reconnecting yet
-     *
-     * @private
-     */
-    maybeReconnectOnOpen() {
-        // Only try to reconnect if it's the first time we're connecting
-        if (!this._reconnecting &&
-            this._reconnection &&
-            this.backoff.attempts === 0) {
-            // keeps reconnection from firing twice for the same reconnection loop
-            this.reconnect();
-        }
-    }
-    /**
-     * Sets the current transport `socket`.
-     *
-     * @param {Function} fn - optional, callback
-     * @return self
-     * @public
-     */
-    open(fn) {
-        if (~this._readyState.indexOf("open"))
-            return this;
-        this.engine = new Socket(this.uri, this.opts);
-        const socket = this.engine;
-        const self = this;
-        this._readyState = "opening";
-        this.skipReconnect = false;
-        // emit `open`
-        const openSubDestroy = on(socket, "open", function () {
-            self.onopen();
-            fn && fn();
-        });
-        const onError = (err) => {
-            this.cleanup();
-            this._readyState = "closed";
-            this.emitReserved("error", err);
-            if (fn) {
-                fn(err);
-            }
-            else {
-                // Only do this if there is no fn to handle the error
-                this.maybeReconnectOnOpen();
-            }
-        };
-        // emit `error`
-        const errorSub = on(socket, "error", onError);
-        if (false !== this._timeout) {
-            const timeout = this._timeout;
-            // set timer
-            const timer = this.setTimeoutFn(() => {
-                openSubDestroy();
-                onError(new Error("timeout"));
-                socket.close();
-            }, timeout);
-            if (this.opts.autoUnref) {
-                timer.unref();
-            }
-            this.subs.push(() => {
-                this.clearTimeoutFn(timer);
-            });
-        }
-        this.subs.push(openSubDestroy);
-        this.subs.push(errorSub);
-        return this;
-    }
-    /**
-     * Alias for open()
-     *
-     * @return self
-     * @public
-     */
-    connect(fn) {
-        return this.open(fn);
-    }
-    /**
-     * Called upon transport open.
-     *
-     * @private
-     */
-    onopen() {
-        // clear old subs
-        this.cleanup();
-        // mark as open
-        this._readyState = "open";
-        this.emitReserved("open");
-        // add new subs
-        const socket = this.engine;
-        this.subs.push(on(socket, "ping", this.onping.bind(this)), on(socket, "data", this.ondata.bind(this)), on(socket, "error", this.onerror.bind(this)), on(socket, "close", this.onclose.bind(this)), on(this.decoder, "decoded", this.ondecoded.bind(this)));
-    }
-    /**
-     * Called upon a ping.
-     *
-     * @private
-     */
-    onping() {
-        this.emitReserved("ping");
-    }
-    /**
-     * Called with data.
-     *
-     * @private
-     */
-    ondata(data) {
-        try {
-            this.decoder.add(data);
-        }
-        catch (e) {
-            this.onclose("parse error", e);
-        }
-    }
-    /**
-     * Called when parser fully decodes a packet.
-     *
-     * @private
-     */
-    ondecoded(packet) {
-        // the nextTick call prevents an exception in a user-provided event listener from triggering a disconnection due to a "parse error"
-        nextTick(() => {
-            this.emitReserved("packet", packet);
-        }, this.setTimeoutFn);
-    }
-    /**
-     * Called upon socket error.
-     *
-     * @private
-     */
-    onerror(err) {
-        this.emitReserved("error", err);
-    }
-    /**
-     * Creates a new socket for the given `nsp`.
-     *
-     * @return {Socket}
-     * @public
-     */
-    socket(nsp, opts) {
-        let socket = this.nsps[nsp];
-        if (!socket) {
-            socket = new socket_Socket(this, nsp, opts);
-            this.nsps[nsp] = socket;
-        }
-        else if (this._autoConnect && !socket.active) {
-            socket.connect();
-        }
-        return socket;
-    }
-    /**
-     * Called upon a socket close.
-     *
-     * @param socket
-     * @private
-     */
-    _destroy(socket) {
-        const nsps = Object.keys(this.nsps);
-        for (const nsp of nsps) {
-            const socket = this.nsps[nsp];
-            if (socket.active) {
-                return;
-            }
-        }
-        this._close();
-    }
-    /**
-     * Writes a packet.
-     *
-     * @param packet
-     * @private
-     */
-    _packet(packet) {
-        const encodedPackets = this.encoder.encode(packet);
-        for (let i = 0; i < encodedPackets.length; i++) {
-            this.engine.write(encodedPackets[i], packet.options);
-        }
-    }
-    /**
-     * Clean up transport subscriptions and packet buffer.
-     *
-     * @private
-     */
-    cleanup() {
-        this.subs.forEach((subDestroy) => subDestroy());
-        this.subs.length = 0;
-        this.decoder.destroy();
-    }
-    /**
-     * Close the current socket.
-     *
-     * @private
-     */
-    _close() {
-        this.skipReconnect = true;
-        this._reconnecting = false;
-        this.onclose("forced close");
-        if (this.engine)
-            this.engine.close();
-    }
-    /**
-     * Alias for close()
-     *
-     * @private
-     */
-    disconnect() {
-        return this._close();
-    }
-    /**
-     * Called upon engine close.
-     *
-     * @private
-     */
-    onclose(reason, description) {
-        this.cleanup();
-        this.backoff.reset();
-        this._readyState = "closed";
-        this.emitReserved("close", reason, description);
-        if (this._reconnection && !this.skipReconnect) {
-            this.reconnect();
-        }
-    }
-    /**
-     * Attempt a reconnection.
-     *
-     * @private
-     */
-    reconnect() {
-        if (this._reconnecting || this.skipReconnect)
-            return this;
-        const self = this;
-        if (this.backoff.attempts >= this._reconnectionAttempts) {
-            this.backoff.reset();
-            this.emitReserved("reconnect_failed");
-            this._reconnecting = false;
-        }
-        else {
-            const delay = this.backoff.duration();
-            this._reconnecting = true;
-            const timer = this.setTimeoutFn(() => {
-                if (self.skipReconnect)
-                    return;
-                this.emitReserved("reconnect_attempt", self.backoff.attempts);
-                // check again for the case socket closed in above events
-                if (self.skipReconnect)
-                    return;
-                self.open((err) => {
-                    if (err) {
-                        self._reconnecting = false;
-                        self.reconnect();
-                        this.emitReserved("reconnect_error", err);
-                    }
-                    else {
-                        self.onreconnect();
-                    }
-                });
-            }, delay);
-            if (this.opts.autoUnref) {
-                timer.unref();
-            }
-            this.subs.push(() => {
-                this.clearTimeoutFn(timer);
-            });
-        }
-    }
-    /**
-     * Called upon successful reconnect.
-     *
-     * @private
-     */
-    onreconnect() {
-        const attempt = this.backoff.attempts;
-        this._reconnecting = false;
-        this.backoff.reset();
-        this.emitReserved("reconnect", attempt);
-    }
-}
-
-;// CONCATENATED MODULE: ./node_modules/socket.io-client/build/esm/index.js
-
-
-
-/**
- * Managers cache.
- */
-const cache = {};
-function esm_lookup(uri, opts) {
-    if (typeof uri === "object") {
-        opts = uri;
-        uri = undefined;
-    }
-    opts = opts || {};
-    const parsed = url(uri, opts.path || "/socket.io");
-    const source = parsed.source;
-    const id = parsed.id;
-    const path = parsed.path;
-    const sameNamespace = cache[id] && path in cache[id]["nsps"];
-    const newConnection = opts.forceNew ||
-        opts["force new connection"] ||
-        false === opts.multiplex ||
-        sameNamespace;
-    let io;
-    if (newConnection) {
-        io = new Manager(source, opts);
-    }
-    else {
-        if (!cache[id]) {
-            cache[id] = new Manager(source, opts);
-        }
-        io = cache[id];
-    }
-    if (parsed.query && !opts.query) {
-        opts.query = parsed.queryKey;
-    }
-    return io.socket(parsed.path, opts);
-}
-// so that "lookup" can be used both as a function (e.g. `io(...)`) and as a
-// namespace (e.g. `io.connect(...)`), for backward compatibility
-Object.assign(esm_lookup, {
-    Manager: Manager,
-    Socket: socket_Socket,
-    io: esm_lookup,
-    connect: esm_lookup,
-});
-/**
- * Protocol version.
- *
- * @public
- */
-
-/**
- * Expose constructors for standalone build.
- *
- * @public
- */
-
-
-;// CONCATENATED MODULE: ./client/hooks/useSocket.js
-
-const socket = esm_lookup.connect("http://localhost:3001");
-const useSocket = () => socket;
-/* harmony default export */ const hooks_useSocket = (useSocket);
 ;// CONCATENATED MODULE: ./node_modules/@babel/runtime/helpers/esm/arrayLikeToArray.js
 function _arrayLikeToArray(arr, len) {
   if (len == null || len > arr.length) len = arr.length;
@@ -4899,7 +829,7 @@ function objectSpread2_objectSpread2(e) {
 }
 ;// CONCATENATED MODULE: ./node_modules/rc-util/es/omit.js
 
-function omit_omit(obj, fields) {
+function omit(obj, fields) {
   var clone = objectSpread2_objectSpread2({}, obj);
   if (Array.isArray(fields)) {
     fields.forEach(function (key) {
@@ -6606,7 +2536,7 @@ const Sider = /*#__PURE__*/react.forwardRef((props, ref) => {
   } = (0,react.useContext)(context_ConfigContext);
   const renderSider = () => {
     const prefixCls = getPrefixCls('layout-sider', customizePrefixCls);
-    const divProps = omit_omit(otherProps, ['collapsed']);
+    const divProps = omit(otherProps, ['collapsed']);
     const rawWidth = collapsed ? collapsedWidth : width;
     // use "px" as fallback unit for width
     const siderWidth = _util_isNumeric(rawWidth) ? `${rawWidth}px` : String(rawWidth);
@@ -7993,7 +3923,7 @@ function Tokenizer_char () {
 /**
  * @return {number}
  */
-function Tokenizer_prev () {
+function prev () {
 	character = position > 0 ? charat(characters, --position) : 0
 
 	if (column--, character === 10)
@@ -8209,7 +4139,7 @@ function identifier (index) {
  * @return {object[]}
  */
 function compile (value) {
-	return dealloc(Parser_parse('', null, null, null, [''], value = alloc(value), 0, [0], value))
+	return dealloc(parse('', null, null, null, [''], value = alloc(value), 0, [0], value))
 }
 
 /**
@@ -8224,7 +4154,7 @@ function compile (value) {
  * @param {string[]} declarations
  * @return {object}
  */
-function Parser_parse (value, root, parent, rule, rules, rulesets, pseudo, points, declarations) {
+function parse (value, root, parent, rule, rules, rulesets, pseudo, points, declarations) {
 	var index = 0
 	var offset = 0
 	var length = pseudo
@@ -8293,15 +4223,15 @@ function Parser_parse (value, root, parent, rule, rules, rulesets, pseudo, point
 
 						if (character === 123)
 							if (offset === 0)
-								Parser_parse(characters, root, reference, reference, props, rulesets, length, points, children)
+								parse(characters, root, reference, reference, props, rulesets, length, points, children)
 							else
 								switch (atrule === 99 && charat(characters, 3) === 110 ? 100 : atrule) {
 									// d l m s
 									case 100: case 108: case 109: case 115:
-										Parser_parse(value, reference, reference, rule && Utility_append(ruleset(value, reference, reference, 0, 0, rules, points, type, rules, props = [], length, children), children), rules, children, length, points, rule ? props : children)
+										parse(value, reference, reference, rule && Utility_append(ruleset(value, reference, reference, 0, 0, rules, points, type, rules, props = [], length, children), children), rules, children, length, points, rule ? props : children)
 										break
 									default:
-										Parser_parse(characters, reference, reference, reference, [''], children, 0, points, children)
+										parse(characters, reference, reference, reference, [''], children, 0, points, children)
 								}
 				}
 
@@ -8314,7 +4244,7 @@ function Parser_parse (value, root, parent, rule, rules, rulesets, pseudo, point
 				if (variable < 1)
 					if (character == 123)
 						--variable
-					else if (character == 125 && variable++ == 0 && Tokenizer_prev() == 125)
+					else if (character == 125 && variable++ == 0 && prev() == 125)
 						continue
 
 				switch (characters += Utility_from(character), character * variable) {
@@ -9695,7 +5625,7 @@ function set(entity, paths, value) {
   }
   return internalSet(entity, paths, value, removeIfUndefined);
 }
-function set_isObject(obj) {
+function isObject(obj) {
   return _typeof(obj) === 'object' && obj !== null && Object.getPrototypeOf(obj) === Object.prototype;
 }
 function createEmpty(source) {
@@ -9716,7 +5646,7 @@ function merge() {
       var loopSet = new Set(parentLoopSet);
       var value = get(src, path);
       var isArr = Array.isArray(value);
-      if (isArr || set_isObject(value)) {
+      if (isArr || isObject(value)) {
         // Only add not loop obj
         if (!loopSet.has(value)) {
           loopSet.add(value);
@@ -9982,7 +5912,7 @@ const seedToken = Object.assign(Object.assign({}, defaultPresetColors), {
   // Motion
   motion: true
 });
-/* harmony default export */ const themes_seed = (seedToken);
+/* harmony default export */ const seed = (seedToken);
 ;// CONCATENATED MODULE: ./node_modules/@ctrl/tinycolor/dist/module/index.js
 
 
@@ -10782,9 +6712,9 @@ const defaultTheme = createTheme(derivative);
 // ================================ Context =================================
 // To ensure snapshot stable. We disable hashed in test env.
 const defaultConfig = {
-  token: themes_seed,
+  token: seed,
   override: {
-    override: themes_seed
+    override: seed
   },
   hashed: true
 };
@@ -10855,7 +6785,7 @@ function formatToken(derivativeToken) {
     } = derivativeToken,
     restToken = alias_rest(derivativeToken, ["override"]);
   const overrideTokens = Object.assign({}, override);
-  Object.keys(themes_seed).forEach(token => {
+  Object.keys(seed).forEach(token => {
     delete overrideTokens[token];
   });
   const mergedToken = Object.assign(Object.assign({}, restToken), overrideTokens);
@@ -11113,7 +7043,7 @@ function useToken() {
   } = react.useContext(DesignTokenContext);
   const salt = `${es_version}-${hashed || ''}`;
   const mergedTheme = theme || defaultTheme;
-  const [token, hashId, realToken] = useCacheToken(mergedTheme, [themes_seed, rootDesignToken], {
+  const [token, hashId, realToken] = useCacheToken(mergedTheme, [seed, rootDesignToken], {
     salt,
     override,
     getComputedToken: useToken_getComputedToken,
@@ -11996,7 +7926,7 @@ const BasicLayout = /*#__PURE__*/react.forwardRef((props, ref) => {
       style
     } = props,
     others = layout_rest(props, ["prefixCls", "className", "rootClassName", "children", "hasSider", "tagName", "style"]);
-  const passedProps = omit_omit(others, ['suffixCls']);
+  const passedProps = omit(others, ['suffixCls']);
   const {
     getPrefixCls,
     layout
@@ -12059,649 +7989,6 @@ layout_Layout.Content = Content;
 layout_Layout.Sider = layout_Sider;
 layout_Layout._InternalSiderContext = SiderContext;
 /* harmony default export */ const es_layout = (layout_Layout);
-;// CONCATENATED MODULE: ./node_modules/antd/es/theme/getDesignToken.js
-
-
-
-
-const getDesignToken = config => {
-  const theme = (config === null || config === void 0 ? void 0 : config.algorithm) ? createTheme(config.algorithm) : createTheme(derivative);
-  const mergedToken = Object.assign(Object.assign({}, themes_seed), config === null || config === void 0 ? void 0 : config.token);
-  return getComputedToken(mergedToken, {
-    override: config === null || config === void 0 ? void 0 : config.token
-  }, theme, formatToken);
-};
-/* harmony default export */ const theme_getDesignToken = (getDesignToken);
-;// CONCATENATED MODULE: ./node_modules/antd/es/theme/themes/compact/genCompactSizeMapToken.js
-function genCompactSizeMapToken_genSizeMapToken(token) {
-  const {
-    sizeUnit,
-    sizeStep
-  } = token;
-  const compactSizeStep = sizeStep - 2;
-  return {
-    sizeXXL: sizeUnit * (compactSizeStep + 10),
-    sizeXL: sizeUnit * (compactSizeStep + 6),
-    sizeLG: sizeUnit * (compactSizeStep + 2),
-    sizeMD: sizeUnit * (compactSizeStep + 2),
-    sizeMS: sizeUnit * (compactSizeStep + 1),
-    size: sizeUnit * compactSizeStep,
-    sizeSM: sizeUnit * compactSizeStep,
-    sizeXS: sizeUnit * (compactSizeStep - 1),
-    sizeXXS: sizeUnit * (compactSizeStep - 1)
-  };
-}
-;// CONCATENATED MODULE: ./node_modules/antd/es/theme/themes/compact/index.js
-
-
-
-
-const compact_derivative = (token, mapToken) => {
-  const mergedMapToken = mapToken !== null && mapToken !== void 0 ? mapToken : derivative(token);
-  const fontSize = mergedMapToken.fontSizeSM; // Smaller size font-size as base
-  const controlHeight = mergedMapToken.controlHeight - 4;
-  return Object.assign(Object.assign(Object.assign(Object.assign(Object.assign({}, mergedMapToken), genCompactSizeMapToken_genSizeMapToken(mapToken !== null && mapToken !== void 0 ? mapToken : token)), shared_genFontMapToken(fontSize)), {
-    // controlHeight
-    controlHeight
-  }), shared_genControlHeight(Object.assign(Object.assign({}, mergedMapToken), {
-    controlHeight
-  })));
-};
-/* harmony default export */ const compact = (compact_derivative);
-;// CONCATENATED MODULE: ./node_modules/antd/es/theme/themes/dark/colorAlgorithm.js
-
-const colorAlgorithm_getAlphaColor = (baseColor, alpha) => new TinyColor(baseColor).setAlpha(alpha).toRgbString();
-const colorAlgorithm_getSolidColor = (baseColor, brightness) => {
-  const instance = new TinyColor(baseColor);
-  return instance.lighten(brightness).toHexString();
-};
-;// CONCATENATED MODULE: ./node_modules/antd/es/theme/themes/dark/colors.js
-
-
-const colors_generateColorPalettes = baseColor => {
-  const colors = generate(baseColor, {
-    theme: 'dark'
-  });
-  return {
-    1: colors[0],
-    2: colors[1],
-    3: colors[2],
-    4: colors[3],
-    5: colors[6],
-    6: colors[5],
-    7: colors[4],
-    8: colors[6],
-    9: colors[5],
-    10: colors[4]
-    // 8: colors[9],
-    // 9: colors[8],
-    // 10: colors[7],
-  };
-};
-const colors_generateNeutralColorPalettes = (bgBaseColor, textBaseColor) => {
-  const colorBgBase = bgBaseColor || '#000';
-  const colorTextBase = textBaseColor || '#fff';
-  return {
-    colorBgBase,
-    colorTextBase,
-    colorText: colorAlgorithm_getAlphaColor(colorTextBase, 0.85),
-    colorTextSecondary: colorAlgorithm_getAlphaColor(colorTextBase, 0.65),
-    colorTextTertiary: colorAlgorithm_getAlphaColor(colorTextBase, 0.45),
-    colorTextQuaternary: colorAlgorithm_getAlphaColor(colorTextBase, 0.25),
-    colorFill: colorAlgorithm_getAlphaColor(colorTextBase, 0.18),
-    colorFillSecondary: colorAlgorithm_getAlphaColor(colorTextBase, 0.12),
-    colorFillTertiary: colorAlgorithm_getAlphaColor(colorTextBase, 0.08),
-    colorFillQuaternary: colorAlgorithm_getAlphaColor(colorTextBase, 0.04),
-    colorBgElevated: colorAlgorithm_getSolidColor(colorBgBase, 12),
-    colorBgContainer: colorAlgorithm_getSolidColor(colorBgBase, 8),
-    colorBgLayout: colorAlgorithm_getSolidColor(colorBgBase, 0),
-    colorBgSpotlight: colorAlgorithm_getSolidColor(colorBgBase, 26),
-    colorBgBlur: colorAlgorithm_getAlphaColor(colorTextBase, 0.04),
-    colorBorder: colorAlgorithm_getSolidColor(colorBgBase, 26),
-    colorBorderSecondary: colorAlgorithm_getSolidColor(colorBgBase, 19)
-  };
-};
-;// CONCATENATED MODULE: ./node_modules/antd/es/theme/themes/dark/index.js
-
-
-
-
-
-const dark_derivative = (token, mapToken) => {
-  const colorPalettes = Object.keys(defaultPresetColors).map(colorKey => {
-    const colors = generate(token[colorKey], {
-      theme: 'dark'
-    });
-    return new Array(10).fill(1).reduce((prev, _, i) => {
-      prev[`${colorKey}-${i + 1}`] = colors[i];
-      prev[`${colorKey}${i + 1}`] = colors[i];
-      return prev;
-    }, {});
-  }).reduce((prev, cur) => {
-    prev = Object.assign(Object.assign({}, prev), cur);
-    return prev;
-  }, {});
-  const mergedMapToken = mapToken !== null && mapToken !== void 0 ? mapToken : derivative(token);
-  return Object.assign(Object.assign(Object.assign({}, mergedMapToken), colorPalettes), genColorMapToken(token, {
-    generateColorPalettes: colors_generateColorPalettes,
-    generateNeutralColorPalettes: colors_generateNeutralColorPalettes
-  }));
-};
-/* harmony default export */ const dark = (dark_derivative);
-;// CONCATENATED MODULE: ./node_modules/antd/es/theme/index.js
-"use client";
-
-/* eslint-disable import/prefer-default-export */
-
-
-
-
-
-// ZombieJ: We export as object to user but array in internal.
-// This is used to minimize the bundle size for antd package but safe to refactor as object also.
-// Please do not export internal `useToken` directly to avoid something export unexpected.
-/** Get current context Design Token. Will be different if you are using nest theme config. */
-function theme_useToken() {
-  const [theme, token, hashId] = useToken();
-  return {
-    theme,
-    token,
-    hashId
-  };
-}
-/* harmony default export */ const theme = ({
-  /** @private Test Usage. Do not use in production. */
-  defaultConfig: defaultConfig,
-  /** Default seedToken */
-  defaultSeed: defaultConfig.token,
-  useToken: theme_useToken,
-  defaultAlgorithm: derivative,
-  darkAlgorithm: dark,
-  compactAlgorithm: compact,
-  getDesignToken: theme_getDesignToken
-});
-;// CONCATENATED MODULE: ./node_modules/antd/es/_util/warning.js
-
-
-function warning_noop() {}
-let deprecatedWarnList = null;
-function warning_resetWarned() {
-  deprecatedWarnList = null;
-  rcResetWarned();
-}
-// eslint-disable-next-line import/no-mutable-exports
-let warning_warning = (/* unused pure expression or super */ null && (warning_noop));
-if (false) {}
-const WarningContext = /*#__PURE__*/react.createContext({});
-/**
- * This is a hook but we not named as `useWarning`
- * since this is only used in development.
- * We should always wrap this in `if (process.env.NODE_ENV !== 'production')` condition
- */
-const warning_devUseWarning =  false ? 0 : () => {
-  const noopWarning = () => {};
-  noopWarning.deprecated = warning_noop;
-  return noopWarning;
-};
-/* harmony default export */ const _util_warning = ((/* unused pure expression or super */ null && (warning_warning)));
-;// CONCATENATED MODULE: ./node_modules/antd/es/form/validateMessagesContext.js
-"use client";
-
-
-// ZombieJ: We export single file here since
-// ConfigProvider use this which will make loop deps
-// to import whole `rc-field-form`
-/* harmony default export */ const validateMessagesContext = (/*#__PURE__*/(0,react.createContext)(undefined));
-;// CONCATENATED MODULE: ./node_modules/rc-pagination/es/locale/en_US.js
-var locale = {
-  // Options
-  items_per_page: '/ page',
-  jump_to: 'Go to',
-  jump_to_confirm: 'confirm',
-  page: 'Page',
-  // Pagination
-  prev_page: 'Previous Page',
-  next_page: 'Next Page',
-  prev_5: 'Previous 5 Pages',
-  next_5: 'Next 5 Pages',
-  prev_3: 'Previous 3 Pages',
-  next_3: 'Next 3 Pages',
-  page_size: 'Page Size'
-};
-/* harmony default export */ const en_US = (locale);
-;// CONCATENATED MODULE: ./node_modules/rc-picker/es/locale/en_US.js
-var en_US_locale = {
-  locale: 'en_US',
-  today: 'Today',
-  now: 'Now',
-  backToToday: 'Back to today',
-  ok: 'OK',
-  clear: 'Clear',
-  month: 'Month',
-  year: 'Year',
-  timeSelect: 'select time',
-  dateSelect: 'select date',
-  weekSelect: 'Choose a week',
-  monthSelect: 'Choose a month',
-  yearSelect: 'Choose a year',
-  decadeSelect: 'Choose a decade',
-  yearFormat: 'YYYY',
-  dateFormat: 'M/D/YYYY',
-  dayFormat: 'D',
-  dateTimeFormat: 'M/D/YYYY HH:mm:ss',
-  monthBeforeYear: true,
-  previousMonth: 'Previous month (PageUp)',
-  nextMonth: 'Next month (PageDown)',
-  previousYear: 'Last year (Control + left)',
-  nextYear: 'Next year (Control + right)',
-  previousDecade: 'Last decade',
-  nextDecade: 'Next decade',
-  previousCentury: 'Last century',
-  nextCentury: 'Next century'
-};
-/* harmony default export */ const locale_en_US = (en_US_locale);
-;// CONCATENATED MODULE: ./node_modules/antd/es/time-picker/locale/en_US.js
-const locale_en_US_locale = {
-  placeholder: 'Select time',
-  rangePlaceholder: ['Start time', 'End time']
-};
-/* harmony default export */ const time_picker_locale_en_US = (locale_en_US_locale);
-;// CONCATENATED MODULE: ./node_modules/antd/es/date-picker/locale/en_US.js
-
-
-// Merge into a locale object
-const date_picker_locale_en_US_locale = {
-  lang: Object.assign({
-    placeholder: 'Select date',
-    yearPlaceholder: 'Select year',
-    quarterPlaceholder: 'Select quarter',
-    monthPlaceholder: 'Select month',
-    weekPlaceholder: 'Select week',
-    rangePlaceholder: ['Start date', 'End date'],
-    rangeYearPlaceholder: ['Start year', 'End year'],
-    rangeQuarterPlaceholder: ['Start quarter', 'End quarter'],
-    rangeMonthPlaceholder: ['Start month', 'End month'],
-    rangeWeekPlaceholder: ['Start week', 'End week']
-  }, locale_en_US),
-  timePickerLocale: Object.assign({}, time_picker_locale_en_US)
-};
-// All settings at:
-// https://github.com/ant-design/ant-design/blob/master/components/date-picker/locale/example.json
-/* harmony default export */ const date_picker_locale_en_US = (date_picker_locale_en_US_locale);
-;// CONCATENATED MODULE: ./node_modules/antd/es/calendar/locale/en_US.js
-
-/* harmony default export */ const calendar_locale_en_US = (date_picker_locale_en_US);
-;// CONCATENATED MODULE: ./node_modules/antd/es/locale/en_US.js
-/* eslint-disable no-template-curly-in-string */
-
-
-
-
-const typeTemplate = '${label} is not a valid ${type}';
-const localeValues = {
-  locale: 'en',
-  Pagination: en_US,
-  DatePicker: date_picker_locale_en_US,
-  TimePicker: time_picker_locale_en_US,
-  Calendar: calendar_locale_en_US,
-  global: {
-    placeholder: 'Please select'
-  },
-  Table: {
-    filterTitle: 'Filter menu',
-    filterConfirm: 'OK',
-    filterReset: 'Reset',
-    filterEmptyText: 'No filters',
-    filterCheckall: 'Select all items',
-    filterSearchPlaceholder: 'Search in filters',
-    emptyText: 'No data',
-    selectAll: 'Select current page',
-    selectInvert: 'Invert current page',
-    selectNone: 'Clear all data',
-    selectionAll: 'Select all data',
-    sortTitle: 'Sort',
-    expand: 'Expand row',
-    collapse: 'Collapse row',
-    triggerDesc: 'Click to sort descending',
-    triggerAsc: 'Click to sort ascending',
-    cancelSort: 'Click to cancel sorting'
-  },
-  Tour: {
-    Next: 'Next',
-    Previous: 'Previous',
-    Finish: 'Finish'
-  },
-  Modal: {
-    okText: 'OK',
-    cancelText: 'Cancel',
-    justOkText: 'OK'
-  },
-  Popconfirm: {
-    okText: 'OK',
-    cancelText: 'Cancel'
-  },
-  Transfer: {
-    titles: ['', ''],
-    searchPlaceholder: 'Search here',
-    itemUnit: 'item',
-    itemsUnit: 'items',
-    remove: 'Remove',
-    selectCurrent: 'Select current page',
-    removeCurrent: 'Remove current page',
-    selectAll: 'Select all data',
-    removeAll: 'Remove all data',
-    selectInvert: 'Invert current page'
-  },
-  Upload: {
-    uploading: 'Uploading...',
-    removeFile: 'Remove file',
-    uploadError: 'Upload error',
-    previewFile: 'Preview file',
-    downloadFile: 'Download file'
-  },
-  Empty: {
-    description: 'No data'
-  },
-  Icon: {
-    icon: 'icon'
-  },
-  Text: {
-    edit: 'Edit',
-    copy: 'Copy',
-    copied: 'Copied',
-    expand: 'Expand',
-    collapse: 'Collapse'
-  },
-  Form: {
-    optional: '(optional)',
-    defaultValidateMessages: {
-      default: 'Field validation error for ${label}',
-      required: 'Please enter ${label}',
-      enum: '${label} must be one of [${enum}]',
-      whitespace: '${label} cannot be a blank character',
-      date: {
-        format: '${label} date format is invalid',
-        parse: '${label} cannot be converted to a date',
-        invalid: '${label} is an invalid date'
-      },
-      types: {
-        string: typeTemplate,
-        method: typeTemplate,
-        array: typeTemplate,
-        object: typeTemplate,
-        number: typeTemplate,
-        date: typeTemplate,
-        boolean: typeTemplate,
-        integer: typeTemplate,
-        float: typeTemplate,
-        regexp: typeTemplate,
-        email: typeTemplate,
-        url: typeTemplate,
-        hex: typeTemplate
-      },
-      string: {
-        len: '${label} must be ${len} characters',
-        min: '${label} must be at least ${min} characters',
-        max: '${label} must be up to ${max} characters',
-        range: '${label} must be between ${min}-${max} characters'
-      },
-      number: {
-        len: '${label} must be equal to ${len}',
-        min: '${label} must be minimum ${min}',
-        max: '${label} must be maximum ${max}',
-        range: '${label} must be between ${min}-${max}'
-      },
-      array: {
-        len: 'Must be ${len} ${label}',
-        min: 'At least ${min} ${label}',
-        max: 'At most ${max} ${label}',
-        range: 'The amount of ${label} must be between ${min}-${max}'
-      },
-      pattern: {
-        mismatch: '${label} does not match the pattern ${pattern}'
-      }
-    }
-  },
-  Image: {
-    preview: 'Preview'
-  },
-  QRCode: {
-    expired: 'QR code expired',
-    refresh: 'Refresh',
-    scanned: 'Scanned'
-  },
-  ColorPicker: {
-    presetEmpty: 'Empty'
-  }
-};
-/* harmony default export */ const es_locale_en_US = (localeValues);
-;// CONCATENATED MODULE: ./node_modules/antd/es/modal/locale.js
-
-let runtimeLocale = Object.assign({}, es_locale_en_US.Modal);
-let localeList = [];
-const generateLocale = () => localeList.reduce((merged, locale) => Object.assign(Object.assign({}, merged), locale), es_locale_en_US.Modal);
-function changeConfirmLocale(newLocale) {
-  if (newLocale) {
-    const cloneLocale = Object.assign({}, newLocale);
-    localeList.push(cloneLocale);
-    runtimeLocale = generateLocale();
-    return () => {
-      localeList = localeList.filter(locale => locale !== cloneLocale);
-      runtimeLocale = generateLocale();
-    };
-  }
-  runtimeLocale = Object.assign({}, es_locale_en_US.Modal);
-}
-function getConfirmLocale() {
-  return runtimeLocale;
-}
-;// CONCATENATED MODULE: ./node_modules/antd/es/locale/context.js
-
-const LocaleContext = /*#__PURE__*/(0,react.createContext)(undefined);
-/* harmony default export */ const locale_context = (LocaleContext);
-;// CONCATENATED MODULE: ./node_modules/antd/es/locale/index.js
-"use client";
-
-
-
-
-
-
-const ANT_MARK = 'internalMark';
-const LocaleProvider = props => {
-  const {
-    locale = {},
-    children,
-    _ANT_MARK__
-  } = props;
-  if (false) {}
-  react.useEffect(() => {
-    const clearLocale = changeConfirmLocale(locale && locale.Modal);
-    return clearLocale;
-  }, [locale]);
-  const getMemoizedContextValue = react.useMemo(() => Object.assign(Object.assign({}, locale), {
-    exist: true
-  }), [locale]);
-  return /*#__PURE__*/react.createElement(locale_context.Provider, {
-    value: getMemoizedContextValue
-  }, children);
-};
-if (false) {}
-/* harmony default export */ const es_locale = (LocaleProvider);
-;// CONCATENATED MODULE: ./node_modules/antd/es/config-provider/cssVariables.js
-/* eslint-disable import/prefer-default-export, prefer-destructuring */
-
-
-
-
-
-const dynamicStyleMark = `-ant-${Date.now()}-${Math.random()}`;
-function getStyle(globalPrefixCls, theme) {
-  const variables = {};
-  const formatColor = (color, updater) => {
-    let clone = color.clone();
-    clone = (updater === null || updater === void 0 ? void 0 : updater(clone)) || clone;
-    return clone.toRgbString();
-  };
-  const fillColor = (colorVal, type) => {
-    const baseColor = new TinyColor(colorVal);
-    const colorPalettes = generate(baseColor.toRgbString());
-    variables[`${type}-color`] = formatColor(baseColor);
-    variables[`${type}-color-disabled`] = colorPalettes[1];
-    variables[`${type}-color-hover`] = colorPalettes[4];
-    variables[`${type}-color-active`] = colorPalettes[6];
-    variables[`${type}-color-outline`] = baseColor.clone().setAlpha(0.2).toRgbString();
-    variables[`${type}-color-deprecated-bg`] = colorPalettes[0];
-    variables[`${type}-color-deprecated-border`] = colorPalettes[2];
-  };
-  // ================ Primary Color ================
-  if (theme.primaryColor) {
-    fillColor(theme.primaryColor, 'primary');
-    const primaryColor = new TinyColor(theme.primaryColor);
-    const primaryColors = generate(primaryColor.toRgbString());
-    // Legacy - We should use semantic naming standard
-    primaryColors.forEach((color, index) => {
-      variables[`primary-${index + 1}`] = color;
-    });
-    // Deprecated
-    variables['primary-color-deprecated-l-35'] = formatColor(primaryColor, c => c.lighten(35));
-    variables['primary-color-deprecated-l-20'] = formatColor(primaryColor, c => c.lighten(20));
-    variables['primary-color-deprecated-t-20'] = formatColor(primaryColor, c => c.tint(20));
-    variables['primary-color-deprecated-t-50'] = formatColor(primaryColor, c => c.tint(50));
-    variables['primary-color-deprecated-f-12'] = formatColor(primaryColor, c => c.setAlpha(c.getAlpha() * 0.12));
-    const primaryActiveColor = new TinyColor(primaryColors[0]);
-    variables['primary-color-active-deprecated-f-30'] = formatColor(primaryActiveColor, c => c.setAlpha(c.getAlpha() * 0.3));
-    variables['primary-color-active-deprecated-d-02'] = formatColor(primaryActiveColor, c => c.darken(2));
-  }
-  // ================ Success Color ================
-  if (theme.successColor) {
-    fillColor(theme.successColor, 'success');
-  }
-  // ================ Warning Color ================
-  if (theme.warningColor) {
-    fillColor(theme.warningColor, 'warning');
-  }
-  // ================= Error Color =================
-  if (theme.errorColor) {
-    fillColor(theme.errorColor, 'error');
-  }
-  // ================= Info Color ==================
-  if (theme.infoColor) {
-    fillColor(theme.infoColor, 'info');
-  }
-  // Convert to css variables
-  const cssList = Object.keys(variables).map(key => `--${globalPrefixCls}-${key}: ${variables[key]};`);
-  return `
-  :root {
-    ${cssList.join('\n')}
-  }
-  `.trim();
-}
-function registerTheme(globalPrefixCls, theme) {
-  const style = getStyle(globalPrefixCls, theme);
-  if (canUseDom()) {
-    updateCSS(style, `${dynamicStyleMark}-dynamic-theme`);
-  } else {
-     false ? 0 : void 0;
-  }
-}
-;// CONCATENATED MODULE: ./node_modules/antd/es/config-provider/DisabledContext.js
-"use client";
-
-
-const DisabledContext = /*#__PURE__*/react.createContext(false);
-const DisabledContextProvider = _ref => {
-  let {
-    children,
-    disabled
-  } = _ref;
-  const originDisabled = react.useContext(DisabledContext);
-  return /*#__PURE__*/react.createElement(DisabledContext.Provider, {
-    value: disabled !== null && disabled !== void 0 ? disabled : originDisabled
-  }, children);
-};
-/* harmony default export */ const config_provider_DisabledContext = (DisabledContext);
-;// CONCATENATED MODULE: ./node_modules/antd/es/config-provider/SizeContext.js
-"use client";
-
-
-const SizeContext = /*#__PURE__*/react.createContext(undefined);
-const SizeContextProvider = _ref => {
-  let {
-    children,
-    size
-  } = _ref;
-  const originSize = react.useContext(SizeContext);
-  return /*#__PURE__*/react.createElement(SizeContext.Provider, {
-    value: size || originSize
-  }, children);
-};
-/* harmony default export */ const config_provider_SizeContext = (SizeContext);
-;// CONCATENATED MODULE: ./node_modules/antd/es/config-provider/hooks/useConfig.js
-
-
-
-function useConfig() {
-  const componentDisabled = (0,react.useContext)(config_provider_DisabledContext);
-  const componentSize = (0,react.useContext)(config_provider_SizeContext);
-  return {
-    componentDisabled,
-    componentSize
-  };
-}
-/* harmony default export */ const hooks_useConfig = (useConfig);
-;// CONCATENATED MODULE: ./node_modules/antd/es/config-provider/hooks/useThemeKey.js
-
-const useThemeKey_fullClone = Object.assign({}, react_namespaceObject);
-const {
-  useId
-} = useThemeKey_fullClone;
-const useEmptyId = () => '';
-const useThemeKey = typeof useId === 'undefined' ? useEmptyId : useId;
-/* harmony default export */ const hooks_useThemeKey = (useThemeKey);
-;// CONCATENATED MODULE: ./node_modules/antd/es/config-provider/hooks/useTheme.js
-
-
-
-
-
-function useTheme(theme, parentTheme, config) {
-  var _a, _b;
-  const warning = warning_devUseWarning('ConfigProvider');
-  const themeConfig = theme || {};
-  const parentThemeConfig = themeConfig.inherit === false || !parentTheme ? Object.assign(Object.assign({}, defaultConfig), {
-    hashed: (_a = parentTheme === null || parentTheme === void 0 ? void 0 : parentTheme.hashed) !== null && _a !== void 0 ? _a : defaultConfig.hashed,
-    cssVar: parentTheme === null || parentTheme === void 0 ? void 0 : parentTheme.cssVar
-  }) : parentTheme;
-  const themeKey = hooks_useThemeKey();
-  if (false) {}
-  return useMemo_useMemo(() => {
-    var _a, _b;
-    if (!theme) {
-      return parentTheme;
-    }
-    // Override
-    const mergedComponents = Object.assign({}, parentThemeConfig.components);
-    Object.keys(theme.components || {}).forEach(componentName => {
-      mergedComponents[componentName] = Object.assign(Object.assign({}, mergedComponents[componentName]), theme.components[componentName]);
-    });
-    const cssVarKey = `css-var-${themeKey.replace(/:/g, '')}`;
-    const mergedCssVar = ((_a = themeConfig.cssVar) !== null && _a !== void 0 ? _a : parentThemeConfig.cssVar) && Object.assign(Object.assign(Object.assign({
-      prefix: config === null || config === void 0 ? void 0 : config.prefixCls
-    }, typeof parentThemeConfig.cssVar === 'object' ? parentThemeConfig.cssVar : {}), typeof themeConfig.cssVar === 'object' ? themeConfig.cssVar : {}), {
-      key: typeof themeConfig.cssVar === 'object' && ((_b = themeConfig.cssVar) === null || _b === void 0 ? void 0 : _b.key) || cssVarKey
-    });
-    // Base token
-    return Object.assign(Object.assign(Object.assign({}, parentThemeConfig), themeConfig), {
-      token: Object.assign(Object.assign({}, parentThemeConfig.token), themeConfig.token),
-      components: mergedComponents,
-      cssVar: mergedCssVar
-    });
-  }, [themeConfig, parentThemeConfig], (prev, next) => prev.some((prevTheme, index) => {
-    const nextTheme = next[index];
-    return !es_isEqual(prevTheme, nextTheme, true);
-  }));
-}
 // EXTERNAL MODULE: ./node_modules/react-dom/index.js
 var react_dom = __webpack_require__(961);
 var react_dom_namespaceObject = /*#__PURE__*/__webpack_require__.t(react_dom, 2);
@@ -12726,1387 +8013,6 @@ function findDOMNode(node) {
   }
   return null;
 }
-;// CONCATENATED MODULE: ./node_modules/rc-motion/es/context.js
-
-var context_excluded = ["children"];
-
-var context_Context = /*#__PURE__*/react.createContext({});
-function MotionProvider(_ref) {
-  var children = _ref.children,
-    props = objectWithoutProperties_objectWithoutProperties(_ref, context_excluded);
-  return /*#__PURE__*/react.createElement(context_Context.Provider, {
-    value: props
-  }, children);
-}
-;// CONCATENATED MODULE: ./node_modules/@babel/runtime/helpers/esm/createSuper.js
-
-
-
-function _createSuper(Derived) {
-  var hasNativeReflectConstruct = _isNativeReflectConstruct();
-  return function _createSuperInternal() {
-    var Super = _getPrototypeOf(Derived),
-      result;
-    if (hasNativeReflectConstruct) {
-      var NewTarget = _getPrototypeOf(this).constructor;
-      result = Reflect.construct(Super, arguments, NewTarget);
-    } else {
-      result = Super.apply(this, arguments);
-    }
-    return _possibleConstructorReturn(this, result);
-  };
-}
-;// CONCATENATED MODULE: ./node_modules/rc-motion/es/DomWrapper.js
-
-
-
-
-
-var DomWrapper = /*#__PURE__*/function (_React$Component) {
-  _inherits(DomWrapper, _React$Component);
-  var _super = _createSuper(DomWrapper);
-  function DomWrapper() {
-    _classCallCheck(this, DomWrapper);
-    return _super.apply(this, arguments);
-  }
-  _createClass(DomWrapper, [{
-    key: "render",
-    value: function render() {
-      return this.props.children;
-    }
-  }]);
-  return DomWrapper;
-}(react.Component);
-/* harmony default export */ const es_DomWrapper = (DomWrapper);
-;// CONCATENATED MODULE: ./node_modules/rc-motion/es/interface.js
-var STATUS_NONE = 'none';
-var STATUS_APPEAR = 'appear';
-var STATUS_ENTER = 'enter';
-var STATUS_LEAVE = 'leave';
-var STEP_NONE = 'none';
-var STEP_PREPARE = 'prepare';
-var STEP_START = 'start';
-var STEP_ACTIVE = 'active';
-var STEP_ACTIVATED = 'end';
-/**
- * Used for disabled motion case.
- * Prepare stage will still work but start & active will be skipped.
- */
-var STEP_PREPARED = 'prepared';
-;// CONCATENATED MODULE: ./node_modules/rc-motion/es/util/motion.js
-
-
-// ================= Transition =================
-// Event wrapper. Copy from react source code
-function makePrefixMap(styleProp, eventName) {
-  var prefixes = {};
-  prefixes[styleProp.toLowerCase()] = eventName.toLowerCase();
-  prefixes["Webkit".concat(styleProp)] = "webkit".concat(eventName);
-  prefixes["Moz".concat(styleProp)] = "moz".concat(eventName);
-  prefixes["ms".concat(styleProp)] = "MS".concat(eventName);
-  prefixes["O".concat(styleProp)] = "o".concat(eventName.toLowerCase());
-  return prefixes;
-}
-function getVendorPrefixes(domSupport, win) {
-  var prefixes = {
-    animationend: makePrefixMap('Animation', 'AnimationEnd'),
-    transitionend: makePrefixMap('Transition', 'TransitionEnd')
-  };
-  if (domSupport) {
-    if (!('AnimationEvent' in win)) {
-      delete prefixes.animationend.animation;
-    }
-    if (!('TransitionEvent' in win)) {
-      delete prefixes.transitionend.transition;
-    }
-  }
-  return prefixes;
-}
-var vendorPrefixes = getVendorPrefixes(canUseDom(), typeof window !== 'undefined' ? window : {});
-var style = {};
-if (canUseDom()) {
-  var _document$createEleme = document.createElement('div');
-  style = _document$createEleme.style;
-}
-var prefixedEventNames = {};
-function getVendorPrefixedEventName(eventName) {
-  if (prefixedEventNames[eventName]) {
-    return prefixedEventNames[eventName];
-  }
-  var prefixMap = vendorPrefixes[eventName];
-  if (prefixMap) {
-    var stylePropList = Object.keys(prefixMap);
-    var len = stylePropList.length;
-    for (var i = 0; i < len; i += 1) {
-      var styleProp = stylePropList[i];
-      if (Object.prototype.hasOwnProperty.call(prefixMap, styleProp) && styleProp in style) {
-        prefixedEventNames[eventName] = prefixMap[styleProp];
-        return prefixedEventNames[eventName];
-      }
-    }
-  }
-  return '';
-}
-var internalAnimationEndName = getVendorPrefixedEventName('animationend');
-var internalTransitionEndName = getVendorPrefixedEventName('transitionend');
-var supportTransition = !!(internalAnimationEndName && internalTransitionEndName);
-var animationEndName = internalAnimationEndName || 'animationend';
-var transitionEndName = internalTransitionEndName || 'transitionend';
-function getTransitionName(transitionName, transitionType) {
-  if (!transitionName) return null;
-  if (_typeof(transitionName) === 'object') {
-    var type = transitionType.replace(/-\w/g, function (match) {
-      return match[1].toUpperCase();
-    });
-    return transitionName[type];
-  }
-  return "".concat(transitionName, "-").concat(transitionType);
-}
-;// CONCATENATED MODULE: ./node_modules/rc-motion/es/hooks/useDomMotionEvents.js
-
-
-
-/* harmony default export */ const useDomMotionEvents = (function (callback) {
-  var cacheElementRef = (0,react.useRef)();
-
-  // Cache callback
-  var callbackRef = (0,react.useRef)(callback);
-  callbackRef.current = callback;
-
-  // Internal motion event handler
-  var onInternalMotionEnd = react.useCallback(function (event) {
-    callbackRef.current(event);
-  }, []);
-
-  // Remove events
-  function removeMotionEvents(element) {
-    if (element) {
-      element.removeEventListener(transitionEndName, onInternalMotionEnd);
-      element.removeEventListener(animationEndName, onInternalMotionEnd);
-    }
-  }
-
-  // Patch events
-  function patchMotionEvents(element) {
-    if (cacheElementRef.current && cacheElementRef.current !== element) {
-      removeMotionEvents(cacheElementRef.current);
-    }
-    if (element && element !== cacheElementRef.current) {
-      element.addEventListener(transitionEndName, onInternalMotionEnd);
-      element.addEventListener(animationEndName, onInternalMotionEnd);
-
-      // Save as cache in case dom removed trigger by `motionDeadline`
-      cacheElementRef.current = element;
-    }
-  }
-
-  // Clean up when removed
-  react.useEffect(function () {
-    return function () {
-      removeMotionEvents(cacheElementRef.current);
-    };
-  }, []);
-  return [patchMotionEvents, removeMotionEvents];
-});
-;// CONCATENATED MODULE: ./node_modules/rc-motion/es/hooks/useIsomorphicLayoutEffect.js
-
-
-
-// It's safe to use `useLayoutEffect` but the warning is annoying
-var useIsomorphicLayoutEffect = canUseDom() ? react.useLayoutEffect : react.useEffect;
-/* harmony default export */ const hooks_useIsomorphicLayoutEffect = (useIsomorphicLayoutEffect);
-;// CONCATENATED MODULE: ./node_modules/rc-util/es/raf.js
-var raf = function raf(callback) {
-  return +setTimeout(callback, 16);
-};
-var caf = function caf(num) {
-  return clearTimeout(num);
-};
-if (typeof window !== 'undefined' && 'requestAnimationFrame' in window) {
-  raf = function raf(callback) {
-    return window.requestAnimationFrame(callback);
-  };
-  caf = function caf(handle) {
-    return window.cancelAnimationFrame(handle);
-  };
-}
-var rafUUID = 0;
-var rafIds = new Map();
-function cleanup(id) {
-  rafIds.delete(id);
-}
-var wrapperRaf = function wrapperRaf(callback) {
-  var times = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : 1;
-  rafUUID += 1;
-  var id = rafUUID;
-  function callRef(leftTimes) {
-    if (leftTimes === 0) {
-      // Clean up
-      cleanup(id);
-
-      // Trigger
-      callback();
-    } else {
-      // Next raf
-      var realId = raf(function () {
-        callRef(leftTimes - 1);
-      });
-
-      // Bind real raf id
-      rafIds.set(id, realId);
-    }
-  }
-  callRef(times);
-  return id;
-};
-wrapperRaf.cancel = function (id) {
-  var realId = rafIds.get(id);
-  cleanup(id);
-  return caf(realId);
-};
-if (false) {}
-/* harmony default export */ const es_raf = (wrapperRaf);
-;// CONCATENATED MODULE: ./node_modules/rc-motion/es/hooks/useNextFrame.js
-
-
-/* harmony default export */ const useNextFrame = (function () {
-  var nextFrameRef = react.useRef(null);
-  function cancelNextFrame() {
-    es_raf.cancel(nextFrameRef.current);
-  }
-  function nextFrame(callback) {
-    var delay = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : 2;
-    cancelNextFrame();
-    var nextFrameId = es_raf(function () {
-      if (delay <= 1) {
-        callback({
-          isCanceled: function isCanceled() {
-            return nextFrameId !== nextFrameRef.current;
-          }
-        });
-      } else {
-        nextFrame(callback, delay - 1);
-      }
-    });
-    nextFrameRef.current = nextFrameId;
-  }
-  react.useEffect(function () {
-    return function () {
-      cancelNextFrame();
-    };
-  }, []);
-  return [nextFrame, cancelNextFrame];
-});
-;// CONCATENATED MODULE: ./node_modules/rc-motion/es/hooks/useStepQueue.js
-
-
-
-
-
-
-var FULL_STEP_QUEUE = [STEP_PREPARE, STEP_START, STEP_ACTIVE, STEP_ACTIVATED];
-var SIMPLE_STEP_QUEUE = [STEP_PREPARE, STEP_PREPARED];
-
-/** Skip current step */
-var SkipStep = false;
-/** Current step should be update in */
-var DoStep = true;
-function isActive(step) {
-  return step === STEP_ACTIVE || step === STEP_ACTIVATED;
-}
-/* harmony default export */ const useStepQueue = (function (status, prepareOnly, callback) {
-  var _useState = useSafeState(STEP_NONE),
-    _useState2 = slicedToArray_slicedToArray(_useState, 2),
-    step = _useState2[0],
-    setStep = _useState2[1];
-  var _useNextFrame = useNextFrame(),
-    _useNextFrame2 = slicedToArray_slicedToArray(_useNextFrame, 2),
-    nextFrame = _useNextFrame2[0],
-    cancelNextFrame = _useNextFrame2[1];
-  function startQueue() {
-    setStep(STEP_PREPARE, true);
-  }
-  var STEP_QUEUE = prepareOnly ? SIMPLE_STEP_QUEUE : FULL_STEP_QUEUE;
-  hooks_useIsomorphicLayoutEffect(function () {
-    if (step !== STEP_NONE && step !== STEP_ACTIVATED) {
-      var index = STEP_QUEUE.indexOf(step);
-      var nextStep = STEP_QUEUE[index + 1];
-      var result = callback(step);
-      if (result === SkipStep) {
-        // Skip when no needed
-        setStep(nextStep, true);
-      } else if (nextStep) {
-        // Do as frame for step update
-        nextFrame(function (info) {
-          function doNext() {
-            // Skip since current queue is ood
-            if (info.isCanceled()) return;
-            setStep(nextStep, true);
-          }
-          if (result === true) {
-            doNext();
-          } else {
-            // Only promise should be async
-            Promise.resolve(result).then(doNext);
-          }
-        });
-      }
-    }
-  }, [status, step]);
-  react.useEffect(function () {
-    return function () {
-      cancelNextFrame();
-    };
-  }, []);
-  return [startQueue, step];
-});
-;// CONCATENATED MODULE: ./node_modules/rc-motion/es/hooks/useStatus.js
-
-
-
-
-
-
-
-
-
-
-function useStatus(supportMotion, visible, getElement, _ref) {
-  var _ref$motionEnter = _ref.motionEnter,
-    motionEnter = _ref$motionEnter === void 0 ? true : _ref$motionEnter,
-    _ref$motionAppear = _ref.motionAppear,
-    motionAppear = _ref$motionAppear === void 0 ? true : _ref$motionAppear,
-    _ref$motionLeave = _ref.motionLeave,
-    motionLeave = _ref$motionLeave === void 0 ? true : _ref$motionLeave,
-    motionDeadline = _ref.motionDeadline,
-    motionLeaveImmediately = _ref.motionLeaveImmediately,
-    onAppearPrepare = _ref.onAppearPrepare,
-    onEnterPrepare = _ref.onEnterPrepare,
-    onLeavePrepare = _ref.onLeavePrepare,
-    onAppearStart = _ref.onAppearStart,
-    onEnterStart = _ref.onEnterStart,
-    onLeaveStart = _ref.onLeaveStart,
-    onAppearActive = _ref.onAppearActive,
-    onEnterActive = _ref.onEnterActive,
-    onLeaveActive = _ref.onLeaveActive,
-    onAppearEnd = _ref.onAppearEnd,
-    onEnterEnd = _ref.onEnterEnd,
-    onLeaveEnd = _ref.onLeaveEnd,
-    onVisibleChanged = _ref.onVisibleChanged;
-  // Used for outer render usage to avoid `visible: false & status: none` to render nothing
-  var _useState = useSafeState(),
-    _useState2 = slicedToArray_slicedToArray(_useState, 2),
-    asyncVisible = _useState2[0],
-    setAsyncVisible = _useState2[1];
-  var _useState3 = useSafeState(STATUS_NONE),
-    _useState4 = slicedToArray_slicedToArray(_useState3, 2),
-    status = _useState4[0],
-    setStatus = _useState4[1];
-  var _useState5 = useSafeState(null),
-    _useState6 = slicedToArray_slicedToArray(_useState5, 2),
-    style = _useState6[0],
-    setStyle = _useState6[1];
-  var mountedRef = (0,react.useRef)(false);
-  var deadlineRef = (0,react.useRef)(null);
-
-  // =========================== Dom Node ===========================
-  function getDomElement() {
-    return getElement();
-  }
-
-  // ========================== Motion End ==========================
-  var activeRef = (0,react.useRef)(false);
-
-  /**
-   * Clean up status & style
-   */
-  function updateMotionEndStatus() {
-    setStatus(STATUS_NONE, true);
-    setStyle(null, true);
-  }
-  function onInternalMotionEnd(event) {
-    var element = getDomElement();
-    if (event && !event.deadline && event.target !== element) {
-      // event exists
-      // not initiated by deadline
-      // transitionEnd not fired by inner elements
-      return;
-    }
-    var currentActive = activeRef.current;
-    var canEnd;
-    if (status === STATUS_APPEAR && currentActive) {
-      canEnd = onAppearEnd === null || onAppearEnd === void 0 ? void 0 : onAppearEnd(element, event);
-    } else if (status === STATUS_ENTER && currentActive) {
-      canEnd = onEnterEnd === null || onEnterEnd === void 0 ? void 0 : onEnterEnd(element, event);
-    } else if (status === STATUS_LEAVE && currentActive) {
-      canEnd = onLeaveEnd === null || onLeaveEnd === void 0 ? void 0 : onLeaveEnd(element, event);
-    }
-
-    // Only update status when `canEnd` and not destroyed
-    if (status !== STATUS_NONE && currentActive && canEnd !== false) {
-      updateMotionEndStatus();
-    }
-  }
-  var _useDomMotionEvents = useDomMotionEvents(onInternalMotionEnd),
-    _useDomMotionEvents2 = slicedToArray_slicedToArray(_useDomMotionEvents, 1),
-    patchMotionEvents = _useDomMotionEvents2[0];
-
-  // ============================= Step =============================
-  var getEventHandlers = function getEventHandlers(targetStatus) {
-    var _ref2, _ref3, _ref4;
-    switch (targetStatus) {
-      case STATUS_APPEAR:
-        return _ref2 = {}, defineProperty_defineProperty(_ref2, STEP_PREPARE, onAppearPrepare), defineProperty_defineProperty(_ref2, STEP_START, onAppearStart), defineProperty_defineProperty(_ref2, STEP_ACTIVE, onAppearActive), _ref2;
-      case STATUS_ENTER:
-        return _ref3 = {}, defineProperty_defineProperty(_ref3, STEP_PREPARE, onEnterPrepare), defineProperty_defineProperty(_ref3, STEP_START, onEnterStart), defineProperty_defineProperty(_ref3, STEP_ACTIVE, onEnterActive), _ref3;
-      case STATUS_LEAVE:
-        return _ref4 = {}, defineProperty_defineProperty(_ref4, STEP_PREPARE, onLeavePrepare), defineProperty_defineProperty(_ref4, STEP_START, onLeaveStart), defineProperty_defineProperty(_ref4, STEP_ACTIVE, onLeaveActive), _ref4;
-      default:
-        return {};
-    }
-  };
-  var eventHandlers = react.useMemo(function () {
-    return getEventHandlers(status);
-  }, [status]);
-  var _useStepQueue = useStepQueue(status, !supportMotion, function (newStep) {
-      // Only prepare step can be skip
-      if (newStep === STEP_PREPARE) {
-        var onPrepare = eventHandlers[STEP_PREPARE];
-        if (!onPrepare) {
-          return SkipStep;
-        }
-        return onPrepare(getDomElement());
-      }
-
-      // Rest step is sync update
-      if (step in eventHandlers) {
-        var _eventHandlers$step;
-        setStyle(((_eventHandlers$step = eventHandlers[step]) === null || _eventHandlers$step === void 0 ? void 0 : _eventHandlers$step.call(eventHandlers, getDomElement(), null)) || null);
-      }
-      if (step === STEP_ACTIVE) {
-        // Patch events when motion needed
-        patchMotionEvents(getDomElement());
-        if (motionDeadline > 0) {
-          clearTimeout(deadlineRef.current);
-          deadlineRef.current = setTimeout(function () {
-            onInternalMotionEnd({
-              deadline: true
-            });
-          }, motionDeadline);
-        }
-      }
-      if (step === STEP_PREPARED) {
-        updateMotionEndStatus();
-      }
-      return DoStep;
-    }),
-    _useStepQueue2 = slicedToArray_slicedToArray(_useStepQueue, 2),
-    startStep = _useStepQueue2[0],
-    step = _useStepQueue2[1];
-  var active = isActive(step);
-  activeRef.current = active;
-
-  // ============================ Status ============================
-  // Update with new status
-  hooks_useIsomorphicLayoutEffect(function () {
-    setAsyncVisible(visible);
-    var isMounted = mountedRef.current;
-    mountedRef.current = true;
-
-    // if (!supportMotion) {
-    //   return;
-    // }
-
-    var nextStatus;
-
-    // Appear
-    if (!isMounted && visible && motionAppear) {
-      nextStatus = STATUS_APPEAR;
-    }
-
-    // Enter
-    if (isMounted && visible && motionEnter) {
-      nextStatus = STATUS_ENTER;
-    }
-
-    // Leave
-    if (isMounted && !visible && motionLeave || !isMounted && motionLeaveImmediately && !visible && motionLeave) {
-      nextStatus = STATUS_LEAVE;
-    }
-    var nextEventHandlers = getEventHandlers(nextStatus);
-
-    // Update to next status
-    if (nextStatus && (supportMotion || nextEventHandlers[STEP_PREPARE])) {
-      setStatus(nextStatus);
-      startStep();
-    } else {
-      // Set back in case no motion but prev status has prepare step
-      setStatus(STATUS_NONE);
-    }
-  }, [visible]);
-
-  // ============================ Effect ============================
-  // Reset when motion changed
-  (0,react.useEffect)(function () {
-    if (
-    // Cancel appear
-    status === STATUS_APPEAR && !motionAppear ||
-    // Cancel enter
-    status === STATUS_ENTER && !motionEnter ||
-    // Cancel leave
-    status === STATUS_LEAVE && !motionLeave) {
-      setStatus(STATUS_NONE);
-    }
-  }, [motionAppear, motionEnter, motionLeave]);
-  (0,react.useEffect)(function () {
-    return function () {
-      mountedRef.current = false;
-      clearTimeout(deadlineRef.current);
-    };
-  }, []);
-
-  // Trigger `onVisibleChanged`
-  var firstMountChangeRef = react.useRef(false);
-  (0,react.useEffect)(function () {
-    // [visible & motion not end] => [!visible & motion end] still need trigger onVisibleChanged
-    if (asyncVisible) {
-      firstMountChangeRef.current = true;
-    }
-    if (asyncVisible !== undefined && status === STATUS_NONE) {
-      // Skip first render is invisible since it's nothing changed
-      if (firstMountChangeRef.current || asyncVisible) {
-        onVisibleChanged === null || onVisibleChanged === void 0 ? void 0 : onVisibleChanged(asyncVisible);
-      }
-      firstMountChangeRef.current = true;
-    }
-  }, [asyncVisible, status]);
-
-  // ============================ Styles ============================
-  var mergedStyle = style;
-  if (eventHandlers[STEP_PREPARE] && step === STEP_START) {
-    mergedStyle = objectSpread2_objectSpread2({
-      transition: 'none'
-    }, mergedStyle);
-  }
-  return [status, step, mergedStyle, asyncVisible !== null && asyncVisible !== void 0 ? asyncVisible : visible];
-}
-;// CONCATENATED MODULE: ./node_modules/rc-motion/es/CSSMotion.js
-
-
-
-
-/* eslint-disable react/default-props-match-prop-types, react/no-multi-comp, react/prop-types */
-
-
-
-
-
-
-
-
-
-
-
-/**
- * `transitionSupport` is used for none transition test case.
- * Default we use browser transition event support check.
- */
-function genCSSMotion(config) {
-  var transitionSupport = config;
-  if (_typeof(config) === 'object') {
-    transitionSupport = config.transitionSupport;
-  }
-  function isSupportTransition(props, contextMotion) {
-    return !!(props.motionName && transitionSupport && contextMotion !== false);
-  }
-  var CSSMotion = /*#__PURE__*/react.forwardRef(function (props, ref) {
-    var _props$visible = props.visible,
-      visible = _props$visible === void 0 ? true : _props$visible,
-      _props$removeOnLeave = props.removeOnLeave,
-      removeOnLeave = _props$removeOnLeave === void 0 ? true : _props$removeOnLeave,
-      forceRender = props.forceRender,
-      children = props.children,
-      motionName = props.motionName,
-      leavedClassName = props.leavedClassName,
-      eventProps = props.eventProps;
-    var _React$useContext = react.useContext(context_Context),
-      contextMotion = _React$useContext.motion;
-    var supportMotion = isSupportTransition(props, contextMotion);
-
-    // Ref to the react node, it may be a HTMLElement
-    var nodeRef = (0,react.useRef)();
-    // Ref to the dom wrapper in case ref can not pass to HTMLElement
-    var wrapperNodeRef = (0,react.useRef)();
-    function getDomElement() {
-      try {
-        // Here we're avoiding call for findDOMNode since it's deprecated
-        // in strict mode. We're calling it only when node ref is not
-        // an instance of DOM HTMLElement. Otherwise use
-        // findDOMNode as a final resort
-        return nodeRef.current instanceof HTMLElement ? nodeRef.current : findDOMNode(wrapperNodeRef.current);
-      } catch (e) {
-        // Only happen when `motionDeadline` trigger but element removed.
-        return null;
-      }
-    }
-    var _useStatus = useStatus(supportMotion, visible, getDomElement, props),
-      _useStatus2 = slicedToArray_slicedToArray(_useStatus, 4),
-      status = _useStatus2[0],
-      statusStep = _useStatus2[1],
-      statusStyle = _useStatus2[2],
-      mergedVisible = _useStatus2[3];
-
-    // Record whether content has rendered
-    // Will return null for un-rendered even when `removeOnLeave={false}`
-    var renderedRef = react.useRef(mergedVisible);
-    if (mergedVisible) {
-      renderedRef.current = true;
-    }
-
-    // ====================== Refs ======================
-    var setNodeRef = react.useCallback(function (node) {
-      nodeRef.current = node;
-      fillRef(ref, node);
-    }, [ref]);
-
-    // ===================== Render =====================
-    var motionChildren;
-    var mergedProps = objectSpread2_objectSpread2(objectSpread2_objectSpread2({}, eventProps), {}, {
-      visible: visible
-    });
-    if (!children) {
-      // No children
-      motionChildren = null;
-    } else if (status === STATUS_NONE) {
-      // Stable children
-      if (mergedVisible) {
-        motionChildren = children(objectSpread2_objectSpread2({}, mergedProps), setNodeRef);
-      } else if (!removeOnLeave && renderedRef.current && leavedClassName) {
-        motionChildren = children(objectSpread2_objectSpread2(objectSpread2_objectSpread2({}, mergedProps), {}, {
-          className: leavedClassName
-        }), setNodeRef);
-      } else if (forceRender || !removeOnLeave && !leavedClassName) {
-        motionChildren = children(objectSpread2_objectSpread2(objectSpread2_objectSpread2({}, mergedProps), {}, {
-          style: {
-            display: 'none'
-          }
-        }), setNodeRef);
-      } else {
-        motionChildren = null;
-      }
-    } else {
-      var _classNames;
-      // In motion
-      var statusSuffix;
-      if (statusStep === STEP_PREPARE) {
-        statusSuffix = 'prepare';
-      } else if (isActive(statusStep)) {
-        statusSuffix = 'active';
-      } else if (statusStep === STEP_START) {
-        statusSuffix = 'start';
-      }
-      var motionCls = getTransitionName(motionName, "".concat(status, "-").concat(statusSuffix));
-      motionChildren = children(objectSpread2_objectSpread2(objectSpread2_objectSpread2({}, mergedProps), {}, {
-        className: classnames_default()(getTransitionName(motionName, status), (_classNames = {}, defineProperty_defineProperty(_classNames, motionCls, motionCls && statusSuffix), defineProperty_defineProperty(_classNames, motionName, typeof motionName === 'string'), _classNames)),
-        style: statusStyle
-      }), setNodeRef);
-    }
-
-    // Auto inject ref if child node not have `ref` props
-    if ( /*#__PURE__*/react.isValidElement(motionChildren) && supportRef(motionChildren)) {
-      var _ref = motionChildren,
-        originNodeRef = _ref.ref;
-      if (!originNodeRef) {
-        motionChildren = /*#__PURE__*/react.cloneElement(motionChildren, {
-          ref: setNodeRef
-        });
-      }
-    }
-    return /*#__PURE__*/react.createElement(es_DomWrapper, {
-      ref: wrapperNodeRef
-    }, motionChildren);
-  });
-  CSSMotion.displayName = 'CSSMotion';
-  return CSSMotion;
-}
-/* harmony default export */ const es_CSSMotion = (genCSSMotion(supportTransition));
-;// CONCATENATED MODULE: ./node_modules/rc-motion/es/util/diff.js
-
-
-var STATUS_ADD = 'add';
-var STATUS_KEEP = 'keep';
-var STATUS_REMOVE = 'remove';
-var STATUS_REMOVED = 'removed';
-function wrapKeyToObject(key) {
-  var keyObj;
-  if (key && _typeof(key) === 'object' && 'key' in key) {
-    keyObj = key;
-  } else {
-    keyObj = {
-      key: key
-    };
-  }
-  return objectSpread2_objectSpread2(objectSpread2_objectSpread2({}, keyObj), {}, {
-    key: String(keyObj.key)
-  });
-}
-function parseKeys() {
-  var keys = arguments.length > 0 && arguments[0] !== undefined ? arguments[0] : [];
-  return keys.map(wrapKeyToObject);
-}
-function diffKeys() {
-  var prevKeys = arguments.length > 0 && arguments[0] !== undefined ? arguments[0] : [];
-  var currentKeys = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : [];
-  var list = [];
-  var currentIndex = 0;
-  var currentLen = currentKeys.length;
-  var prevKeyObjects = parseKeys(prevKeys);
-  var currentKeyObjects = parseKeys(currentKeys);
-
-  // Check prev keys to insert or keep
-  prevKeyObjects.forEach(function (keyObj) {
-    var hit = false;
-    for (var i = currentIndex; i < currentLen; i += 1) {
-      var currentKeyObj = currentKeyObjects[i];
-      if (currentKeyObj.key === keyObj.key) {
-        // New added keys should add before current key
-        if (currentIndex < i) {
-          list = list.concat(currentKeyObjects.slice(currentIndex, i).map(function (obj) {
-            return objectSpread2_objectSpread2(objectSpread2_objectSpread2({}, obj), {}, {
-              status: STATUS_ADD
-            });
-          }));
-          currentIndex = i;
-        }
-        list.push(objectSpread2_objectSpread2(objectSpread2_objectSpread2({}, currentKeyObj), {}, {
-          status: STATUS_KEEP
-        }));
-        currentIndex += 1;
-        hit = true;
-        break;
-      }
-    }
-
-    // If not hit, it means key is removed
-    if (!hit) {
-      list.push(objectSpread2_objectSpread2(objectSpread2_objectSpread2({}, keyObj), {}, {
-        status: STATUS_REMOVE
-      }));
-    }
-  });
-
-  // Add rest to the list
-  if (currentIndex < currentLen) {
-    list = list.concat(currentKeyObjects.slice(currentIndex).map(function (obj) {
-      return objectSpread2_objectSpread2(objectSpread2_objectSpread2({}, obj), {}, {
-        status: STATUS_ADD
-      });
-    }));
-  }
-
-  /**
-   * Merge same key when it remove and add again:
-   *    [1 - add, 2 - keep, 1 - remove] -> [1 - keep, 2 - keep]
-   */
-  var keys = {};
-  list.forEach(function (_ref) {
-    var key = _ref.key;
-    keys[key] = (keys[key] || 0) + 1;
-  });
-  var duplicatedKeys = Object.keys(keys).filter(function (key) {
-    return keys[key] > 1;
-  });
-  duplicatedKeys.forEach(function (matchKey) {
-    // Remove `STATUS_REMOVE` node.
-    list = list.filter(function (_ref2) {
-      var key = _ref2.key,
-        status = _ref2.status;
-      return key !== matchKey || status !== STATUS_REMOVE;
-    });
-
-    // Update `STATUS_ADD` to `STATUS_KEEP`
-    list.forEach(function (node) {
-      if (node.key === matchKey) {
-        // eslint-disable-next-line no-param-reassign
-        node.status = STATUS_KEEP;
-      }
-    });
-  });
-  return list;
-}
-;// CONCATENATED MODULE: ./node_modules/rc-motion/es/CSSMotionList.js
-
-
-
-
-
-
-
-
-
-var CSSMotionList_excluded = ["component", "children", "onVisibleChanged", "onAllRemoved"],
-  _excluded2 = ["status"];
-/* eslint react/prop-types: 0 */
-
-
-
-
-var MOTION_PROP_NAMES = ['eventProps', 'visible', 'children', 'motionName', 'motionAppear', 'motionEnter', 'motionLeave', 'motionLeaveImmediately', 'motionDeadline', 'removeOnLeave', 'leavedClassName', 'onAppearPrepare', 'onAppearStart', 'onAppearActive', 'onAppearEnd', 'onEnterStart', 'onEnterActive', 'onEnterEnd', 'onLeaveStart', 'onLeaveActive', 'onLeaveEnd'];
-/**
- * Generate a CSSMotionList component with config
- * @param transitionSupport No need since CSSMotionList no longer depends on transition support
- * @param CSSMotion CSSMotion component
- */
-function genCSSMotionList(transitionSupport) {
-  var CSSMotion = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : es_CSSMotion;
-  var CSSMotionList = /*#__PURE__*/function (_React$Component) {
-    _inherits(CSSMotionList, _React$Component);
-    var _super = _createSuper(CSSMotionList);
-    function CSSMotionList() {
-      var _this;
-      _classCallCheck(this, CSSMotionList);
-      for (var _len = arguments.length, args = new Array(_len), _key = 0; _key < _len; _key++) {
-        args[_key] = arguments[_key];
-      }
-      _this = _super.call.apply(_super, [this].concat(args));
-      defineProperty_defineProperty(_assertThisInitialized(_this), "state", {
-        keyEntities: []
-      });
-      // ZombieJ: Return the count of rest keys. It's safe to refactor if need more info.
-      defineProperty_defineProperty(_assertThisInitialized(_this), "removeKey", function (removeKey) {
-        var keyEntities = _this.state.keyEntities;
-        var nextKeyEntities = keyEntities.map(function (entity) {
-          if (entity.key !== removeKey) return entity;
-          return objectSpread2_objectSpread2(objectSpread2_objectSpread2({}, entity), {}, {
-            status: STATUS_REMOVED
-          });
-        });
-        _this.setState({
-          keyEntities: nextKeyEntities
-        });
-        return nextKeyEntities.filter(function (_ref) {
-          var status = _ref.status;
-          return status !== STATUS_REMOVED;
-        }).length;
-      });
-      return _this;
-    }
-    _createClass(CSSMotionList, [{
-      key: "render",
-      value: function render() {
-        var _this2 = this;
-        var keyEntities = this.state.keyEntities;
-        var _this$props = this.props,
-          component = _this$props.component,
-          children = _this$props.children,
-          _onVisibleChanged = _this$props.onVisibleChanged,
-          onAllRemoved = _this$props.onAllRemoved,
-          restProps = objectWithoutProperties_objectWithoutProperties(_this$props, CSSMotionList_excluded);
-        var Component = component || react.Fragment;
-        var motionProps = {};
-        MOTION_PROP_NAMES.forEach(function (prop) {
-          motionProps[prop] = restProps[prop];
-          delete restProps[prop];
-        });
-        delete restProps.keys;
-        return /*#__PURE__*/react.createElement(Component, restProps, keyEntities.map(function (_ref2, index) {
-          var status = _ref2.status,
-            eventProps = objectWithoutProperties_objectWithoutProperties(_ref2, _excluded2);
-          var visible = status === STATUS_ADD || status === STATUS_KEEP;
-          return /*#__PURE__*/react.createElement(CSSMotion, _extends({}, motionProps, {
-            key: eventProps.key,
-            visible: visible,
-            eventProps: eventProps,
-            onVisibleChanged: function onVisibleChanged(changedVisible) {
-              _onVisibleChanged === null || _onVisibleChanged === void 0 ? void 0 : _onVisibleChanged(changedVisible, {
-                key: eventProps.key
-              });
-              if (!changedVisible) {
-                var restKeysCount = _this2.removeKey(eventProps.key);
-                if (restKeysCount === 0 && onAllRemoved) {
-                  onAllRemoved();
-                }
-              }
-            }
-          }), function (props, ref) {
-            return children(objectSpread2_objectSpread2(objectSpread2_objectSpread2({}, props), {}, {
-              index: index
-            }), ref);
-          });
-        }));
-      }
-    }], [{
-      key: "getDerivedStateFromProps",
-      value: function getDerivedStateFromProps(_ref3, _ref4) {
-        var keys = _ref3.keys;
-        var keyEntities = _ref4.keyEntities;
-        var parsedKeyObjects = parseKeys(keys);
-        var mixedKeyEntities = diffKeys(keyEntities, parsedKeyObjects);
-        return {
-          keyEntities: mixedKeyEntities.filter(function (entity) {
-            var prevEntity = keyEntities.find(function (_ref5) {
-              var key = _ref5.key;
-              return entity.key === key;
-            });
-
-            // Remove if already mark as removed
-            if (prevEntity && prevEntity.status === STATUS_REMOVED && entity.status === STATUS_REMOVE) {
-              return false;
-            }
-            return true;
-          })
-        };
-      }
-    }]);
-    return CSSMotionList;
-  }(react.Component);
-  defineProperty_defineProperty(CSSMotionList, "defaultProps", {
-    component: 'div'
-  });
-  return CSSMotionList;
-}
-/* harmony default export */ const CSSMotionList = (genCSSMotionList(supportTransition));
-;// CONCATENATED MODULE: ./node_modules/rc-motion/es/index.js
-
-
-
-
-/* harmony default export */ const es = (es_CSSMotion);
-;// CONCATENATED MODULE: ./node_modules/antd/es/config-provider/MotionWrapper.js
-"use client";
-
-
-
-
-function MotionWrapper(props) {
-  const {
-    children
-  } = props;
-  const [, token] = useToken();
-  const {
-    motion
-  } = token;
-  const needWrapMotionProviderRef = react.useRef(false);
-  needWrapMotionProviderRef.current = needWrapMotionProviderRef.current || motion === false;
-  if (needWrapMotionProviderRef.current) {
-    return /*#__PURE__*/react.createElement(MotionProvider, {
-      motion: motion
-    }, children);
-  }
-  return children;
-}
-;// CONCATENATED MODULE: ./node_modules/antd/es/config-provider/PropWarning.js
-"use client";
-
-
-
-/**
- * Warning for ConfigProviderProps.
- * This will be empty function in production.
- */
-const PropWarning = /*#__PURE__*/(/* unused pure expression or super */ null && (React.memo(_ref => {
-  let {
-    dropdownMatchSelectWidth
-  } = _ref;
-  const warning = devUseWarning('ConfigProvider');
-  warning.deprecated(dropdownMatchSelectWidth === undefined, 'dropdownMatchSelectWidth', 'popupMatchSelectWidth');
-  return null;
-})));
-if (false) {}
-/* harmony default export */ const config_provider_PropWarning = ( false ? 0 : () => null);
-;// CONCATENATED MODULE: ./node_modules/antd/es/config-provider/index.js
-"use client";
-
-var config_provider_rest = undefined && undefined.__rest || function (s, e) {
-  var t = {};
-  for (var p in s) if (Object.prototype.hasOwnProperty.call(s, p) && e.indexOf(p) < 0) t[p] = s[p];
-  if (s != null && typeof Object.getOwnPropertySymbols === "function") for (var i = 0, p = Object.getOwnPropertySymbols(s); i < p.length; i++) {
-    if (e.indexOf(p[i]) < 0 && Object.prototype.propertyIsEnumerable.call(s, p[i])) t[p[i]] = s[p[i]];
-  }
-  return t;
-};
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-/**
- * Since too many feedback using static method like `Modal.confirm` not getting theme, we record the
- * theme register info here to help developer get warning info.
- */
-let existThemeConfig = false;
-const warnContext = (/* unused pure expression or super */ null && ( false ? 0 : /* istanbul ignore next */
-null));
-
-const configConsumerProps = (/* unused pure expression or super */ null && (['getTargetContainer', 'getPopupContainer', 'rootPrefixCls', 'getPrefixCls', 'renderEmpty', 'csp', 'autoInsertSpaceInButton', 'locale']));
-// These props is used by `useContext` directly in sub component
-const PASSED_PROPS = ['getTargetContainer', 'getPopupContainer', 'renderEmpty', 'input', 'pagination', 'form', 'select', 'button'];
-const defaultPrefixCls = 'ant';
-let globalPrefixCls;
-let globalIconPrefixCls;
-let globalTheme;
-let globalHolderRender;
-function getGlobalPrefixCls() {
-  return globalPrefixCls || defaultPrefixCls;
-}
-function getGlobalIconPrefixCls() {
-  return globalIconPrefixCls || defaultIconPrefixCls;
-}
-function isLegacyTheme(theme) {
-  return Object.keys(theme).some(key => key.endsWith('Color'));
-}
-const setGlobalConfig = props => {
-  const {
-    prefixCls,
-    iconPrefixCls,
-    theme,
-    holderRender
-  } = props;
-  if (prefixCls !== undefined) {
-    globalPrefixCls = prefixCls;
-  }
-  if (iconPrefixCls !== undefined) {
-    globalIconPrefixCls = iconPrefixCls;
-  }
-  if ('holderRender' in props) {
-    globalHolderRender = holderRender;
-  }
-  if (theme) {
-    if (isLegacyTheme(theme)) {
-       false ? 0 : void 0;
-      registerTheme(getGlobalPrefixCls(), theme);
-    } else {
-      globalTheme = theme;
-    }
-  }
-};
-const globalConfig = () => ({
-  getPrefixCls: (suffixCls, customizePrefixCls) => {
-    if (customizePrefixCls) {
-      return customizePrefixCls;
-    }
-    return suffixCls ? `${getGlobalPrefixCls()}-${suffixCls}` : getGlobalPrefixCls();
-  },
-  getIconPrefixCls: getGlobalIconPrefixCls,
-  getRootPrefixCls: () => {
-    // If Global prefixCls provided, use this
-    if (globalPrefixCls) {
-      return globalPrefixCls;
-    }
-    // Fallback to default prefixCls
-    return getGlobalPrefixCls();
-  },
-  getTheme: () => globalTheme,
-  holderRender: globalHolderRender
-});
-const ProviderChildren = props => {
-  const {
-    children,
-    csp: customCsp,
-    autoInsertSpaceInButton,
-    alert,
-    anchor,
-    form,
-    locale,
-    componentSize,
-    direction,
-    space,
-    virtual,
-    dropdownMatchSelectWidth,
-    popupMatchSelectWidth,
-    popupOverflow,
-    legacyLocale,
-    parentContext,
-    iconPrefixCls: customIconPrefixCls,
-    theme,
-    componentDisabled,
-    segmented,
-    statistic,
-    spin,
-    calendar,
-    carousel,
-    cascader,
-    collapse,
-    typography,
-    checkbox,
-    descriptions,
-    divider,
-    drawer,
-    skeleton,
-    steps,
-    image,
-    layout,
-    list,
-    mentions,
-    modal,
-    progress,
-    result,
-    slider,
-    breadcrumb,
-    menu,
-    pagination,
-    input,
-    textArea,
-    empty,
-    badge,
-    radio,
-    rate,
-    switch: SWITCH,
-    transfer,
-    avatar,
-    message,
-    tag,
-    table,
-    card,
-    tabs,
-    timeline,
-    timePicker,
-    upload,
-    notification,
-    tree,
-    colorPicker,
-    datePicker,
-    rangePicker,
-    flex,
-    wave,
-    dropdown,
-    warning: warningConfig,
-    tour,
-    floatButtonGroup
-  } = props;
-  // =================================== Context ===================================
-  const getPrefixCls = react.useCallback((suffixCls, customizePrefixCls) => {
-    const {
-      prefixCls
-    } = props;
-    if (customizePrefixCls) {
-      return customizePrefixCls;
-    }
-    const mergedPrefixCls = prefixCls || parentContext.getPrefixCls('');
-    return suffixCls ? `${mergedPrefixCls}-${suffixCls}` : mergedPrefixCls;
-  }, [parentContext.getPrefixCls, props.prefixCls]);
-  const iconPrefixCls = customIconPrefixCls || parentContext.iconPrefixCls || context_defaultIconPrefixCls;
-  const csp = customCsp || parentContext.csp;
-  util_useResetIconStyle(iconPrefixCls, csp);
-  const mergedTheme = useTheme(theme, parentContext.theme, {
-    prefixCls: getPrefixCls('')
-  });
-  if (false) {}
-  const baseConfig = {
-    csp,
-    autoInsertSpaceInButton,
-    alert,
-    anchor,
-    locale: locale || legacyLocale,
-    direction,
-    space,
-    virtual,
-    popupMatchSelectWidth: popupMatchSelectWidth !== null && popupMatchSelectWidth !== void 0 ? popupMatchSelectWidth : dropdownMatchSelectWidth,
-    popupOverflow,
-    getPrefixCls,
-    iconPrefixCls,
-    theme: mergedTheme,
-    segmented,
-    statistic,
-    spin,
-    calendar,
-    carousel,
-    cascader,
-    collapse,
-    typography,
-    checkbox,
-    descriptions,
-    divider,
-    drawer,
-    skeleton,
-    steps,
-    image,
-    input,
-    textArea,
-    layout,
-    list,
-    mentions,
-    modal,
-    progress,
-    result,
-    slider,
-    breadcrumb,
-    menu,
-    pagination,
-    empty,
-    badge,
-    radio,
-    rate,
-    switch: SWITCH,
-    transfer,
-    avatar,
-    message,
-    tag,
-    table,
-    card,
-    tabs,
-    timeline,
-    timePicker,
-    upload,
-    notification,
-    tree,
-    colorPicker,
-    datePicker,
-    rangePicker,
-    flex,
-    wave,
-    dropdown,
-    warning: warningConfig,
-    tour,
-    floatButtonGroup
-  };
-  const config = Object.assign({}, parentContext);
-  Object.keys(baseConfig).forEach(key => {
-    if (baseConfig[key] !== undefined) {
-      config[key] = baseConfig[key];
-    }
-  });
-  // Pass the props used by `useContext` directly with child component.
-  // These props should merged into `config`.
-  PASSED_PROPS.forEach(propName => {
-    const propValue = props[propName];
-    if (propValue) {
-      config[propName] = propValue;
-    }
-  });
-  // https://github.com/ant-design/ant-design/issues/27617
-  const memoedConfig = useMemo_useMemo(() => config, config, (prevConfig, currentConfig) => {
-    const prevKeys = Object.keys(prevConfig);
-    const currentKeys = Object.keys(currentConfig);
-    return prevKeys.length !== currentKeys.length || prevKeys.some(key => prevConfig[key] !== currentConfig[key]);
-  });
-  const memoIconContextValue = react.useMemo(() => ({
-    prefixCls: iconPrefixCls,
-    csp
-  }), [iconPrefixCls, csp]);
-  let childNode = /*#__PURE__*/react.createElement(react.Fragment, null, /*#__PURE__*/react.createElement(config_provider_PropWarning, {
-    dropdownMatchSelectWidth: dropdownMatchSelectWidth
-  }), children);
-  const validateMessages = react.useMemo(() => {
-    var _a, _b, _c, _d;
-    return merge(((_a = es_locale_en_US.Form) === null || _a === void 0 ? void 0 : _a.defaultValidateMessages) || {}, ((_c = (_b = memoedConfig.locale) === null || _b === void 0 ? void 0 : _b.Form) === null || _c === void 0 ? void 0 : _c.defaultValidateMessages) || {}, ((_d = memoedConfig.form) === null || _d === void 0 ? void 0 : _d.validateMessages) || {}, (form === null || form === void 0 ? void 0 : form.validateMessages) || {});
-  }, [memoedConfig, form === null || form === void 0 ? void 0 : form.validateMessages]);
-  if (Object.keys(validateMessages).length > 0) {
-    childNode = /*#__PURE__*/react.createElement(validateMessagesContext.Provider, {
-      value: validateMessages
-    }, childNode);
-  }
-  if (locale) {
-    childNode = /*#__PURE__*/react.createElement(es_locale, {
-      locale: locale,
-      _ANT_MARK__: ANT_MARK
-    }, childNode);
-  }
-  if (iconPrefixCls || csp) {
-    childNode = /*#__PURE__*/react.createElement(Context.Provider, {
-      value: memoIconContextValue
-    }, childNode);
-  }
-  if (componentSize) {
-    childNode = /*#__PURE__*/react.createElement(SizeContextProvider, {
-      size: componentSize
-    }, childNode);
-  }
-  // =================================== Motion ===================================
-  childNode = /*#__PURE__*/react.createElement(MotionWrapper, null, childNode);
-  // ================================ Dynamic theme ================================
-  const memoTheme = react.useMemo(() => {
-    const _a = mergedTheme || {},
-      {
-        algorithm,
-        token,
-        components,
-        cssVar
-      } = _a,
-      rest = config_provider_rest(_a, ["algorithm", "token", "components", "cssVar"]);
-    const themeObj = algorithm && (!Array.isArray(algorithm) || algorithm.length > 0) ? createTheme(algorithm) : defaultTheme;
-    const parsedComponents = {};
-    Object.entries(components || {}).forEach(_ref => {
-      let [componentName, componentToken] = _ref;
-      const parsedToken = Object.assign({}, componentToken);
-      if ('algorithm' in parsedToken) {
-        if (parsedToken.algorithm === true) {
-          parsedToken.theme = themeObj;
-        } else if (Array.isArray(parsedToken.algorithm) || typeof parsedToken.algorithm === 'function') {
-          parsedToken.theme = createTheme(parsedToken.algorithm);
-        }
-        delete parsedToken.algorithm;
-      }
-      parsedComponents[componentName] = parsedToken;
-    });
-    const mergedToken = Object.assign(Object.assign({}, themes_seed), token);
-    return Object.assign(Object.assign({}, rest), {
-      theme: themeObj,
-      token: mergedToken,
-      components: parsedComponents,
-      override: Object.assign({
-        override: mergedToken
-      }, parsedComponents),
-      cssVar: cssVar
-    });
-  }, [mergedTheme]);
-  if (theme) {
-    childNode = /*#__PURE__*/react.createElement(DesignTokenContext.Provider, {
-      value: memoTheme
-    }, childNode);
-  }
-  // ================================== Warning ===================================
-  if (memoedConfig.warning) {
-    childNode = /*#__PURE__*/react.createElement(WarningContext.Provider, {
-      value: memoedConfig.warning
-    }, childNode);
-  }
-  // =================================== Render ===================================
-  if (componentDisabled !== undefined) {
-    childNode = /*#__PURE__*/react.createElement(DisabledContextProvider, {
-      disabled: componentDisabled
-    }, childNode);
-  }
-  return /*#__PURE__*/react.createElement(context_ConfigContext.Provider, {
-    value: memoedConfig
-  }, childNode);
-};
-const ConfigProvider = props => {
-  const context = react.useContext(context_ConfigContext);
-  const antLocale = react.useContext(locale_context);
-  return /*#__PURE__*/react.createElement(ProviderChildren, Object.assign({
-    parentContext: context,
-    legacyLocale: antLocale
-  }, props));
-};
-ConfigProvider.ConfigContext = context_ConfigContext;
-ConfigProvider.SizeContext = config_provider_SizeContext;
-ConfigProvider.config = setGlobalConfig;
-ConfigProvider.useConfig = hooks_useConfig;
-Object.defineProperty(ConfigProvider, 'SizeContext', {
-  get: () => {
-     false ? 0 : void 0;
-    return config_provider_SizeContext;
-  }
-});
-if (false) {}
-/* harmony default export */ const config_provider = (ConfigProvider);
 ;// CONCATENATED MODULE: ./node_modules/rc-resize-observer/es/Collection.js
 
 var CollectionContext = /*#__PURE__*/react.createContext(null);
@@ -15109,6 +9015,24 @@ function unobserve(element, callback) {
     }
   }
 }
+;// CONCATENATED MODULE: ./node_modules/@babel/runtime/helpers/esm/createSuper.js
+
+
+
+function _createSuper(Derived) {
+  var hasNativeReflectConstruct = _isNativeReflectConstruct();
+  return function _createSuperInternal() {
+    var Super = _getPrototypeOf(Derived),
+      result;
+    if (hasNativeReflectConstruct) {
+      var NewTarget = _getPrototypeOf(this).constructor;
+      result = Reflect.construct(Super, arguments, NewTarget);
+    } else {
+      result = Super.apply(this, arguments);
+    }
+    return _possibleConstructorReturn(this, result);
+  };
+}
 ;// CONCATENATED MODULE: ./node_modules/rc-resize-observer/es/SingleObserver/DomWrapper.js
 
 
@@ -15118,7 +9042,7 @@ function unobserve(element, callback) {
 /**
  * Fallback to findDOMNode if origin ref do not provide any dom element
  */
-var DomWrapper_DomWrapper = /*#__PURE__*/function (_React$Component) {
+var DomWrapper = /*#__PURE__*/function (_React$Component) {
   _inherits(DomWrapper, _React$Component);
   var _super = _createSuper(DomWrapper);
   function DomWrapper() {
@@ -15238,7 +9162,7 @@ function SingleObserver(props, ref) {
   }, [elementRef.current, disabled]);
 
   // ============================ Render ============================
-  return /*#__PURE__*/react.createElement(DomWrapper_DomWrapper, {
+  return /*#__PURE__*/react.createElement(DomWrapper, {
     ref: wrapperRef
   }, canRef ? /*#__PURE__*/react.cloneElement(mergedChildren, {
     ref: mergedRef
@@ -15272,7 +9196,7 @@ function es_ResizeObserver(props, ref) {
 var RefResizeObserver = /*#__PURE__*/react.forwardRef(es_ResizeObserver);
 if (false) {}
 RefResizeObserver.Collection = Collection;
-/* harmony default export */ const rc_resize_observer_es = (RefResizeObserver);
+/* harmony default export */ const es = (RefResizeObserver);
 ;// CONCATENATED MODULE: ./node_modules/rc-overflow/es/Item.js
 
 
@@ -15334,7 +9258,7 @@ function InternalItem(props, ref) {
     ref: ref
   }), childNode);
   if (responsive) {
-    itemNode = /*#__PURE__*/react.createElement(rc_resize_observer_es, {
+    itemNode = /*#__PURE__*/react.createElement(es, {
       onResize: function onResize(_ref) {
         var offsetWidth = _ref.offsetWidth;
         internalRegisterSize(offsetWidth);
@@ -15347,6 +9271,57 @@ function InternalItem(props, ref) {
 var Item = /*#__PURE__*/react.forwardRef(InternalItem);
 Item.displayName = 'Item';
 /* harmony default export */ const es_Item = (Item);
+;// CONCATENATED MODULE: ./node_modules/rc-util/es/raf.js
+var raf = function raf(callback) {
+  return +setTimeout(callback, 16);
+};
+var caf = function caf(num) {
+  return clearTimeout(num);
+};
+if (typeof window !== 'undefined' && 'requestAnimationFrame' in window) {
+  raf = function raf(callback) {
+    return window.requestAnimationFrame(callback);
+  };
+  caf = function caf(handle) {
+    return window.cancelAnimationFrame(handle);
+  };
+}
+var rafUUID = 0;
+var rafIds = new Map();
+function cleanup(id) {
+  rafIds.delete(id);
+}
+var wrapperRaf = function wrapperRaf(callback) {
+  var times = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : 1;
+  rafUUID += 1;
+  var id = rafUUID;
+  function callRef(leftTimes) {
+    if (leftTimes === 0) {
+      // Clean up
+      cleanup(id);
+
+      // Trigger
+      callback();
+    } else {
+      // Next raf
+      var realId = raf(function () {
+        callRef(leftTimes - 1);
+      });
+
+      // Bind real raf id
+      rafIds.set(id, realId);
+    }
+  }
+  callRef(times);
+  return id;
+};
+wrapperRaf.cancel = function (id) {
+  var realId = rafIds.get(id);
+  cleanup(id);
+  return caf(realId);
+};
+if (false) {}
+/* harmony default export */ const es_raf = (wrapperRaf);
 ;// CONCATENATED MODULE: ./node_modules/rc-overflow/es/hooks/channelUpdate.js
 
 function channelUpdate(callback) {
@@ -15413,7 +9388,7 @@ var OverflowContext = /*#__PURE__*/react.createContext(null);
 
 
 var RawItem_excluded = ["component"],
-  RawItem_excluded2 = ["className"],
+  _excluded2 = ["className"],
   _excluded3 = ["className"];
 
 
@@ -15431,7 +9406,7 @@ var InternalRawItem = function InternalRawItem(props, ref) {
     }));
   }
   var contextClassName = context.className,
-    restContext = objectWithoutProperties_objectWithoutProperties(context, RawItem_excluded2);
+    restContext = objectWithoutProperties_objectWithoutProperties(context, _excluded2);
   var className = props.className,
     restProps = objectWithoutProperties_objectWithoutProperties(props, _excluded3);
   // Do not pass context to sub item to avoid multiple measure
@@ -15725,7 +9700,7 @@ function Overflow(props, ref) {
     style: suffixStyle
   }), suffix));
   if (isResponsive) {
-    overflowNode = /*#__PURE__*/react.createElement(rc_resize_observer_es, {
+    overflowNode = /*#__PURE__*/react.createElement(es, {
       onResize: onOverflowResize,
       disabled: !shouldResponsive
     }, overflowNode);
@@ -17031,7 +11006,7 @@ var LegacyMenuItem = /*#__PURE__*/function (_React$Component) {
       // React does not recognize non-standard attributes.
       // Therefore, remove the props that is not used here.
       // ref: https://github.com/ant-design/ant-design/issues/41395
-      var passedProps = omit_omit(restProps, ['eventKey', 'popupClassName', 'popupOffset', 'onTitleClick']);
+      var passedProps = omit(restProps, ['eventKey', 'popupClassName', 'popupOffset', 'onTitleClick']);
       es_warning(!attribute, '`attribute` of Menu.Item is deprecated. Please pass attribute directly.');
       return /*#__PURE__*/react.createElement(rc_overflow_es.Item, _extends({}, attribute, {
         title: typeof title === 'string' ? title : undefined
@@ -17564,7 +11539,7 @@ function resetUuid() {
   if (false) {}
 }
 var useOriginId = getUseId();
-/* harmony default export */ const hooks_useId = (useOriginId ?
+/* harmony default export */ const useId = (useOriginId ?
 // Use React `useId`
 function useId(id) {
   var reactId = useOriginId();
@@ -17610,6 +11585,883 @@ function useCompatId(id) {
   var agent = navigator.userAgent || navigator.vendor || window.opera;
   return /(android|bb\d+|meego).+mobile|avantgo|bada\/|blackberry|blazer|compal|elaine|fennec|hiptop|iemobile|ip(hone|od)|iris|kindle|lge |maemo|midp|mmp|mobile.+firefox|netfront|opera m(ob|in)i|palm( os)?|phone|p(ixi|re)\/|plucker|pocket|psp|series(4|6)0|symbian|treo|up\.(browser|link)|vodafone|wap|windows ce|xda|xiino|android|ipad|playbook|silk/i.test(agent) || /1207|6310|6590|3gso|4thp|50[1-6]i|770s|802s|a wa|abac|ac(er|oo|s-)|ai(ko|rn)|al(av|ca|co)|amoi|an(ex|ny|yw)|aptu|ar(ch|go)|as(te|us)|attw|au(di|-m|r |s )|avan|be(ck|ll|nq)|bi(lb|rd)|bl(ac|az)|br(e|v)w|bumb|bw-(n|u)|c55\/|capi|ccwa|cdm-|cell|chtm|cldc|cmd-|co(mp|nd)|craw|da(it|ll|ng)|dbte|dc-s|devi|dica|dmob|do(c|p)o|ds(12|-d)|el(49|ai)|em(l2|ul)|er(ic|k0)|esl8|ez([4-7]0|os|wa|ze)|fetc|fly(-|_)|g1 u|g560|gene|gf-5|g-mo|go(\.w|od)|gr(ad|un)|haie|hcit|hd-(m|p|t)|hei-|hi(pt|ta)|hp( i|ip)|hs-c|ht(c(-| |_|a|g|p|s|t)|tp)|hu(aw|tc)|i-(20|go|ma)|i230|iac( |-|\/)|ibro|idea|ig01|ikom|im1k|inno|ipaq|iris|ja(t|v)a|jbro|jemu|jigs|kddi|keji|kgt( |\/)|klon|kpt |kwc-|kyo(c|k)|le(no|xi)|lg( g|\/(k|l|u)|50|54|-[a-w])|libw|lynx|m1-w|m3ga|m50\/|ma(te|ui|xo)|mc(01|21|ca)|m-cr|me(rc|ri)|mi(o8|oa|ts)|mmef|mo(01|02|bi|de|do|t(-| |o|v)|zz)|mt(50|p1|v )|mwbp|mywa|n10[0-2]|n20[2-3]|n30(0|2)|n50(0|2|5)|n7(0(0|1)|10)|ne((c|m)-|on|tf|wf|wg|wt)|nok(6|i)|nzph|o2im|op(ti|wv)|oran|owg1|p800|pan(a|d|t)|pdxg|pg(13|-([1-8]|c))|phil|pire|pl(ay|uc)|pn-2|po(ck|rt|se)|prox|psio|pt-g|qa-a|qc(07|12|21|32|60|-[2-7]|i-)|qtek|r380|r600|raks|rim9|ro(ve|zo)|s55\/|sa(ge|ma|mm|ms|ny|va)|sc(01|h-|oo|p-)|sdk\/|se(c(-|0|1)|47|mc|nd|ri)|sgh-|shar|sie(-|m)|sk-0|sl(45|id)|sm(al|ar|b3|it|t5)|so(ft|ny)|sp(01|h-|v-|v )|sy(01|mb)|t2(18|50)|t6(00|10|18)|ta(gt|lk)|tcl-|tdg-|tel(i|m)|tim-|t-mo|to(pl|sh)|ts(70|m-|m3|m5)|tx-9|up(\.b|g1|si)|utst|v400|v750|veri|vi(rg|te)|vk(40|5[0-3]|-v)|vm40|voda|vulc|vx(52|53|60|61|70|80|81|83|85|98)|w3c(-| )|webc|whit|wi(g |nc|nw)|wmlb|wonu|x700|yas-|your|zeto|zte-/i.test(agent === null || agent === void 0 ? void 0 : agent.substr(0, 4));
 });
+;// CONCATENATED MODULE: ./node_modules/rc-motion/es/context.js
+
+var context_excluded = ["children"];
+
+var context_Context = /*#__PURE__*/react.createContext({});
+function MotionProvider(_ref) {
+  var children = _ref.children,
+    props = objectWithoutProperties_objectWithoutProperties(_ref, context_excluded);
+  return /*#__PURE__*/react.createElement(context_Context.Provider, {
+    value: props
+  }, children);
+}
+;// CONCATENATED MODULE: ./node_modules/rc-motion/es/DomWrapper.js
+
+
+
+
+
+var DomWrapper_DomWrapper = /*#__PURE__*/function (_React$Component) {
+  _inherits(DomWrapper, _React$Component);
+  var _super = _createSuper(DomWrapper);
+  function DomWrapper() {
+    _classCallCheck(this, DomWrapper);
+    return _super.apply(this, arguments);
+  }
+  _createClass(DomWrapper, [{
+    key: "render",
+    value: function render() {
+      return this.props.children;
+    }
+  }]);
+  return DomWrapper;
+}(react.Component);
+/* harmony default export */ const es_DomWrapper = (DomWrapper_DomWrapper);
+;// CONCATENATED MODULE: ./node_modules/rc-motion/es/interface.js
+var STATUS_NONE = 'none';
+var STATUS_APPEAR = 'appear';
+var STATUS_ENTER = 'enter';
+var STATUS_LEAVE = 'leave';
+var STEP_NONE = 'none';
+var STEP_PREPARE = 'prepare';
+var STEP_START = 'start';
+var STEP_ACTIVE = 'active';
+var STEP_ACTIVATED = 'end';
+/**
+ * Used for disabled motion case.
+ * Prepare stage will still work but start & active will be skipped.
+ */
+var STEP_PREPARED = 'prepared';
+;// CONCATENATED MODULE: ./node_modules/rc-motion/es/util/motion.js
+
+
+// ================= Transition =================
+// Event wrapper. Copy from react source code
+function makePrefixMap(styleProp, eventName) {
+  var prefixes = {};
+  prefixes[styleProp.toLowerCase()] = eventName.toLowerCase();
+  prefixes["Webkit".concat(styleProp)] = "webkit".concat(eventName);
+  prefixes["Moz".concat(styleProp)] = "moz".concat(eventName);
+  prefixes["ms".concat(styleProp)] = "MS".concat(eventName);
+  prefixes["O".concat(styleProp)] = "o".concat(eventName.toLowerCase());
+  return prefixes;
+}
+function getVendorPrefixes(domSupport, win) {
+  var prefixes = {
+    animationend: makePrefixMap('Animation', 'AnimationEnd'),
+    transitionend: makePrefixMap('Transition', 'TransitionEnd')
+  };
+  if (domSupport) {
+    if (!('AnimationEvent' in win)) {
+      delete prefixes.animationend.animation;
+    }
+    if (!('TransitionEvent' in win)) {
+      delete prefixes.transitionend.transition;
+    }
+  }
+  return prefixes;
+}
+var vendorPrefixes = getVendorPrefixes(canUseDom(), typeof window !== 'undefined' ? window : {});
+var style = {};
+if (canUseDom()) {
+  var _document$createEleme = document.createElement('div');
+  style = _document$createEleme.style;
+}
+var prefixedEventNames = {};
+function getVendorPrefixedEventName(eventName) {
+  if (prefixedEventNames[eventName]) {
+    return prefixedEventNames[eventName];
+  }
+  var prefixMap = vendorPrefixes[eventName];
+  if (prefixMap) {
+    var stylePropList = Object.keys(prefixMap);
+    var len = stylePropList.length;
+    for (var i = 0; i < len; i += 1) {
+      var styleProp = stylePropList[i];
+      if (Object.prototype.hasOwnProperty.call(prefixMap, styleProp) && styleProp in style) {
+        prefixedEventNames[eventName] = prefixMap[styleProp];
+        return prefixedEventNames[eventName];
+      }
+    }
+  }
+  return '';
+}
+var internalAnimationEndName = getVendorPrefixedEventName('animationend');
+var internalTransitionEndName = getVendorPrefixedEventName('transitionend');
+var supportTransition = !!(internalAnimationEndName && internalTransitionEndName);
+var animationEndName = internalAnimationEndName || 'animationend';
+var transitionEndName = internalTransitionEndName || 'transitionend';
+function getTransitionName(transitionName, transitionType) {
+  if (!transitionName) return null;
+  if (_typeof(transitionName) === 'object') {
+    var type = transitionType.replace(/-\w/g, function (match) {
+      return match[1].toUpperCase();
+    });
+    return transitionName[type];
+  }
+  return "".concat(transitionName, "-").concat(transitionType);
+}
+;// CONCATENATED MODULE: ./node_modules/rc-motion/es/hooks/useDomMotionEvents.js
+
+
+
+/* harmony default export */ const useDomMotionEvents = (function (callback) {
+  var cacheElementRef = (0,react.useRef)();
+
+  // Cache callback
+  var callbackRef = (0,react.useRef)(callback);
+  callbackRef.current = callback;
+
+  // Internal motion event handler
+  var onInternalMotionEnd = react.useCallback(function (event) {
+    callbackRef.current(event);
+  }, []);
+
+  // Remove events
+  function removeMotionEvents(element) {
+    if (element) {
+      element.removeEventListener(transitionEndName, onInternalMotionEnd);
+      element.removeEventListener(animationEndName, onInternalMotionEnd);
+    }
+  }
+
+  // Patch events
+  function patchMotionEvents(element) {
+    if (cacheElementRef.current && cacheElementRef.current !== element) {
+      removeMotionEvents(cacheElementRef.current);
+    }
+    if (element && element !== cacheElementRef.current) {
+      element.addEventListener(transitionEndName, onInternalMotionEnd);
+      element.addEventListener(animationEndName, onInternalMotionEnd);
+
+      // Save as cache in case dom removed trigger by `motionDeadline`
+      cacheElementRef.current = element;
+    }
+  }
+
+  // Clean up when removed
+  react.useEffect(function () {
+    return function () {
+      removeMotionEvents(cacheElementRef.current);
+    };
+  }, []);
+  return [patchMotionEvents, removeMotionEvents];
+});
+;// CONCATENATED MODULE: ./node_modules/rc-motion/es/hooks/useIsomorphicLayoutEffect.js
+
+
+
+// It's safe to use `useLayoutEffect` but the warning is annoying
+var useIsomorphicLayoutEffect = canUseDom() ? react.useLayoutEffect : react.useEffect;
+/* harmony default export */ const hooks_useIsomorphicLayoutEffect = (useIsomorphicLayoutEffect);
+;// CONCATENATED MODULE: ./node_modules/rc-motion/es/hooks/useNextFrame.js
+
+
+/* harmony default export */ const useNextFrame = (function () {
+  var nextFrameRef = react.useRef(null);
+  function cancelNextFrame() {
+    es_raf.cancel(nextFrameRef.current);
+  }
+  function nextFrame(callback) {
+    var delay = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : 2;
+    cancelNextFrame();
+    var nextFrameId = es_raf(function () {
+      if (delay <= 1) {
+        callback({
+          isCanceled: function isCanceled() {
+            return nextFrameId !== nextFrameRef.current;
+          }
+        });
+      } else {
+        nextFrame(callback, delay - 1);
+      }
+    });
+    nextFrameRef.current = nextFrameId;
+  }
+  react.useEffect(function () {
+    return function () {
+      cancelNextFrame();
+    };
+  }, []);
+  return [nextFrame, cancelNextFrame];
+});
+;// CONCATENATED MODULE: ./node_modules/rc-motion/es/hooks/useStepQueue.js
+
+
+
+
+
+
+var FULL_STEP_QUEUE = [STEP_PREPARE, STEP_START, STEP_ACTIVE, STEP_ACTIVATED];
+var SIMPLE_STEP_QUEUE = [STEP_PREPARE, STEP_PREPARED];
+
+/** Skip current step */
+var SkipStep = false;
+/** Current step should be update in */
+var DoStep = true;
+function isActive(step) {
+  return step === STEP_ACTIVE || step === STEP_ACTIVATED;
+}
+/* harmony default export */ const useStepQueue = (function (status, prepareOnly, callback) {
+  var _useState = useSafeState(STEP_NONE),
+    _useState2 = slicedToArray_slicedToArray(_useState, 2),
+    step = _useState2[0],
+    setStep = _useState2[1];
+  var _useNextFrame = useNextFrame(),
+    _useNextFrame2 = slicedToArray_slicedToArray(_useNextFrame, 2),
+    nextFrame = _useNextFrame2[0],
+    cancelNextFrame = _useNextFrame2[1];
+  function startQueue() {
+    setStep(STEP_PREPARE, true);
+  }
+  var STEP_QUEUE = prepareOnly ? SIMPLE_STEP_QUEUE : FULL_STEP_QUEUE;
+  hooks_useIsomorphicLayoutEffect(function () {
+    if (step !== STEP_NONE && step !== STEP_ACTIVATED) {
+      var index = STEP_QUEUE.indexOf(step);
+      var nextStep = STEP_QUEUE[index + 1];
+      var result = callback(step);
+      if (result === SkipStep) {
+        // Skip when no needed
+        setStep(nextStep, true);
+      } else if (nextStep) {
+        // Do as frame for step update
+        nextFrame(function (info) {
+          function doNext() {
+            // Skip since current queue is ood
+            if (info.isCanceled()) return;
+            setStep(nextStep, true);
+          }
+          if (result === true) {
+            doNext();
+          } else {
+            // Only promise should be async
+            Promise.resolve(result).then(doNext);
+          }
+        });
+      }
+    }
+  }, [status, step]);
+  react.useEffect(function () {
+    return function () {
+      cancelNextFrame();
+    };
+  }, []);
+  return [startQueue, step];
+});
+;// CONCATENATED MODULE: ./node_modules/rc-motion/es/hooks/useStatus.js
+
+
+
+
+
+
+
+
+
+
+function useStatus(supportMotion, visible, getElement, _ref) {
+  var _ref$motionEnter = _ref.motionEnter,
+    motionEnter = _ref$motionEnter === void 0 ? true : _ref$motionEnter,
+    _ref$motionAppear = _ref.motionAppear,
+    motionAppear = _ref$motionAppear === void 0 ? true : _ref$motionAppear,
+    _ref$motionLeave = _ref.motionLeave,
+    motionLeave = _ref$motionLeave === void 0 ? true : _ref$motionLeave,
+    motionDeadline = _ref.motionDeadline,
+    motionLeaveImmediately = _ref.motionLeaveImmediately,
+    onAppearPrepare = _ref.onAppearPrepare,
+    onEnterPrepare = _ref.onEnterPrepare,
+    onLeavePrepare = _ref.onLeavePrepare,
+    onAppearStart = _ref.onAppearStart,
+    onEnterStart = _ref.onEnterStart,
+    onLeaveStart = _ref.onLeaveStart,
+    onAppearActive = _ref.onAppearActive,
+    onEnterActive = _ref.onEnterActive,
+    onLeaveActive = _ref.onLeaveActive,
+    onAppearEnd = _ref.onAppearEnd,
+    onEnterEnd = _ref.onEnterEnd,
+    onLeaveEnd = _ref.onLeaveEnd,
+    onVisibleChanged = _ref.onVisibleChanged;
+  // Used for outer render usage to avoid `visible: false & status: none` to render nothing
+  var _useState = useSafeState(),
+    _useState2 = slicedToArray_slicedToArray(_useState, 2),
+    asyncVisible = _useState2[0],
+    setAsyncVisible = _useState2[1];
+  var _useState3 = useSafeState(STATUS_NONE),
+    _useState4 = slicedToArray_slicedToArray(_useState3, 2),
+    status = _useState4[0],
+    setStatus = _useState4[1];
+  var _useState5 = useSafeState(null),
+    _useState6 = slicedToArray_slicedToArray(_useState5, 2),
+    style = _useState6[0],
+    setStyle = _useState6[1];
+  var mountedRef = (0,react.useRef)(false);
+  var deadlineRef = (0,react.useRef)(null);
+
+  // =========================== Dom Node ===========================
+  function getDomElement() {
+    return getElement();
+  }
+
+  // ========================== Motion End ==========================
+  var activeRef = (0,react.useRef)(false);
+
+  /**
+   * Clean up status & style
+   */
+  function updateMotionEndStatus() {
+    setStatus(STATUS_NONE, true);
+    setStyle(null, true);
+  }
+  function onInternalMotionEnd(event) {
+    var element = getDomElement();
+    if (event && !event.deadline && event.target !== element) {
+      // event exists
+      // not initiated by deadline
+      // transitionEnd not fired by inner elements
+      return;
+    }
+    var currentActive = activeRef.current;
+    var canEnd;
+    if (status === STATUS_APPEAR && currentActive) {
+      canEnd = onAppearEnd === null || onAppearEnd === void 0 ? void 0 : onAppearEnd(element, event);
+    } else if (status === STATUS_ENTER && currentActive) {
+      canEnd = onEnterEnd === null || onEnterEnd === void 0 ? void 0 : onEnterEnd(element, event);
+    } else if (status === STATUS_LEAVE && currentActive) {
+      canEnd = onLeaveEnd === null || onLeaveEnd === void 0 ? void 0 : onLeaveEnd(element, event);
+    }
+
+    // Only update status when `canEnd` and not destroyed
+    if (status !== STATUS_NONE && currentActive && canEnd !== false) {
+      updateMotionEndStatus();
+    }
+  }
+  var _useDomMotionEvents = useDomMotionEvents(onInternalMotionEnd),
+    _useDomMotionEvents2 = slicedToArray_slicedToArray(_useDomMotionEvents, 1),
+    patchMotionEvents = _useDomMotionEvents2[0];
+
+  // ============================= Step =============================
+  var getEventHandlers = function getEventHandlers(targetStatus) {
+    var _ref2, _ref3, _ref4;
+    switch (targetStatus) {
+      case STATUS_APPEAR:
+        return _ref2 = {}, defineProperty_defineProperty(_ref2, STEP_PREPARE, onAppearPrepare), defineProperty_defineProperty(_ref2, STEP_START, onAppearStart), defineProperty_defineProperty(_ref2, STEP_ACTIVE, onAppearActive), _ref2;
+      case STATUS_ENTER:
+        return _ref3 = {}, defineProperty_defineProperty(_ref3, STEP_PREPARE, onEnterPrepare), defineProperty_defineProperty(_ref3, STEP_START, onEnterStart), defineProperty_defineProperty(_ref3, STEP_ACTIVE, onEnterActive), _ref3;
+      case STATUS_LEAVE:
+        return _ref4 = {}, defineProperty_defineProperty(_ref4, STEP_PREPARE, onLeavePrepare), defineProperty_defineProperty(_ref4, STEP_START, onLeaveStart), defineProperty_defineProperty(_ref4, STEP_ACTIVE, onLeaveActive), _ref4;
+      default:
+        return {};
+    }
+  };
+  var eventHandlers = react.useMemo(function () {
+    return getEventHandlers(status);
+  }, [status]);
+  var _useStepQueue = useStepQueue(status, !supportMotion, function (newStep) {
+      // Only prepare step can be skip
+      if (newStep === STEP_PREPARE) {
+        var onPrepare = eventHandlers[STEP_PREPARE];
+        if (!onPrepare) {
+          return SkipStep;
+        }
+        return onPrepare(getDomElement());
+      }
+
+      // Rest step is sync update
+      if (step in eventHandlers) {
+        var _eventHandlers$step;
+        setStyle(((_eventHandlers$step = eventHandlers[step]) === null || _eventHandlers$step === void 0 ? void 0 : _eventHandlers$step.call(eventHandlers, getDomElement(), null)) || null);
+      }
+      if (step === STEP_ACTIVE) {
+        // Patch events when motion needed
+        patchMotionEvents(getDomElement());
+        if (motionDeadline > 0) {
+          clearTimeout(deadlineRef.current);
+          deadlineRef.current = setTimeout(function () {
+            onInternalMotionEnd({
+              deadline: true
+            });
+          }, motionDeadline);
+        }
+      }
+      if (step === STEP_PREPARED) {
+        updateMotionEndStatus();
+      }
+      return DoStep;
+    }),
+    _useStepQueue2 = slicedToArray_slicedToArray(_useStepQueue, 2),
+    startStep = _useStepQueue2[0],
+    step = _useStepQueue2[1];
+  var active = isActive(step);
+  activeRef.current = active;
+
+  // ============================ Status ============================
+  // Update with new status
+  hooks_useIsomorphicLayoutEffect(function () {
+    setAsyncVisible(visible);
+    var isMounted = mountedRef.current;
+    mountedRef.current = true;
+
+    // if (!supportMotion) {
+    //   return;
+    // }
+
+    var nextStatus;
+
+    // Appear
+    if (!isMounted && visible && motionAppear) {
+      nextStatus = STATUS_APPEAR;
+    }
+
+    // Enter
+    if (isMounted && visible && motionEnter) {
+      nextStatus = STATUS_ENTER;
+    }
+
+    // Leave
+    if (isMounted && !visible && motionLeave || !isMounted && motionLeaveImmediately && !visible && motionLeave) {
+      nextStatus = STATUS_LEAVE;
+    }
+    var nextEventHandlers = getEventHandlers(nextStatus);
+
+    // Update to next status
+    if (nextStatus && (supportMotion || nextEventHandlers[STEP_PREPARE])) {
+      setStatus(nextStatus);
+      startStep();
+    } else {
+      // Set back in case no motion but prev status has prepare step
+      setStatus(STATUS_NONE);
+    }
+  }, [visible]);
+
+  // ============================ Effect ============================
+  // Reset when motion changed
+  (0,react.useEffect)(function () {
+    if (
+    // Cancel appear
+    status === STATUS_APPEAR && !motionAppear ||
+    // Cancel enter
+    status === STATUS_ENTER && !motionEnter ||
+    // Cancel leave
+    status === STATUS_LEAVE && !motionLeave) {
+      setStatus(STATUS_NONE);
+    }
+  }, [motionAppear, motionEnter, motionLeave]);
+  (0,react.useEffect)(function () {
+    return function () {
+      mountedRef.current = false;
+      clearTimeout(deadlineRef.current);
+    };
+  }, []);
+
+  // Trigger `onVisibleChanged`
+  var firstMountChangeRef = react.useRef(false);
+  (0,react.useEffect)(function () {
+    // [visible & motion not end] => [!visible & motion end] still need trigger onVisibleChanged
+    if (asyncVisible) {
+      firstMountChangeRef.current = true;
+    }
+    if (asyncVisible !== undefined && status === STATUS_NONE) {
+      // Skip first render is invisible since it's nothing changed
+      if (firstMountChangeRef.current || asyncVisible) {
+        onVisibleChanged === null || onVisibleChanged === void 0 ? void 0 : onVisibleChanged(asyncVisible);
+      }
+      firstMountChangeRef.current = true;
+    }
+  }, [asyncVisible, status]);
+
+  // ============================ Styles ============================
+  var mergedStyle = style;
+  if (eventHandlers[STEP_PREPARE] && step === STEP_START) {
+    mergedStyle = objectSpread2_objectSpread2({
+      transition: 'none'
+    }, mergedStyle);
+  }
+  return [status, step, mergedStyle, asyncVisible !== null && asyncVisible !== void 0 ? asyncVisible : visible];
+}
+;// CONCATENATED MODULE: ./node_modules/rc-motion/es/CSSMotion.js
+
+
+
+
+/* eslint-disable react/default-props-match-prop-types, react/no-multi-comp, react/prop-types */
+
+
+
+
+
+
+
+
+
+
+
+/**
+ * `transitionSupport` is used for none transition test case.
+ * Default we use browser transition event support check.
+ */
+function genCSSMotion(config) {
+  var transitionSupport = config;
+  if (_typeof(config) === 'object') {
+    transitionSupport = config.transitionSupport;
+  }
+  function isSupportTransition(props, contextMotion) {
+    return !!(props.motionName && transitionSupport && contextMotion !== false);
+  }
+  var CSSMotion = /*#__PURE__*/react.forwardRef(function (props, ref) {
+    var _props$visible = props.visible,
+      visible = _props$visible === void 0 ? true : _props$visible,
+      _props$removeOnLeave = props.removeOnLeave,
+      removeOnLeave = _props$removeOnLeave === void 0 ? true : _props$removeOnLeave,
+      forceRender = props.forceRender,
+      children = props.children,
+      motionName = props.motionName,
+      leavedClassName = props.leavedClassName,
+      eventProps = props.eventProps;
+    var _React$useContext = react.useContext(context_Context),
+      contextMotion = _React$useContext.motion;
+    var supportMotion = isSupportTransition(props, contextMotion);
+
+    // Ref to the react node, it may be a HTMLElement
+    var nodeRef = (0,react.useRef)();
+    // Ref to the dom wrapper in case ref can not pass to HTMLElement
+    var wrapperNodeRef = (0,react.useRef)();
+    function getDomElement() {
+      try {
+        // Here we're avoiding call for findDOMNode since it's deprecated
+        // in strict mode. We're calling it only when node ref is not
+        // an instance of DOM HTMLElement. Otherwise use
+        // findDOMNode as a final resort
+        return nodeRef.current instanceof HTMLElement ? nodeRef.current : findDOMNode(wrapperNodeRef.current);
+      } catch (e) {
+        // Only happen when `motionDeadline` trigger but element removed.
+        return null;
+      }
+    }
+    var _useStatus = useStatus(supportMotion, visible, getDomElement, props),
+      _useStatus2 = slicedToArray_slicedToArray(_useStatus, 4),
+      status = _useStatus2[0],
+      statusStep = _useStatus2[1],
+      statusStyle = _useStatus2[2],
+      mergedVisible = _useStatus2[3];
+
+    // Record whether content has rendered
+    // Will return null for un-rendered even when `removeOnLeave={false}`
+    var renderedRef = react.useRef(mergedVisible);
+    if (mergedVisible) {
+      renderedRef.current = true;
+    }
+
+    // ====================== Refs ======================
+    var setNodeRef = react.useCallback(function (node) {
+      nodeRef.current = node;
+      fillRef(ref, node);
+    }, [ref]);
+
+    // ===================== Render =====================
+    var motionChildren;
+    var mergedProps = objectSpread2_objectSpread2(objectSpread2_objectSpread2({}, eventProps), {}, {
+      visible: visible
+    });
+    if (!children) {
+      // No children
+      motionChildren = null;
+    } else if (status === STATUS_NONE) {
+      // Stable children
+      if (mergedVisible) {
+        motionChildren = children(objectSpread2_objectSpread2({}, mergedProps), setNodeRef);
+      } else if (!removeOnLeave && renderedRef.current && leavedClassName) {
+        motionChildren = children(objectSpread2_objectSpread2(objectSpread2_objectSpread2({}, mergedProps), {}, {
+          className: leavedClassName
+        }), setNodeRef);
+      } else if (forceRender || !removeOnLeave && !leavedClassName) {
+        motionChildren = children(objectSpread2_objectSpread2(objectSpread2_objectSpread2({}, mergedProps), {}, {
+          style: {
+            display: 'none'
+          }
+        }), setNodeRef);
+      } else {
+        motionChildren = null;
+      }
+    } else {
+      var _classNames;
+      // In motion
+      var statusSuffix;
+      if (statusStep === STEP_PREPARE) {
+        statusSuffix = 'prepare';
+      } else if (isActive(statusStep)) {
+        statusSuffix = 'active';
+      } else if (statusStep === STEP_START) {
+        statusSuffix = 'start';
+      }
+      var motionCls = getTransitionName(motionName, "".concat(status, "-").concat(statusSuffix));
+      motionChildren = children(objectSpread2_objectSpread2(objectSpread2_objectSpread2({}, mergedProps), {}, {
+        className: classnames_default()(getTransitionName(motionName, status), (_classNames = {}, defineProperty_defineProperty(_classNames, motionCls, motionCls && statusSuffix), defineProperty_defineProperty(_classNames, motionName, typeof motionName === 'string'), _classNames)),
+        style: statusStyle
+      }), setNodeRef);
+    }
+
+    // Auto inject ref if child node not have `ref` props
+    if ( /*#__PURE__*/react.isValidElement(motionChildren) && supportRef(motionChildren)) {
+      var _ref = motionChildren,
+        originNodeRef = _ref.ref;
+      if (!originNodeRef) {
+        motionChildren = /*#__PURE__*/react.cloneElement(motionChildren, {
+          ref: setNodeRef
+        });
+      }
+    }
+    return /*#__PURE__*/react.createElement(es_DomWrapper, {
+      ref: wrapperNodeRef
+    }, motionChildren);
+  });
+  CSSMotion.displayName = 'CSSMotion';
+  return CSSMotion;
+}
+/* harmony default export */ const es_CSSMotion = (genCSSMotion(supportTransition));
+;// CONCATENATED MODULE: ./node_modules/rc-motion/es/util/diff.js
+
+
+var STATUS_ADD = 'add';
+var STATUS_KEEP = 'keep';
+var STATUS_REMOVE = 'remove';
+var STATUS_REMOVED = 'removed';
+function wrapKeyToObject(key) {
+  var keyObj;
+  if (key && _typeof(key) === 'object' && 'key' in key) {
+    keyObj = key;
+  } else {
+    keyObj = {
+      key: key
+    };
+  }
+  return objectSpread2_objectSpread2(objectSpread2_objectSpread2({}, keyObj), {}, {
+    key: String(keyObj.key)
+  });
+}
+function parseKeys() {
+  var keys = arguments.length > 0 && arguments[0] !== undefined ? arguments[0] : [];
+  return keys.map(wrapKeyToObject);
+}
+function diffKeys() {
+  var prevKeys = arguments.length > 0 && arguments[0] !== undefined ? arguments[0] : [];
+  var currentKeys = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : [];
+  var list = [];
+  var currentIndex = 0;
+  var currentLen = currentKeys.length;
+  var prevKeyObjects = parseKeys(prevKeys);
+  var currentKeyObjects = parseKeys(currentKeys);
+
+  // Check prev keys to insert or keep
+  prevKeyObjects.forEach(function (keyObj) {
+    var hit = false;
+    for (var i = currentIndex; i < currentLen; i += 1) {
+      var currentKeyObj = currentKeyObjects[i];
+      if (currentKeyObj.key === keyObj.key) {
+        // New added keys should add before current key
+        if (currentIndex < i) {
+          list = list.concat(currentKeyObjects.slice(currentIndex, i).map(function (obj) {
+            return objectSpread2_objectSpread2(objectSpread2_objectSpread2({}, obj), {}, {
+              status: STATUS_ADD
+            });
+          }));
+          currentIndex = i;
+        }
+        list.push(objectSpread2_objectSpread2(objectSpread2_objectSpread2({}, currentKeyObj), {}, {
+          status: STATUS_KEEP
+        }));
+        currentIndex += 1;
+        hit = true;
+        break;
+      }
+    }
+
+    // If not hit, it means key is removed
+    if (!hit) {
+      list.push(objectSpread2_objectSpread2(objectSpread2_objectSpread2({}, keyObj), {}, {
+        status: STATUS_REMOVE
+      }));
+    }
+  });
+
+  // Add rest to the list
+  if (currentIndex < currentLen) {
+    list = list.concat(currentKeyObjects.slice(currentIndex).map(function (obj) {
+      return objectSpread2_objectSpread2(objectSpread2_objectSpread2({}, obj), {}, {
+        status: STATUS_ADD
+      });
+    }));
+  }
+
+  /**
+   * Merge same key when it remove and add again:
+   *    [1 - add, 2 - keep, 1 - remove] -> [1 - keep, 2 - keep]
+   */
+  var keys = {};
+  list.forEach(function (_ref) {
+    var key = _ref.key;
+    keys[key] = (keys[key] || 0) + 1;
+  });
+  var duplicatedKeys = Object.keys(keys).filter(function (key) {
+    return keys[key] > 1;
+  });
+  duplicatedKeys.forEach(function (matchKey) {
+    // Remove `STATUS_REMOVE` node.
+    list = list.filter(function (_ref2) {
+      var key = _ref2.key,
+        status = _ref2.status;
+      return key !== matchKey || status !== STATUS_REMOVE;
+    });
+
+    // Update `STATUS_ADD` to `STATUS_KEEP`
+    list.forEach(function (node) {
+      if (node.key === matchKey) {
+        // eslint-disable-next-line no-param-reassign
+        node.status = STATUS_KEEP;
+      }
+    });
+  });
+  return list;
+}
+;// CONCATENATED MODULE: ./node_modules/rc-motion/es/CSSMotionList.js
+
+
+
+
+
+
+
+
+
+var CSSMotionList_excluded = ["component", "children", "onVisibleChanged", "onAllRemoved"],
+  CSSMotionList_excluded2 = ["status"];
+/* eslint react/prop-types: 0 */
+
+
+
+
+var MOTION_PROP_NAMES = ['eventProps', 'visible', 'children', 'motionName', 'motionAppear', 'motionEnter', 'motionLeave', 'motionLeaveImmediately', 'motionDeadline', 'removeOnLeave', 'leavedClassName', 'onAppearPrepare', 'onAppearStart', 'onAppearActive', 'onAppearEnd', 'onEnterStart', 'onEnterActive', 'onEnterEnd', 'onLeaveStart', 'onLeaveActive', 'onLeaveEnd'];
+/**
+ * Generate a CSSMotionList component with config
+ * @param transitionSupport No need since CSSMotionList no longer depends on transition support
+ * @param CSSMotion CSSMotion component
+ */
+function genCSSMotionList(transitionSupport) {
+  var CSSMotion = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : es_CSSMotion;
+  var CSSMotionList = /*#__PURE__*/function (_React$Component) {
+    _inherits(CSSMotionList, _React$Component);
+    var _super = _createSuper(CSSMotionList);
+    function CSSMotionList() {
+      var _this;
+      _classCallCheck(this, CSSMotionList);
+      for (var _len = arguments.length, args = new Array(_len), _key = 0; _key < _len; _key++) {
+        args[_key] = arguments[_key];
+      }
+      _this = _super.call.apply(_super, [this].concat(args));
+      defineProperty_defineProperty(_assertThisInitialized(_this), "state", {
+        keyEntities: []
+      });
+      // ZombieJ: Return the count of rest keys. It's safe to refactor if need more info.
+      defineProperty_defineProperty(_assertThisInitialized(_this), "removeKey", function (removeKey) {
+        var keyEntities = _this.state.keyEntities;
+        var nextKeyEntities = keyEntities.map(function (entity) {
+          if (entity.key !== removeKey) return entity;
+          return objectSpread2_objectSpread2(objectSpread2_objectSpread2({}, entity), {}, {
+            status: STATUS_REMOVED
+          });
+        });
+        _this.setState({
+          keyEntities: nextKeyEntities
+        });
+        return nextKeyEntities.filter(function (_ref) {
+          var status = _ref.status;
+          return status !== STATUS_REMOVED;
+        }).length;
+      });
+      return _this;
+    }
+    _createClass(CSSMotionList, [{
+      key: "render",
+      value: function render() {
+        var _this2 = this;
+        var keyEntities = this.state.keyEntities;
+        var _this$props = this.props,
+          component = _this$props.component,
+          children = _this$props.children,
+          _onVisibleChanged = _this$props.onVisibleChanged,
+          onAllRemoved = _this$props.onAllRemoved,
+          restProps = objectWithoutProperties_objectWithoutProperties(_this$props, CSSMotionList_excluded);
+        var Component = component || react.Fragment;
+        var motionProps = {};
+        MOTION_PROP_NAMES.forEach(function (prop) {
+          motionProps[prop] = restProps[prop];
+          delete restProps[prop];
+        });
+        delete restProps.keys;
+        return /*#__PURE__*/react.createElement(Component, restProps, keyEntities.map(function (_ref2, index) {
+          var status = _ref2.status,
+            eventProps = objectWithoutProperties_objectWithoutProperties(_ref2, CSSMotionList_excluded2);
+          var visible = status === STATUS_ADD || status === STATUS_KEEP;
+          return /*#__PURE__*/react.createElement(CSSMotion, _extends({}, motionProps, {
+            key: eventProps.key,
+            visible: visible,
+            eventProps: eventProps,
+            onVisibleChanged: function onVisibleChanged(changedVisible) {
+              _onVisibleChanged === null || _onVisibleChanged === void 0 ? void 0 : _onVisibleChanged(changedVisible, {
+                key: eventProps.key
+              });
+              if (!changedVisible) {
+                var restKeysCount = _this2.removeKey(eventProps.key);
+                if (restKeysCount === 0 && onAllRemoved) {
+                  onAllRemoved();
+                }
+              }
+            }
+          }), function (props, ref) {
+            return children(objectSpread2_objectSpread2(objectSpread2_objectSpread2({}, props), {}, {
+              index: index
+            }), ref);
+          });
+        }));
+      }
+    }], [{
+      key: "getDerivedStateFromProps",
+      value: function getDerivedStateFromProps(_ref3, _ref4) {
+        var keys = _ref3.keys;
+        var keyEntities = _ref4.keyEntities;
+        var parsedKeyObjects = parseKeys(keys);
+        var mixedKeyEntities = diffKeys(keyEntities, parsedKeyObjects);
+        return {
+          keyEntities: mixedKeyEntities.filter(function (entity) {
+            var prevEntity = keyEntities.find(function (_ref5) {
+              var key = _ref5.key;
+              return entity.key === key;
+            });
+
+            // Remove if already mark as removed
+            if (prevEntity && prevEntity.status === STATUS_REMOVED && entity.status === STATUS_REMOVE) {
+              return false;
+            }
+            return true;
+          })
+        };
+      }
+    }]);
+    return CSSMotionList;
+  }(react.Component);
+  defineProperty_defineProperty(CSSMotionList, "defaultProps", {
+    component: 'div'
+  });
+  return CSSMotionList;
+}
+/* harmony default export */ const CSSMotionList = (genCSSMotionList(supportTransition));
+;// CONCATENATED MODULE: ./node_modules/rc-motion/es/index.js
+
+
+
+
+/* harmony default export */ const rc_motion_es = (es_CSSMotion);
 ;// CONCATENATED MODULE: ./node_modules/@rc-component/trigger/es/Popup/Arrow.js
 
 
@@ -17682,7 +12534,7 @@ function Mask(props) {
   if (!mask) {
     return null;
   }
-  return /*#__PURE__*/react.createElement(es, _extends({}, motion, {
+  return /*#__PURE__*/react.createElement(rc_motion_es, _extends({}, motion, {
     motionAppear: true,
     visible: open,
     removeOnLeave: true
@@ -17839,11 +12691,11 @@ var Popup = /*#__PURE__*/react.forwardRef(function (props, ref) {
     zIndex: zIndex,
     mask: mask,
     motion: maskMotion
-  }), /*#__PURE__*/react.createElement(rc_resize_observer_es, {
+  }), /*#__PURE__*/react.createElement(es, {
     onResize: onAlign,
     disabled: !open
   }, function (resizeObserverRef) {
-    return /*#__PURE__*/react.createElement(es, _extends({
+    return /*#__PURE__*/react.createElement(rc_motion_es, _extends({
       motionAppear: true,
       motionEnter: true,
       motionLeave: true,
@@ -18793,7 +13645,7 @@ function generateTrigger() {
     }, [parentContext]);
 
     // =========================== Popup ============================
-    var id = hooks_useId();
+    var id = useId();
     var _React$useState3 = react.useState(null),
       _React$useState4 = slicedToArray_slicedToArray(_React$useState3, 2),
       popupEle = _React$useState4[0],
@@ -19151,7 +14003,7 @@ function generateTrigger() {
     var innerArrow = arrow ? objectSpread2_objectSpread2({}, arrow !== true ? arrow : {}) : null;
 
     // Render
-    return /*#__PURE__*/react.createElement(react.Fragment, null, /*#__PURE__*/react.createElement(rc_resize_observer_es, {
+    return /*#__PURE__*/react.createElement(react.Fragment, null, /*#__PURE__*/react.createElement(es, {
       disabled: !mergedOpen,
       ref: setTargetRef,
       onResize: onTargetResize
@@ -19459,7 +14311,7 @@ function InlineSubMenuList(_ref) {
   return /*#__PURE__*/react.createElement(InheritableContextProvider, {
     mode: fixedMode,
     locked: !sameModeRef.current
-  }, /*#__PURE__*/react.createElement(es, _extends({
+  }, /*#__PURE__*/react.createElement(rc_motion_es, _extends({
     visible: mergedOpen
   }, mergedMotion, {
     forceRender: forceSubMenuRender,
@@ -19807,7 +14659,7 @@ function MenuItemGroup(_ref2) {
   if (measure) {
     return childList;
   }
-  return /*#__PURE__*/react.createElement(InternalMenuItemGroup, omit_omit(props, ['warnKey']), childList);
+  return /*#__PURE__*/react.createElement(InternalMenuItemGroup, omit(props, ['warnKey']), childList);
 }
 ;// CONCATENATED MODULE: ./node_modules/rc-menu/es/Divider.js
 
@@ -21154,6 +16006,30 @@ function getPlacements(config) {
   });
   return placementMap;
 }
+;// CONCATENATED MODULE: ./node_modules/antd/es/_util/warning.js
+
+
+function warning_noop() {}
+let deprecatedWarnList = null;
+function warning_resetWarned() {
+  deprecatedWarnList = null;
+  rcResetWarned();
+}
+// eslint-disable-next-line import/no-mutable-exports
+let warning_warning = (/* unused pure expression or super */ null && (warning_noop));
+if (false) {}
+const WarningContext = /*#__PURE__*/react.createContext({});
+/**
+ * This is a hook but we not named as `useWarning`
+ * since this is only used in development.
+ * We should always wrap this in `if (process.env.NODE_ENV !== 'production')` condition
+ */
+const warning_devUseWarning =  false ? 0 : () => {
+  const noopWarning = () => {};
+  noopWarning.deprecated = warning_noop;
+  return noopWarning;
+};
+/* harmony default export */ const _util_warning = ((/* unused pure expression or super */ null && (warning_warning)));
 ;// CONCATENATED MODULE: ./node_modules/antd/es/space/Compact.js
 "use client";
 
@@ -21873,7 +16749,7 @@ const tooltip_Tooltip = /*#__PURE__*/react.forwardRef((props, ref) => {
 });
 if (false) {}
 tooltip_Tooltip._InternalPanelDoNotUseOrYouWillBeFired = tooltip_PurePanel;
-/* harmony default export */ const tooltip = (tooltip_Tooltip);
+/* harmony default export */ const es_tooltip = (tooltip_Tooltip);
 ;// CONCATENATED MODULE: ./node_modules/antd/es/menu/MenuContext.js
 "use client";
 
@@ -21946,7 +16822,7 @@ const MenuItem_MenuItem = props => {
     tooltipProps.open = false;
   }
   const childrenLength = toArray_toArray(children).length;
-  let returnNode = /*#__PURE__*/react.createElement(es_MenuItem, Object.assign({}, omit_omit(props, ['title', 'icon', 'danger']), {
+  let returnNode = /*#__PURE__*/react.createElement(es_MenuItem, Object.assign({}, omit(props, ['title', 'icon', 'danger']), {
     className: classnames_default()({
       [`${prefixCls}-item-danger`]: danger,
       [`${prefixCls}-item-only-child`]: (icon ? childrenLength + 1 : childrenLength) === 1
@@ -21956,7 +16832,7 @@ const MenuItem_MenuItem = props => {
     className: classnames_default()( /*#__PURE__*/react.isValidElement(icon) ? (_a = icon.props) === null || _a === void 0 ? void 0 : _a.className : '', `${prefixCls}-item-icon`)
   }), renderItemChildren(isInlineCollapsed));
   if (!disableMenuItemTitleTooltip) {
-    returnNode = /*#__PURE__*/react.createElement(tooltip, Object.assign({}, tooltipProps, {
+    returnNode = /*#__PURE__*/react.createElement(es_tooltip, Object.assign({}, tooltipProps, {
       placement: direction === 'rtl' ? 'left' : 'right',
       overlayClassName: `${prefixCls}-inline-collapsed-tooltip`
     }), returnNode);
@@ -22013,7 +16889,7 @@ const SubMenu_SubMenu = props => {
   const [zIndex] = useZIndex('Menu');
   return /*#__PURE__*/react.createElement(menu_MenuContext.Provider, {
     value: contextValue
-  }, /*#__PURE__*/react.createElement(SubMenu, Object.assign({}, omit_omit(props, ['icon']), {
+  }, /*#__PURE__*/react.createElement(SubMenu, Object.assign({}, omit(props, ['icon']), {
     title: titleNode,
     popupClassName: classnames_default()(prefixCls, popupClassName, `${prefixCls}-${customTheme || contextTheme}`),
     popupStyle: {
@@ -22585,7 +17461,7 @@ const getThemeStyle = (token, themeSuffix) => {
     }
   };
 };
-/* harmony default export */ const style_theme = (getThemeStyle);
+/* harmony default export */ const theme = (getThemeStyle);
 ;// CONCATENATED MODULE: ./node_modules/antd/es/menu/style/vertical.js
 
 
@@ -23299,7 +18175,7 @@ const menu_style_prepareComponentToken = token => {
     vertical(menuToken),
     // Hard code for some light style
     // Theme
-    style_theme(menuToken, 'light'), style_theme(menuDarkToken, 'dark'),
+    theme(menuToken, 'light'), theme(menuDarkToken, 'dark'),
     // RTL
     rtl(menuToken),
     // Motion
@@ -23373,7 +18249,7 @@ const InternalMenu = /*#__PURE__*/(0,react.forwardRef)((props, ref) => {
       overflowedIndicatorPopupClassName
     } = props,
     restProps = menu_rest(props, ["prefixCls", "className", "style", "theme", "expandIcon", "_internalDisableMenuItemTitleTooltip", "inlineCollapsed", "siderCollapsed", "items", "children", "rootClassName", "mode", "selectable", "onClick", "overflowedIndicatorPopupClassName"]);
-  const passedProps = omit_omit(restProps, ['collapsedWidth']);
+  const passedProps = omit(restProps, ['collapsedWidth']);
   // ========================= Items ===========================
   const mergedChildren = useItems(items) || children;
   // ======================== Warning ==========================
@@ -25211,7 +20087,7 @@ Schema.validators = validators;
 //# sourceMappingURL=index.js.map
 
 ;// CONCATENATED MODULE: ./node_modules/rc-field-form/es/utils/messages.js
-var messages_typeTemplate = "'${name}' is not a valid ${type}";
+var typeTemplate = "'${name}' is not a valid ${type}";
 var defaultValidateMessages = {
   default: "Validation error on field '${name}'",
   required: "'${name}' is required",
@@ -25223,19 +20099,19 @@ var defaultValidateMessages = {
     invalid: "'${name}' is invalid date"
   },
   types: {
-    string: messages_typeTemplate,
-    method: messages_typeTemplate,
-    array: messages_typeTemplate,
-    object: messages_typeTemplate,
-    number: messages_typeTemplate,
-    date: messages_typeTemplate,
-    boolean: messages_typeTemplate,
-    integer: messages_typeTemplate,
-    float: messages_typeTemplate,
-    regexp: messages_typeTemplate,
-    email: messages_typeTemplate,
-    url: messages_typeTemplate,
-    hex: messages_typeTemplate
+    string: typeTemplate,
+    method: typeTemplate,
+    array: typeTemplate,
+    object: typeTemplate,
+    number: typeTemplate,
+    date: typeTemplate,
+    boolean: typeTemplate,
+    integer: typeTemplate,
+    float: typeTemplate,
+    regexp: typeTemplate,
+    email: typeTemplate,
+    url: typeTemplate,
+    hex: typeTemplate
   },
   string: {
     len: "'${name}' must be exactly ${len} characters",
@@ -27750,7 +22626,7 @@ RefForm.List = es_List;
 RefForm.useForm = es_useForm;
 RefForm.useWatch = es_useWatch;
 
-/* harmony default export */ const rc_field_form_es = ((/* unused pure expression or super */ null && (RefForm)));
+/* harmony default export */ const rc_field_form_es = (RefForm);
 ;// CONCATENATED MODULE: ./node_modules/antd/es/form/context.js
 "use client";
 
@@ -27763,10 +22639,10 @@ const context_FormContext = /*#__PURE__*/react.createContext({
   vertical: false,
   itemRef: () => {}
 });
-const NoStyleItemContext = /*#__PURE__*/(/* unused pure expression or super */ null && (React.createContext(null)));
+const NoStyleItemContext = /*#__PURE__*/react.createContext(null);
 const context_FormProvider = props => {
   const providerProps = omit(props, ['prefixCls']);
-  return /*#__PURE__*/React.createElement(RcFormProvider, Object.assign({}, providerProps));
+  return /*#__PURE__*/react.createElement(FormProvider, Object.assign({}, providerProps));
 };
 const FormItemPrefixContext = /*#__PURE__*/react.createContext({
   prefixCls: ''
@@ -29305,7 +24181,7 @@ var Input = /*#__PURE__*/(0,react.forwardRef)(function (props, ref) {
   var outOfRangeCls = isOutOfRange && "".concat(prefixCls, "-out-of-range");
   var getInputElement = function getInputElement() {
     // Fix https://fb.me/react-unknown-prop
-    var otherProps = omit_omit(props, ['prefixCls', 'onPressEnter', 'addonBefore', 'addonAfter', 'prefix', 'suffix', 'allowClear',
+    var otherProps = omit(props, ['prefixCls', 'onPressEnter', 'addonBefore', 'addonAfter', 'prefix', 'suffix', 'allowClear',
     // Input elements must be either controlled or uncontrolled,
     // specify either the value prop, or the defaultValue prop, but not both.
     'defaultValue', 'showCount', 'count', 'classes', 'htmlSize', 'styles', 'classNames']);
@@ -29420,6 +24296,38 @@ function getStatusClassNames(prefixCls, status, hasFeedback) {
   });
 }
 const getMergedStatus = (contextStatus, customStatus) => customStatus || contextStatus;
+;// CONCATENATED MODULE: ./node_modules/antd/es/config-provider/DisabledContext.js
+"use client";
+
+
+const DisabledContext = /*#__PURE__*/react.createContext(false);
+const DisabledContextProvider = _ref => {
+  let {
+    children,
+    disabled
+  } = _ref;
+  const originDisabled = react.useContext(DisabledContext);
+  return /*#__PURE__*/react.createElement(DisabledContext.Provider, {
+    value: disabled !== null && disabled !== void 0 ? disabled : originDisabled
+  }, children);
+};
+/* harmony default export */ const config_provider_DisabledContext = (DisabledContext);
+;// CONCATENATED MODULE: ./node_modules/antd/es/config-provider/SizeContext.js
+"use client";
+
+
+const SizeContext = /*#__PURE__*/react.createContext(undefined);
+const SizeContextProvider = _ref => {
+  let {
+    children,
+    size
+  } = _ref;
+  const originSize = react.useContext(SizeContext);
+  return /*#__PURE__*/react.createElement(SizeContext.Provider, {
+    value: size || originSize
+  }, children);
+};
+/* harmony default export */ const config_provider_SizeContext = (SizeContext);
 ;// CONCATENATED MODULE: ./node_modules/antd/es/config-provider/hooks/useSize.js
 
 
@@ -30147,7 +25055,7 @@ const Password = /*#__PURE__*/react.forwardRef((props, ref) => {
   const inputClassName = classnames_default()(prefixCls, className, {
     [`${prefixCls}-${size}`]: !!size
   });
-  const omittedProps = Object.assign(Object.assign({}, omit_omit(restProps, ['suffix', 'iconRender', 'visibilityToggle'])), {
+  const omittedProps = Object.assign(Object.assign({}, omit(restProps, ['suffix', 'iconRender', 'visibilityToggle'])), {
     type: visible ? 'text' : 'password',
     className: inputClassName,
     prefixCls: inputPrefixCls,
@@ -30440,7 +25348,7 @@ const WaveEffect = props => {
     return null;
   }
   const isSmallComponent = (component === 'Checkbox' || component === 'Radio') && (target === null || target === void 0 ? void 0 : target.classList.contains(TARGET_CLS));
-  return /*#__PURE__*/react.createElement(es, {
+  return /*#__PURE__*/react.createElement(rc_motion_es, {
     visible: true,
     motionAppear: true,
     motionName: "wave-motion",
@@ -30797,7 +25705,7 @@ const LoadingIcon = props => {
       style: style
     });
   }
-  return /*#__PURE__*/react.createElement(es, {
+  return /*#__PURE__*/react.createElement(rc_motion_es, {
     visible: visible,
     // We do not really use this motionName
     motionName: `${prefixCls}-loading-icon-motion`,
@@ -31550,7 +26458,7 @@ const InternalButton = (props, ref) => {
   });
   const sizeCls = sizeFullName ? sizeClassNameMap[sizeFullName] || '' : '';
   const iconType = innerLoading ? 'loading' : icon;
-  const linkButtonRestProps = omit_omit(rest, ['navigate']);
+  const linkButtonRestProps = omit(rest, ['navigate']);
   const classes = classnames_default()(prefixCls, hashId, cssVarCls, {
     [`${prefixCls}-${shape}`]: shape !== 'default' && shape,
     [`${prefixCls}-${mergedType}`]: mergedType,
@@ -32045,7 +26953,7 @@ var ResizableTextArea = /*#__PURE__*/react.forwardRef(function (props, ref) {
     mergedStyle.overflowY = 'hidden';
     mergedStyle.overflowX = 'hidden';
   }
-  return /*#__PURE__*/react.createElement(rc_resize_observer_es, {
+  return /*#__PURE__*/react.createElement(es, {
     onResize: onInternalResize,
     disabled: !(autoSize || onResize)
   }, /*#__PURE__*/react.createElement("textarea", _extends({}, restProps, {
@@ -32410,16 +27318,4085 @@ es_input_Input.TextArea = input_TextArea;
 es_input_Input.Password = input_Password;
 es_input_Input.OTP = input_OTP;
 /* harmony default export */ const input = (es_input_Input);
-;// CONCATENATED MODULE: ./client/App.jsx
+;// CONCATENATED MODULE: ./node_modules/engine.io-parser/build/esm/commons.js
+const PACKET_TYPES = Object.create(null); // no Map = no polyfill
+PACKET_TYPES["open"] = "0";
+PACKET_TYPES["close"] = "1";
+PACKET_TYPES["ping"] = "2";
+PACKET_TYPES["pong"] = "3";
+PACKET_TYPES["message"] = "4";
+PACKET_TYPES["upgrade"] = "5";
+PACKET_TYPES["noop"] = "6";
+const PACKET_TYPES_REVERSE = Object.create(null);
+Object.keys(PACKET_TYPES).forEach((key) => {
+    PACKET_TYPES_REVERSE[PACKET_TYPES[key]] = key;
+});
+const ERROR_PACKET = { type: "error", data: "parser error" };
+
+
+;// CONCATENATED MODULE: ./node_modules/engine.io-parser/build/esm/encodePacket.browser.js
+
+const withNativeBlob = typeof Blob === "function" ||
+    (typeof Blob !== "undefined" &&
+        Object.prototype.toString.call(Blob) === "[object BlobConstructor]");
+const withNativeArrayBuffer = typeof ArrayBuffer === "function";
+// ArrayBuffer.isView method is not defined in IE10
+const isView = (obj) => {
+    return typeof ArrayBuffer.isView === "function"
+        ? ArrayBuffer.isView(obj)
+        : obj && obj.buffer instanceof ArrayBuffer;
+};
+const encodePacket = ({ type, data }, supportsBinary, callback) => {
+    if (withNativeBlob && data instanceof Blob) {
+        if (supportsBinary) {
+            return callback(data);
+        }
+        else {
+            return encodeBlobAsBase64(data, callback);
+        }
+    }
+    else if (withNativeArrayBuffer &&
+        (data instanceof ArrayBuffer || isView(data))) {
+        if (supportsBinary) {
+            return callback(data);
+        }
+        else {
+            return encodeBlobAsBase64(new Blob([data]), callback);
+        }
+    }
+    // plain string
+    return callback(PACKET_TYPES[type] + (data || ""));
+};
+const encodeBlobAsBase64 = (data, callback) => {
+    const fileReader = new FileReader();
+    fileReader.onload = function () {
+        const content = fileReader.result.split(",")[1];
+        callback("b" + (content || ""));
+    };
+    return fileReader.readAsDataURL(data);
+};
+function encodePacket_browser_toArray(data) {
+    if (data instanceof Uint8Array) {
+        return data;
+    }
+    else if (data instanceof ArrayBuffer) {
+        return new Uint8Array(data);
+    }
+    else {
+        return new Uint8Array(data.buffer, data.byteOffset, data.byteLength);
+    }
+}
+let TEXT_ENCODER;
+function encodePacketToBinary(packet, callback) {
+    if (withNativeBlob && packet.data instanceof Blob) {
+        return packet.data.arrayBuffer().then(encodePacket_browser_toArray).then(callback);
+    }
+    else if (withNativeArrayBuffer &&
+        (packet.data instanceof ArrayBuffer || isView(packet.data))) {
+        return callback(encodePacket_browser_toArray(packet.data));
+    }
+    encodePacket(packet, false, (encoded) => {
+        if (!TEXT_ENCODER) {
+            TEXT_ENCODER = new TextEncoder();
+        }
+        callback(TEXT_ENCODER.encode(encoded));
+    });
+}
+
+
+;// CONCATENATED MODULE: ./node_modules/engine.io-parser/build/esm/contrib/base64-arraybuffer.js
+// imported from https://github.com/socketio/base64-arraybuffer
+const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/';
+// Use a lookup table to find the index.
+const lookup = typeof Uint8Array === 'undefined' ? [] : new Uint8Array(256);
+for (let i = 0; i < chars.length; i++) {
+    lookup[chars.charCodeAt(i)] = i;
+}
+const encode = (arraybuffer) => {
+    let bytes = new Uint8Array(arraybuffer), i, len = bytes.length, base64 = '';
+    for (i = 0; i < len; i += 3) {
+        base64 += chars[bytes[i] >> 2];
+        base64 += chars[((bytes[i] & 3) << 4) | (bytes[i + 1] >> 4)];
+        base64 += chars[((bytes[i + 1] & 15) << 2) | (bytes[i + 2] >> 6)];
+        base64 += chars[bytes[i + 2] & 63];
+    }
+    if (len % 3 === 2) {
+        base64 = base64.substring(0, base64.length - 1) + '=';
+    }
+    else if (len % 3 === 1) {
+        base64 = base64.substring(0, base64.length - 2) + '==';
+    }
+    return base64;
+};
+const decode = (base64) => {
+    let bufferLength = base64.length * 0.75, len = base64.length, i, p = 0, encoded1, encoded2, encoded3, encoded4;
+    if (base64[base64.length - 1] === '=') {
+        bufferLength--;
+        if (base64[base64.length - 2] === '=') {
+            bufferLength--;
+        }
+    }
+    const arraybuffer = new ArrayBuffer(bufferLength), bytes = new Uint8Array(arraybuffer);
+    for (i = 0; i < len; i += 4) {
+        encoded1 = lookup[base64.charCodeAt(i)];
+        encoded2 = lookup[base64.charCodeAt(i + 1)];
+        encoded3 = lookup[base64.charCodeAt(i + 2)];
+        encoded4 = lookup[base64.charCodeAt(i + 3)];
+        bytes[p++] = (encoded1 << 2) | (encoded2 >> 4);
+        bytes[p++] = ((encoded2 & 15) << 4) | (encoded3 >> 2);
+        bytes[p++] = ((encoded3 & 3) << 6) | (encoded4 & 63);
+    }
+    return arraybuffer;
+};
+
+;// CONCATENATED MODULE: ./node_modules/engine.io-parser/build/esm/decodePacket.browser.js
+
+
+const decodePacket_browser_withNativeArrayBuffer = typeof ArrayBuffer === "function";
+const decodePacket = (encodedPacket, binaryType) => {
+    if (typeof encodedPacket !== "string") {
+        return {
+            type: "message",
+            data: mapBinary(encodedPacket, binaryType),
+        };
+    }
+    const type = encodedPacket.charAt(0);
+    if (type === "b") {
+        return {
+            type: "message",
+            data: decodeBase64Packet(encodedPacket.substring(1), binaryType),
+        };
+    }
+    const packetType = PACKET_TYPES_REVERSE[type];
+    if (!packetType) {
+        return ERROR_PACKET;
+    }
+    return encodedPacket.length > 1
+        ? {
+            type: PACKET_TYPES_REVERSE[type],
+            data: encodedPacket.substring(1),
+        }
+        : {
+            type: PACKET_TYPES_REVERSE[type],
+        };
+};
+const decodeBase64Packet = (data, binaryType) => {
+    if (decodePacket_browser_withNativeArrayBuffer) {
+        const decoded = decode(data);
+        return mapBinary(decoded, binaryType);
+    }
+    else {
+        return { base64: true, data }; // fallback for old browsers
+    }
+};
+const mapBinary = (data, binaryType) => {
+    switch (binaryType) {
+        case "blob":
+            if (data instanceof Blob) {
+                // from WebSocket + binaryType "blob"
+                return data;
+            }
+            else {
+                // from HTTP long-polling or WebTransport
+                return new Blob([data]);
+            }
+        case "arraybuffer":
+        default:
+            if (data instanceof ArrayBuffer) {
+                // from HTTP long-polling (base64) or WebSocket + binaryType "arraybuffer"
+                return data;
+            }
+            else {
+                // from WebTransport (Uint8Array)
+                return data.buffer;
+            }
+    }
+};
+
+;// CONCATENATED MODULE: ./node_modules/engine.io-parser/build/esm/index.js
 
 
 
+const SEPARATOR = String.fromCharCode(30); // see https://en.wikipedia.org/wiki/Delimiter#ASCII_delimited_text
+const encodePayload = (packets, callback) => {
+    // some packets may be added to the array while encoding, so the initial length must be saved
+    const length = packets.length;
+    const encodedPackets = new Array(length);
+    let count = 0;
+    packets.forEach((packet, i) => {
+        // force base64 encoding for binary packets
+        encodePacket(packet, false, (encodedPacket) => {
+            encodedPackets[i] = encodedPacket;
+            if (++count === length) {
+                callback(encodedPackets.join(SEPARATOR));
+            }
+        });
+    });
+};
+const decodePayload = (encodedPayload, binaryType) => {
+    const encodedPackets = encodedPayload.split(SEPARATOR);
+    const packets = [];
+    for (let i = 0; i < encodedPackets.length; i++) {
+        const decodedPacket = decodePacket(encodedPackets[i], binaryType);
+        packets.push(decodedPacket);
+        if (decodedPacket.type === "error") {
+            break;
+        }
+    }
+    return packets;
+};
+function createPacketEncoderStream() {
+    // @ts-expect-error
+    return new TransformStream({
+        transform(packet, controller) {
+            encodePacketToBinary(packet, (encodedPacket) => {
+                const payloadLength = encodedPacket.length;
+                let header;
+                // inspired by the WebSocket format: https://developer.mozilla.org/en-US/docs/Web/API/WebSockets_API/Writing_WebSocket_servers#decoding_payload_length
+                if (payloadLength < 126) {
+                    header = new Uint8Array(1);
+                    new DataView(header.buffer).setUint8(0, payloadLength);
+                }
+                else if (payloadLength < 65536) {
+                    header = new Uint8Array(3);
+                    const view = new DataView(header.buffer);
+                    view.setUint8(0, 126);
+                    view.setUint16(1, payloadLength);
+                }
+                else {
+                    header = new Uint8Array(9);
+                    const view = new DataView(header.buffer);
+                    view.setUint8(0, 127);
+                    view.setBigUint64(1, BigInt(payloadLength));
+                }
+                // first bit indicates whether the payload is plain text (0) or binary (1)
+                if (packet.data && typeof packet.data !== "string") {
+                    header[0] |= 0x80;
+                }
+                controller.enqueue(header);
+                controller.enqueue(encodedPacket);
+            });
+        },
+    });
+}
+let TEXT_DECODER;
+function totalLength(chunks) {
+    return chunks.reduce((acc, chunk) => acc + chunk.length, 0);
+}
+function concatChunks(chunks, size) {
+    if (chunks[0].length === size) {
+        return chunks.shift();
+    }
+    const buffer = new Uint8Array(size);
+    let j = 0;
+    for (let i = 0; i < size; i++) {
+        buffer[i] = chunks[0][j++];
+        if (j === chunks[0].length) {
+            chunks.shift();
+            j = 0;
+        }
+    }
+    if (chunks.length && j < chunks[0].length) {
+        chunks[0] = chunks[0].slice(j);
+    }
+    return buffer;
+}
+function createPacketDecoderStream(maxPayload, binaryType) {
+    if (!TEXT_DECODER) {
+        TEXT_DECODER = new TextDecoder();
+    }
+    const chunks = [];
+    let state = 0 /* READ_HEADER */;
+    let expectedLength = -1;
+    let isBinary = false;
+    // @ts-expect-error
+    return new TransformStream({
+        transform(chunk, controller) {
+            chunks.push(chunk);
+            while (true) {
+                if (state === 0 /* READ_HEADER */) {
+                    if (totalLength(chunks) < 1) {
+                        break;
+                    }
+                    const header = concatChunks(chunks, 1);
+                    isBinary = (header[0] & 0x80) === 0x80;
+                    expectedLength = header[0] & 0x7f;
+                    if (expectedLength < 126) {
+                        state = 3 /* READ_PAYLOAD */;
+                    }
+                    else if (expectedLength === 126) {
+                        state = 1 /* READ_EXTENDED_LENGTH_16 */;
+                    }
+                    else {
+                        state = 2 /* READ_EXTENDED_LENGTH_64 */;
+                    }
+                }
+                else if (state === 1 /* READ_EXTENDED_LENGTH_16 */) {
+                    if (totalLength(chunks) < 2) {
+                        break;
+                    }
+                    const headerArray = concatChunks(chunks, 2);
+                    expectedLength = new DataView(headerArray.buffer, headerArray.byteOffset, headerArray.length).getUint16(0);
+                    state = 3 /* READ_PAYLOAD */;
+                }
+                else if (state === 2 /* READ_EXTENDED_LENGTH_64 */) {
+                    if (totalLength(chunks) < 8) {
+                        break;
+                    }
+                    const headerArray = concatChunks(chunks, 8);
+                    const view = new DataView(headerArray.buffer, headerArray.byteOffset, headerArray.length);
+                    const n = view.getUint32(0);
+                    if (n > Math.pow(2, 53 - 32) - 1) {
+                        // the maximum safe integer in JavaScript is 2^53 - 1
+                        controller.enqueue(ERROR_PACKET);
+                        break;
+                    }
+                    expectedLength = n * Math.pow(2, 32) + view.getUint32(4);
+                    state = 3 /* READ_PAYLOAD */;
+                }
+                else {
+                    if (totalLength(chunks) < expectedLength) {
+                        break;
+                    }
+                    const data = concatChunks(chunks, expectedLength);
+                    controller.enqueue(decodePacket(isBinary ? data : TEXT_DECODER.decode(data), binaryType));
+                    state = 0 /* READ_HEADER */;
+                }
+                if (expectedLength === 0 || expectedLength > maxPayload) {
+                    controller.enqueue(ERROR_PACKET);
+                    break;
+                }
+            }
+        },
+    });
+}
+const protocol = 4;
+
+
+;// CONCATENATED MODULE: ./node_modules/@socket.io/component-emitter/index.mjs
+/**
+ * Initialize a new `Emitter`.
+ *
+ * @api public
+ */
+
+function Emitter(obj) {
+  if (obj) return mixin(obj);
+}
+
+/**
+ * Mixin the emitter properties.
+ *
+ * @param {Object} obj
+ * @return {Object}
+ * @api private
+ */
+
+function mixin(obj) {
+  for (var key in Emitter.prototype) {
+    obj[key] = Emitter.prototype[key];
+  }
+  return obj;
+}
+
+/**
+ * Listen on the given `event` with `fn`.
+ *
+ * @param {String} event
+ * @param {Function} fn
+ * @return {Emitter}
+ * @api public
+ */
+
+Emitter.prototype.on =
+Emitter.prototype.addEventListener = function(event, fn){
+  this._callbacks = this._callbacks || {};
+  (this._callbacks['$' + event] = this._callbacks['$' + event] || [])
+    .push(fn);
+  return this;
+};
+
+/**
+ * Adds an `event` listener that will be invoked a single
+ * time then automatically removed.
+ *
+ * @param {String} event
+ * @param {Function} fn
+ * @return {Emitter}
+ * @api public
+ */
+
+Emitter.prototype.once = function(event, fn){
+  function on() {
+    this.off(event, on);
+    fn.apply(this, arguments);
+  }
+
+  on.fn = fn;
+  this.on(event, on);
+  return this;
+};
+
+/**
+ * Remove the given callback for `event` or all
+ * registered callbacks.
+ *
+ * @param {String} event
+ * @param {Function} fn
+ * @return {Emitter}
+ * @api public
+ */
+
+Emitter.prototype.off =
+Emitter.prototype.removeListener =
+Emitter.prototype.removeAllListeners =
+Emitter.prototype.removeEventListener = function(event, fn){
+  this._callbacks = this._callbacks || {};
+
+  // all
+  if (0 == arguments.length) {
+    this._callbacks = {};
+    return this;
+  }
+
+  // specific event
+  var callbacks = this._callbacks['$' + event];
+  if (!callbacks) return this;
+
+  // remove all handlers
+  if (1 == arguments.length) {
+    delete this._callbacks['$' + event];
+    return this;
+  }
+
+  // remove specific handler
+  var cb;
+  for (var i = 0; i < callbacks.length; i++) {
+    cb = callbacks[i];
+    if (cb === fn || cb.fn === fn) {
+      callbacks.splice(i, 1);
+      break;
+    }
+  }
+
+  // Remove event specific arrays for event types that no
+  // one is subscribed for to avoid memory leak.
+  if (callbacks.length === 0) {
+    delete this._callbacks['$' + event];
+  }
+
+  return this;
+};
+
+/**
+ * Emit `event` with the given args.
+ *
+ * @param {String} event
+ * @param {Mixed} ...
+ * @return {Emitter}
+ */
+
+Emitter.prototype.emit = function(event){
+  this._callbacks = this._callbacks || {};
+
+  var args = new Array(arguments.length - 1)
+    , callbacks = this._callbacks['$' + event];
+
+  for (var i = 1; i < arguments.length; i++) {
+    args[i - 1] = arguments[i];
+  }
+
+  if (callbacks) {
+    callbacks = callbacks.slice(0);
+    for (var i = 0, len = callbacks.length; i < len; ++i) {
+      callbacks[i].apply(this, args);
+    }
+  }
+
+  return this;
+};
+
+// alias used for reserved events (protected method)
+Emitter.prototype.emitReserved = Emitter.prototype.emit;
+
+/**
+ * Return array of callbacks for `event`.
+ *
+ * @param {String} event
+ * @return {Array}
+ * @api public
+ */
+
+Emitter.prototype.listeners = function(event){
+  this._callbacks = this._callbacks || {};
+  return this._callbacks['$' + event] || [];
+};
+
+/**
+ * Check if this emitter has `event` handlers.
+ *
+ * @param {String} event
+ * @return {Boolean}
+ * @api public
+ */
+
+Emitter.prototype.hasListeners = function(event){
+  return !! this.listeners(event).length;
+};
+
+;// CONCATENATED MODULE: ./node_modules/engine.io-client/build/esm/globalThis.browser.js
+const globalThisShim = (() => {
+    if (typeof self !== "undefined") {
+        return self;
+    }
+    else if (typeof window !== "undefined") {
+        return window;
+    }
+    else {
+        return Function("return this")();
+    }
+})();
+
+;// CONCATENATED MODULE: ./node_modules/engine.io-client/build/esm/util.js
+
+function pick(obj, ...attr) {
+    return attr.reduce((acc, k) => {
+        if (obj.hasOwnProperty(k)) {
+            acc[k] = obj[k];
+        }
+        return acc;
+    }, {});
+}
+// Keep a reference to the real timeout functions so they can be used when overridden
+const NATIVE_SET_TIMEOUT = globalThisShim.setTimeout;
+const NATIVE_CLEAR_TIMEOUT = globalThisShim.clearTimeout;
+function installTimerFunctions(obj, opts) {
+    if (opts.useNativeTimers) {
+        obj.setTimeoutFn = NATIVE_SET_TIMEOUT.bind(globalThisShim);
+        obj.clearTimeoutFn = NATIVE_CLEAR_TIMEOUT.bind(globalThisShim);
+    }
+    else {
+        obj.setTimeoutFn = globalThisShim.setTimeout.bind(globalThisShim);
+        obj.clearTimeoutFn = globalThisShim.clearTimeout.bind(globalThisShim);
+    }
+}
+// base64 encoded buffers are about 33% bigger (https://en.wikipedia.org/wiki/Base64)
+const BASE64_OVERHEAD = 1.33;
+// we could also have used `new Blob([obj]).size`, but it isn't supported in IE9
+function byteLength(obj) {
+    if (typeof obj === "string") {
+        return utf8Length(obj);
+    }
+    // arraybuffer or blob
+    return Math.ceil((obj.byteLength || obj.size) * BASE64_OVERHEAD);
+}
+function utf8Length(str) {
+    let c = 0, length = 0;
+    for (let i = 0, l = str.length; i < l; i++) {
+        c = str.charCodeAt(i);
+        if (c < 0x80) {
+            length += 1;
+        }
+        else if (c < 0x800) {
+            length += 2;
+        }
+        else if (c < 0xd800 || c >= 0xe000) {
+            length += 3;
+        }
+        else {
+            i++;
+            length += 4;
+        }
+    }
+    return length;
+}
+
+;// CONCATENATED MODULE: ./node_modules/engine.io-client/build/esm/contrib/parseqs.js
+// imported from https://github.com/galkn/querystring
+/**
+ * Compiles a querystring
+ * Returns string representation of the object
+ *
+ * @param {Object}
+ * @api private
+ */
+function parseqs_encode(obj) {
+    let str = '';
+    for (let i in obj) {
+        if (obj.hasOwnProperty(i)) {
+            if (str.length)
+                str += '&';
+            str += encodeURIComponent(i) + '=' + encodeURIComponent(obj[i]);
+        }
+    }
+    return str;
+}
+/**
+ * Parses a simple querystring into an object
+ *
+ * @param {String} qs
+ * @api private
+ */
+function parseqs_decode(qs) {
+    let qry = {};
+    let pairs = qs.split('&');
+    for (let i = 0, l = pairs.length; i < l; i++) {
+        let pair = pairs[i].split('=');
+        qry[decodeURIComponent(pair[0])] = decodeURIComponent(pair[1]);
+    }
+    return qry;
+}
+
+;// CONCATENATED MODULE: ./node_modules/engine.io-client/build/esm/transport.js
+
+
+
+
+class TransportError extends Error {
+    constructor(reason, description, context) {
+        super(reason);
+        this.description = description;
+        this.context = context;
+        this.type = "TransportError";
+    }
+}
+class Transport extends Emitter {
+    /**
+     * Transport abstract constructor.
+     *
+     * @param {Object} opts - options
+     * @protected
+     */
+    constructor(opts) {
+        super();
+        this.writable = false;
+        installTimerFunctions(this, opts);
+        this.opts = opts;
+        this.query = opts.query;
+        this.socket = opts.socket;
+    }
+    /**
+     * Emits an error.
+     *
+     * @param {String} reason
+     * @param description
+     * @param context - the error context
+     * @return {Transport} for chaining
+     * @protected
+     */
+    onError(reason, description, context) {
+        super.emitReserved("error", new TransportError(reason, description, context));
+        return this;
+    }
+    /**
+     * Opens the transport.
+     */
+    open() {
+        this.readyState = "opening";
+        this.doOpen();
+        return this;
+    }
+    /**
+     * Closes the transport.
+     */
+    close() {
+        if (this.readyState === "opening" || this.readyState === "open") {
+            this.doClose();
+            this.onClose();
+        }
+        return this;
+    }
+    /**
+     * Sends multiple packets.
+     *
+     * @param {Array} packets
+     */
+    send(packets) {
+        if (this.readyState === "open") {
+            this.write(packets);
+        }
+        else {
+            // this might happen if the transport was silently closed in the beforeunload event handler
+        }
+    }
+    /**
+     * Called upon open
+     *
+     * @protected
+     */
+    onOpen() {
+        this.readyState = "open";
+        this.writable = true;
+        super.emitReserved("open");
+    }
+    /**
+     * Called with data.
+     *
+     * @param {String} data
+     * @protected
+     */
+    onData(data) {
+        const packet = decodePacket(data, this.socket.binaryType);
+        this.onPacket(packet);
+    }
+    /**
+     * Called with a decoded packet.
+     *
+     * @protected
+     */
+    onPacket(packet) {
+        super.emitReserved("packet", packet);
+    }
+    /**
+     * Called upon close.
+     *
+     * @protected
+     */
+    onClose(details) {
+        this.readyState = "closed";
+        super.emitReserved("close", details);
+    }
+    /**
+     * Pauses the transport, in order not to lose packets during an upgrade.
+     *
+     * @param onPause
+     */
+    pause(onPause) { }
+    createUri(schema, query = {}) {
+        return (schema +
+            "://" +
+            this._hostname() +
+            this._port() +
+            this.opts.path +
+            this._query(query));
+    }
+    _hostname() {
+        const hostname = this.opts.hostname;
+        return hostname.indexOf(":") === -1 ? hostname : "[" + hostname + "]";
+    }
+    _port() {
+        if (this.opts.port &&
+            ((this.opts.secure && Number(this.opts.port !== 443)) ||
+                (!this.opts.secure && Number(this.opts.port) !== 80))) {
+            return ":" + this.opts.port;
+        }
+        else {
+            return "";
+        }
+    }
+    _query(query) {
+        const encodedQuery = parseqs_encode(query);
+        return encodedQuery.length ? "?" + encodedQuery : "";
+    }
+}
+
+;// CONCATENATED MODULE: ./node_modules/engine.io-client/build/esm/contrib/yeast.js
+// imported from https://github.com/unshiftio/yeast
+
+const alphabet = '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz-_'.split(''), yeast_length = 64, map = {};
+let yeast_seed = 0, i = 0, yeast_prev;
+/**
+ * Return a string representing the specified number.
+ *
+ * @param {Number} num The number to convert.
+ * @returns {String} The string representation of the number.
+ * @api public
+ */
+function yeast_encode(num) {
+    let encoded = '';
+    do {
+        encoded = alphabet[num % yeast_length] + encoded;
+        num = Math.floor(num / yeast_length);
+    } while (num > 0);
+    return encoded;
+}
+/**
+ * Return the integer value specified by the given string.
+ *
+ * @param {String} str The string to convert.
+ * @returns {Number} The integer value represented by the string.
+ * @api public
+ */
+function yeast_decode(str) {
+    let decoded = 0;
+    for (i = 0; i < str.length; i++) {
+        decoded = decoded * yeast_length + map[str.charAt(i)];
+    }
+    return decoded;
+}
+/**
+ * Yeast: A tiny growing id generator.
+ *
+ * @returns {String} A unique id.
+ * @api public
+ */
+function yeast() {
+    const now = yeast_encode(+new Date());
+    if (now !== yeast_prev)
+        return yeast_seed = 0, yeast_prev = now;
+    return now + '.' + yeast_encode(yeast_seed++);
+}
+//
+// Map each character to its index.
+//
+for (; i < yeast_length; i++)
+    map[alphabet[i]] = i;
+
+;// CONCATENATED MODULE: ./node_modules/engine.io-client/build/esm/contrib/has-cors.js
+// imported from https://github.com/component/has-cors
+let value = false;
+try {
+    value = typeof XMLHttpRequest !== 'undefined' &&
+        'withCredentials' in new XMLHttpRequest();
+}
+catch (err) {
+    // if XMLHttp support is disabled in IE then it will throw
+    // when trying to create
+}
+const hasCORS = value;
+
+;// CONCATENATED MODULE: ./node_modules/engine.io-client/build/esm/transports/xmlhttprequest.browser.js
+// browser shim for xmlhttprequest module
+
+
+function XHR(opts) {
+    const xdomain = opts.xdomain;
+    // XMLHttpRequest can be disabled on IE
+    try {
+        if ("undefined" !== typeof XMLHttpRequest && (!xdomain || hasCORS)) {
+            return new XMLHttpRequest();
+        }
+    }
+    catch (e) { }
+    if (!xdomain) {
+        try {
+            return new globalThisShim[["Active"].concat("Object").join("X")]("Microsoft.XMLHTTP");
+        }
+        catch (e) { }
+    }
+}
+function createCookieJar() { }
+
+;// CONCATENATED MODULE: ./node_modules/engine.io-client/build/esm/transports/polling.js
+
+
+
+
+
+
+
+function empty() { }
+const hasXHR2 = (function () {
+    const xhr = new XHR({
+        xdomain: false,
+    });
+    return null != xhr.responseType;
+})();
+class Polling extends Transport {
+    /**
+     * XHR Polling constructor.
+     *
+     * @param {Object} opts
+     * @package
+     */
+    constructor(opts) {
+        super(opts);
+        this.polling = false;
+        if (typeof location !== "undefined") {
+            const isSSL = "https:" === location.protocol;
+            let port = location.port;
+            // some user agents have empty `location.port`
+            if (!port) {
+                port = isSSL ? "443" : "80";
+            }
+            this.xd =
+                (typeof location !== "undefined" &&
+                    opts.hostname !== location.hostname) ||
+                    port !== opts.port;
+        }
+        /**
+         * XHR supports binary
+         */
+        const forceBase64 = opts && opts.forceBase64;
+        this.supportsBinary = hasXHR2 && !forceBase64;
+        if (this.opts.withCredentials) {
+            this.cookieJar = createCookieJar();
+        }
+    }
+    get name() {
+        return "polling";
+    }
+    /**
+     * Opens the socket (triggers polling). We write a PING message to determine
+     * when the transport is open.
+     *
+     * @protected
+     */
+    doOpen() {
+        this.poll();
+    }
+    /**
+     * Pauses polling.
+     *
+     * @param {Function} onPause - callback upon buffers are flushed and transport is paused
+     * @package
+     */
+    pause(onPause) {
+        this.readyState = "pausing";
+        const pause = () => {
+            this.readyState = "paused";
+            onPause();
+        };
+        if (this.polling || !this.writable) {
+            let total = 0;
+            if (this.polling) {
+                total++;
+                this.once("pollComplete", function () {
+                    --total || pause();
+                });
+            }
+            if (!this.writable) {
+                total++;
+                this.once("drain", function () {
+                    --total || pause();
+                });
+            }
+        }
+        else {
+            pause();
+        }
+    }
+    /**
+     * Starts polling cycle.
+     *
+     * @private
+     */
+    poll() {
+        this.polling = true;
+        this.doPoll();
+        this.emitReserved("poll");
+    }
+    /**
+     * Overloads onData to detect payloads.
+     *
+     * @protected
+     */
+    onData(data) {
+        const callback = (packet) => {
+            // if its the first message we consider the transport open
+            if ("opening" === this.readyState && packet.type === "open") {
+                this.onOpen();
+            }
+            // if its a close packet, we close the ongoing requests
+            if ("close" === packet.type) {
+                this.onClose({ description: "transport closed by the server" });
+                return false;
+            }
+            // otherwise bypass onData and handle the message
+            this.onPacket(packet);
+        };
+        // decode payload
+        decodePayload(data, this.socket.binaryType).forEach(callback);
+        // if an event did not trigger closing
+        if ("closed" !== this.readyState) {
+            // if we got data we're not polling
+            this.polling = false;
+            this.emitReserved("pollComplete");
+            if ("open" === this.readyState) {
+                this.poll();
+            }
+            else {
+            }
+        }
+    }
+    /**
+     * For polling, send a close packet.
+     *
+     * @protected
+     */
+    doClose() {
+        const close = () => {
+            this.write([{ type: "close" }]);
+        };
+        if ("open" === this.readyState) {
+            close();
+        }
+        else {
+            // in case we're trying to close while
+            // handshaking is in progress (GH-164)
+            this.once("open", close);
+        }
+    }
+    /**
+     * Writes a packets payload.
+     *
+     * @param {Array} packets - data packets
+     * @protected
+     */
+    write(packets) {
+        this.writable = false;
+        encodePayload(packets, (data) => {
+            this.doWrite(data, () => {
+                this.writable = true;
+                this.emitReserved("drain");
+            });
+        });
+    }
+    /**
+     * Generates uri for connection.
+     *
+     * @private
+     */
+    uri() {
+        const schema = this.opts.secure ? "https" : "http";
+        const query = this.query || {};
+        // cache busting is forced
+        if (false !== this.opts.timestampRequests) {
+            query[this.opts.timestampParam] = yeast();
+        }
+        if (!this.supportsBinary && !query.sid) {
+            query.b64 = 1;
+        }
+        return this.createUri(schema, query);
+    }
+    /**
+     * Creates a request.
+     *
+     * @param {String} method
+     * @private
+     */
+    request(opts = {}) {
+        Object.assign(opts, { xd: this.xd, cookieJar: this.cookieJar }, this.opts);
+        return new Request(this.uri(), opts);
+    }
+    /**
+     * Sends data.
+     *
+     * @param {String} data to send.
+     * @param {Function} called upon flush.
+     * @private
+     */
+    doWrite(data, fn) {
+        const req = this.request({
+            method: "POST",
+            data: data,
+        });
+        req.on("success", fn);
+        req.on("error", (xhrStatus, context) => {
+            this.onError("xhr post error", xhrStatus, context);
+        });
+    }
+    /**
+     * Starts a poll cycle.
+     *
+     * @private
+     */
+    doPoll() {
+        const req = this.request();
+        req.on("data", this.onData.bind(this));
+        req.on("error", (xhrStatus, context) => {
+            this.onError("xhr poll error", xhrStatus, context);
+        });
+        this.pollXhr = req;
+    }
+}
+class Request extends Emitter {
+    /**
+     * Request constructor
+     *
+     * @param {Object} options
+     * @package
+     */
+    constructor(uri, opts) {
+        super();
+        installTimerFunctions(this, opts);
+        this.opts = opts;
+        this.method = opts.method || "GET";
+        this.uri = uri;
+        this.data = undefined !== opts.data ? opts.data : null;
+        this.create();
+    }
+    /**
+     * Creates the XHR object and sends the request.
+     *
+     * @private
+     */
+    create() {
+        var _a;
+        const opts = pick(this.opts, "agent", "pfx", "key", "passphrase", "cert", "ca", "ciphers", "rejectUnauthorized", "autoUnref");
+        opts.xdomain = !!this.opts.xd;
+        const xhr = (this.xhr = new XHR(opts));
+        try {
+            xhr.open(this.method, this.uri, true);
+            try {
+                if (this.opts.extraHeaders) {
+                    xhr.setDisableHeaderCheck && xhr.setDisableHeaderCheck(true);
+                    for (let i in this.opts.extraHeaders) {
+                        if (this.opts.extraHeaders.hasOwnProperty(i)) {
+                            xhr.setRequestHeader(i, this.opts.extraHeaders[i]);
+                        }
+                    }
+                }
+            }
+            catch (e) { }
+            if ("POST" === this.method) {
+                try {
+                    xhr.setRequestHeader("Content-type", "text/plain;charset=UTF-8");
+                }
+                catch (e) { }
+            }
+            try {
+                xhr.setRequestHeader("Accept", "*/*");
+            }
+            catch (e) { }
+            (_a = this.opts.cookieJar) === null || _a === void 0 ? void 0 : _a.addCookies(xhr);
+            // ie6 check
+            if ("withCredentials" in xhr) {
+                xhr.withCredentials = this.opts.withCredentials;
+            }
+            if (this.opts.requestTimeout) {
+                xhr.timeout = this.opts.requestTimeout;
+            }
+            xhr.onreadystatechange = () => {
+                var _a;
+                if (xhr.readyState === 3) {
+                    (_a = this.opts.cookieJar) === null || _a === void 0 ? void 0 : _a.parseCookies(xhr);
+                }
+                if (4 !== xhr.readyState)
+                    return;
+                if (200 === xhr.status || 1223 === xhr.status) {
+                    this.onLoad();
+                }
+                else {
+                    // make sure the `error` event handler that's user-set
+                    // does not throw in the same tick and gets caught here
+                    this.setTimeoutFn(() => {
+                        this.onError(typeof xhr.status === "number" ? xhr.status : 0);
+                    }, 0);
+                }
+            };
+            xhr.send(this.data);
+        }
+        catch (e) {
+            // Need to defer since .create() is called directly from the constructor
+            // and thus the 'error' event can only be only bound *after* this exception
+            // occurs.  Therefore, also, we cannot throw here at all.
+            this.setTimeoutFn(() => {
+                this.onError(e);
+            }, 0);
+            return;
+        }
+        if (typeof document !== "undefined") {
+            this.index = Request.requestsCount++;
+            Request.requests[this.index] = this;
+        }
+    }
+    /**
+     * Called upon error.
+     *
+     * @private
+     */
+    onError(err) {
+        this.emitReserved("error", err, this.xhr);
+        this.cleanup(true);
+    }
+    /**
+     * Cleans up house.
+     *
+     * @private
+     */
+    cleanup(fromError) {
+        if ("undefined" === typeof this.xhr || null === this.xhr) {
+            return;
+        }
+        this.xhr.onreadystatechange = empty;
+        if (fromError) {
+            try {
+                this.xhr.abort();
+            }
+            catch (e) { }
+        }
+        if (typeof document !== "undefined") {
+            delete Request.requests[this.index];
+        }
+        this.xhr = null;
+    }
+    /**
+     * Called upon load.
+     *
+     * @private
+     */
+    onLoad() {
+        const data = this.xhr.responseText;
+        if (data !== null) {
+            this.emitReserved("data", data);
+            this.emitReserved("success");
+            this.cleanup();
+        }
+    }
+    /**
+     * Aborts the request.
+     *
+     * @package
+     */
+    abort() {
+        this.cleanup();
+    }
+}
+Request.requestsCount = 0;
+Request.requests = {};
+/**
+ * Aborts pending requests when unloading the window. This is needed to prevent
+ * memory leaks (e.g. when using IE) and to ensure that no spurious error is
+ * emitted.
+ */
+if (typeof document !== "undefined") {
+    // @ts-ignore
+    if (typeof attachEvent === "function") {
+        // @ts-ignore
+        attachEvent("onunload", unloadHandler);
+    }
+    else if (typeof addEventListener === "function") {
+        const terminationEvent = "onpagehide" in globalThisShim ? "pagehide" : "unload";
+        addEventListener(terminationEvent, unloadHandler, false);
+    }
+}
+function unloadHandler() {
+    for (let i in Request.requests) {
+        if (Request.requests.hasOwnProperty(i)) {
+            Request.requests[i].abort();
+        }
+    }
+}
+
+;// CONCATENATED MODULE: ./node_modules/engine.io-client/build/esm/transports/websocket-constructor.browser.js
+
+const nextTick = (() => {
+    const isPromiseAvailable = typeof Promise === "function" && typeof Promise.resolve === "function";
+    if (isPromiseAvailable) {
+        return (cb) => Promise.resolve().then(cb);
+    }
+    else {
+        return (cb, setTimeoutFn) => setTimeoutFn(cb, 0);
+    }
+})();
+const WebSocket = globalThisShim.WebSocket || globalThisShim.MozWebSocket;
+const usingBrowserWebSocket = true;
+const defaultBinaryType = "arraybuffer";
+
+;// CONCATENATED MODULE: ./node_modules/engine.io-client/build/esm/transports/websocket.js
+
+
+
+
+
+// detect ReactNative environment
+const isReactNative = typeof navigator !== "undefined" &&
+    typeof navigator.product === "string" &&
+    navigator.product.toLowerCase() === "reactnative";
+class WS extends Transport {
+    /**
+     * WebSocket transport constructor.
+     *
+     * @param {Object} opts - connection options
+     * @protected
+     */
+    constructor(opts) {
+        super(opts);
+        this.supportsBinary = !opts.forceBase64;
+    }
+    get name() {
+        return "websocket";
+    }
+    doOpen() {
+        if (!this.check()) {
+            // let probe timeout
+            return;
+        }
+        const uri = this.uri();
+        const protocols = this.opts.protocols;
+        // React Native only supports the 'headers' option, and will print a warning if anything else is passed
+        const opts = isReactNative
+            ? {}
+            : pick(this.opts, "agent", "perMessageDeflate", "pfx", "key", "passphrase", "cert", "ca", "ciphers", "rejectUnauthorized", "localAddress", "protocolVersion", "origin", "maxPayload", "family", "checkServerIdentity");
+        if (this.opts.extraHeaders) {
+            opts.headers = this.opts.extraHeaders;
+        }
+        try {
+            this.ws =
+                usingBrowserWebSocket && !isReactNative
+                    ? protocols
+                        ? new WebSocket(uri, protocols)
+                        : new WebSocket(uri)
+                    : new WebSocket(uri, protocols, opts);
+        }
+        catch (err) {
+            return this.emitReserved("error", err);
+        }
+        this.ws.binaryType = this.socket.binaryType;
+        this.addEventListeners();
+    }
+    /**
+     * Adds event listeners to the socket
+     *
+     * @private
+     */
+    addEventListeners() {
+        this.ws.onopen = () => {
+            if (this.opts.autoUnref) {
+                this.ws._socket.unref();
+            }
+            this.onOpen();
+        };
+        this.ws.onclose = (closeEvent) => this.onClose({
+            description: "websocket connection closed",
+            context: closeEvent,
+        });
+        this.ws.onmessage = (ev) => this.onData(ev.data);
+        this.ws.onerror = (e) => this.onError("websocket error", e);
+    }
+    write(packets) {
+        this.writable = false;
+        // encodePacket efficient as it uses WS framing
+        // no need for encodePayload
+        for (let i = 0; i < packets.length; i++) {
+            const packet = packets[i];
+            const lastPacket = i === packets.length - 1;
+            encodePacket(packet, this.supportsBinary, (data) => {
+                // always create a new object (GH-437)
+                const opts = {};
+                if (!usingBrowserWebSocket) {
+                    if (packet.options) {
+                        opts.compress = packet.options.compress;
+                    }
+                    if (this.opts.perMessageDeflate) {
+                        const len = 
+                        // @ts-ignore
+                        "string" === typeof data ? Buffer.byteLength(data) : data.length;
+                        if (len < this.opts.perMessageDeflate.threshold) {
+                            opts.compress = false;
+                        }
+                    }
+                }
+                // Sometimes the websocket has already been closed but the browser didn't
+                // have a chance of informing us about it yet, in that case send will
+                // throw an error
+                try {
+                    if (usingBrowserWebSocket) {
+                        // TypeError is thrown when passing the second argument on Safari
+                        this.ws.send(data);
+                    }
+                    else {
+                        this.ws.send(data, opts);
+                    }
+                }
+                catch (e) {
+                }
+                if (lastPacket) {
+                    // fake drain
+                    // defer to next tick to allow Socket to clear writeBuffer
+                    nextTick(() => {
+                        this.writable = true;
+                        this.emitReserved("drain");
+                    }, this.setTimeoutFn);
+                }
+            });
+        }
+    }
+    doClose() {
+        if (typeof this.ws !== "undefined") {
+            this.ws.close();
+            this.ws = null;
+        }
+    }
+    /**
+     * Generates uri for connection.
+     *
+     * @private
+     */
+    uri() {
+        const schema = this.opts.secure ? "wss" : "ws";
+        const query = this.query || {};
+        // append timestamp to URI
+        if (this.opts.timestampRequests) {
+            query[this.opts.timestampParam] = yeast();
+        }
+        // communicate binary support capabilities
+        if (!this.supportsBinary) {
+            query.b64 = 1;
+        }
+        return this.createUri(schema, query);
+    }
+    /**
+     * Feature detection for WebSocket.
+     *
+     * @return {Boolean} whether this transport is available.
+     * @private
+     */
+    check() {
+        return !!WebSocket;
+    }
+}
+
+;// CONCATENATED MODULE: ./node_modules/engine.io-client/build/esm/transports/webtransport.js
+
+
+
+class WT extends Transport {
+    get name() {
+        return "webtransport";
+    }
+    doOpen() {
+        // @ts-ignore
+        if (typeof WebTransport !== "function") {
+            return;
+        }
+        // @ts-ignore
+        this.transport = new WebTransport(this.createUri("https"), this.opts.transportOptions[this.name]);
+        this.transport.closed
+            .then(() => {
+            this.onClose();
+        })
+            .catch((err) => {
+            this.onError("webtransport error", err);
+        });
+        // note: we could have used async/await, but that would require some additional polyfills
+        this.transport.ready.then(() => {
+            this.transport.createBidirectionalStream().then((stream) => {
+                const decoderStream = createPacketDecoderStream(Number.MAX_SAFE_INTEGER, this.socket.binaryType);
+                const reader = stream.readable.pipeThrough(decoderStream).getReader();
+                const encoderStream = createPacketEncoderStream();
+                encoderStream.readable.pipeTo(stream.writable);
+                this.writer = encoderStream.writable.getWriter();
+                const read = () => {
+                    reader
+                        .read()
+                        .then(({ done, value }) => {
+                        if (done) {
+                            return;
+                        }
+                        this.onPacket(value);
+                        read();
+                    })
+                        .catch((err) => {
+                    });
+                };
+                read();
+                const packet = { type: "open" };
+                if (this.query.sid) {
+                    packet.data = `{"sid":"${this.query.sid}"}`;
+                }
+                this.writer.write(packet).then(() => this.onOpen());
+            });
+        });
+    }
+    write(packets) {
+        this.writable = false;
+        for (let i = 0; i < packets.length; i++) {
+            const packet = packets[i];
+            const lastPacket = i === packets.length - 1;
+            this.writer.write(packet).then(() => {
+                if (lastPacket) {
+                    nextTick(() => {
+                        this.writable = true;
+                        this.emitReserved("drain");
+                    }, this.setTimeoutFn);
+                }
+            });
+        }
+    }
+    doClose() {
+        var _a;
+        (_a = this.transport) === null || _a === void 0 ? void 0 : _a.close();
+    }
+}
+
+;// CONCATENATED MODULE: ./node_modules/engine.io-client/build/esm/transports/index.js
+
+
+
+const transports = {
+    websocket: WS,
+    webtransport: WT,
+    polling: Polling,
+};
+
+;// CONCATENATED MODULE: ./node_modules/engine.io-client/build/esm/contrib/parseuri.js
+// imported from https://github.com/galkn/parseuri
+/**
+ * Parses a URI
+ *
+ * Note: we could also have used the built-in URL object, but it isn't supported on all platforms.
+ *
+ * See:
+ * - https://developer.mozilla.org/en-US/docs/Web/API/URL
+ * - https://caniuse.com/url
+ * - https://www.rfc-editor.org/rfc/rfc3986#appendix-B
+ *
+ * History of the parse() method:
+ * - first commit: https://github.com/socketio/socket.io-client/commit/4ee1d5d94b3906a9c052b459f1a818b15f38f91c
+ * - export into its own module: https://github.com/socketio/engine.io-client/commit/de2c561e4564efeb78f1bdb1ba39ef81b2822cb3
+ * - reimport: https://github.com/socketio/engine.io-client/commit/df32277c3f6d622eec5ed09f493cae3f3391d242
+ *
+ * @author Steven Levithan <stevenlevithan.com> (MIT license)
+ * @api private
+ */
+const re = /^(?:(?![^:@\/?#]+:[^:@\/]*@)(http|https|ws|wss):\/\/)?((?:(([^:@\/?#]*)(?::([^:@\/?#]*))?)?@)?((?:[a-f0-9]{0,4}:){2,7}[a-f0-9]{0,4}|[^:\/?#]*)(?::(\d*))?)(((\/(?:[^?#](?![^?#\/]*\.[^?#\/.]+(?:[?#]|$)))*\/?)?([^?#\/]*))(?:\?([^#]*))?(?:#(.*))?)/;
+const parts = [
+    'source', 'protocol', 'authority', 'userInfo', 'user', 'password', 'host', 'port', 'relative', 'path', 'directory', 'file', 'query', 'anchor'
+];
+function parseuri_parse(str) {
+    if (str.length > 2000) {
+        throw "URI too long";
+    }
+    const src = str, b = str.indexOf('['), e = str.indexOf(']');
+    if (b != -1 && e != -1) {
+        str = str.substring(0, b) + str.substring(b, e).replace(/:/g, ';') + str.substring(e, str.length);
+    }
+    let m = re.exec(str || ''), uri = {}, i = 14;
+    while (i--) {
+        uri[parts[i]] = m[i] || '';
+    }
+    if (b != -1 && e != -1) {
+        uri.source = src;
+        uri.host = uri.host.substring(1, uri.host.length - 1).replace(/;/g, ':');
+        uri.authority = uri.authority.replace('[', '').replace(']', '').replace(/;/g, ':');
+        uri.ipv6uri = true;
+    }
+    uri.pathNames = pathNames(uri, uri['path']);
+    uri.queryKey = queryKey(uri, uri['query']);
+    return uri;
+}
+function pathNames(obj, path) {
+    const regx = /\/{2,9}/g, names = path.replace(regx, "/").split("/");
+    if (path.slice(0, 1) == '/' || path.length === 0) {
+        names.splice(0, 1);
+    }
+    if (path.slice(-1) == '/') {
+        names.splice(names.length - 1, 1);
+    }
+    return names;
+}
+function queryKey(uri, query) {
+    const data = {};
+    query.replace(/(?:^|&)([^&=]*)=?([^&]*)/g, function ($0, $1, $2) {
+        if ($1) {
+            data[$1] = $2;
+        }
+    });
+    return data;
+}
+
+;// CONCATENATED MODULE: ./node_modules/engine.io-client/build/esm/socket.js
+
+
+
+
+
+
+
+class Socket extends Emitter {
+    /**
+     * Socket constructor.
+     *
+     * @param {String|Object} uri - uri or options
+     * @param {Object} opts - options
+     */
+    constructor(uri, opts = {}) {
+        super();
+        this.binaryType = defaultBinaryType;
+        this.writeBuffer = [];
+        if (uri && "object" === typeof uri) {
+            opts = uri;
+            uri = null;
+        }
+        if (uri) {
+            uri = parseuri_parse(uri);
+            opts.hostname = uri.host;
+            opts.secure = uri.protocol === "https" || uri.protocol === "wss";
+            opts.port = uri.port;
+            if (uri.query)
+                opts.query = uri.query;
+        }
+        else if (opts.host) {
+            opts.hostname = parseuri_parse(opts.host).host;
+        }
+        installTimerFunctions(this, opts);
+        this.secure =
+            null != opts.secure
+                ? opts.secure
+                : typeof location !== "undefined" && "https:" === location.protocol;
+        if (opts.hostname && !opts.port) {
+            // if no port is specified manually, use the protocol default
+            opts.port = this.secure ? "443" : "80";
+        }
+        this.hostname =
+            opts.hostname ||
+                (typeof location !== "undefined" ? location.hostname : "localhost");
+        this.port =
+            opts.port ||
+                (typeof location !== "undefined" && location.port
+                    ? location.port
+                    : this.secure
+                        ? "443"
+                        : "80");
+        this.transports = opts.transports || [
+            "polling",
+            "websocket",
+            "webtransport",
+        ];
+        this.writeBuffer = [];
+        this.prevBufferLen = 0;
+        this.opts = Object.assign({
+            path: "/engine.io",
+            agent: false,
+            withCredentials: false,
+            upgrade: true,
+            timestampParam: "t",
+            rememberUpgrade: false,
+            addTrailingSlash: true,
+            rejectUnauthorized: true,
+            perMessageDeflate: {
+                threshold: 1024,
+            },
+            transportOptions: {},
+            closeOnBeforeunload: false,
+        }, opts);
+        this.opts.path =
+            this.opts.path.replace(/\/$/, "") +
+                (this.opts.addTrailingSlash ? "/" : "");
+        if (typeof this.opts.query === "string") {
+            this.opts.query = parseqs_decode(this.opts.query);
+        }
+        // set on handshake
+        this.id = null;
+        this.upgrades = null;
+        this.pingInterval = null;
+        this.pingTimeout = null;
+        // set on heartbeat
+        this.pingTimeoutTimer = null;
+        if (typeof addEventListener === "function") {
+            if (this.opts.closeOnBeforeunload) {
+                // Firefox closes the connection when the "beforeunload" event is emitted but not Chrome. This event listener
+                // ensures every browser behaves the same (no "disconnect" event at the Socket.IO level when the page is
+                // closed/reloaded)
+                this.beforeunloadEventListener = () => {
+                    if (this.transport) {
+                        // silently close the transport
+                        this.transport.removeAllListeners();
+                        this.transport.close();
+                    }
+                };
+                addEventListener("beforeunload", this.beforeunloadEventListener, false);
+            }
+            if (this.hostname !== "localhost") {
+                this.offlineEventListener = () => {
+                    this.onClose("transport close", {
+                        description: "network connection lost",
+                    });
+                };
+                addEventListener("offline", this.offlineEventListener, false);
+            }
+        }
+        this.open();
+    }
+    /**
+     * Creates transport of the given type.
+     *
+     * @param {String} name - transport name
+     * @return {Transport}
+     * @private
+     */
+    createTransport(name) {
+        const query = Object.assign({}, this.opts.query);
+        // append engine.io protocol identifier
+        query.EIO = protocol;
+        // transport name
+        query.transport = name;
+        // session id if we already have one
+        if (this.id)
+            query.sid = this.id;
+        const opts = Object.assign({}, this.opts, {
+            query,
+            socket: this,
+            hostname: this.hostname,
+            secure: this.secure,
+            port: this.port,
+        }, this.opts.transportOptions[name]);
+        return new transports[name](opts);
+    }
+    /**
+     * Initializes transport to use and starts probe.
+     *
+     * @private
+     */
+    open() {
+        let transport;
+        if (this.opts.rememberUpgrade &&
+            Socket.priorWebsocketSuccess &&
+            this.transports.indexOf("websocket") !== -1) {
+            transport = "websocket";
+        }
+        else if (0 === this.transports.length) {
+            // Emit error on next tick so it can be listened to
+            this.setTimeoutFn(() => {
+                this.emitReserved("error", "No transports available");
+            }, 0);
+            return;
+        }
+        else {
+            transport = this.transports[0];
+        }
+        this.readyState = "opening";
+        // Retry with the next transport if the transport is disabled (jsonp: false)
+        try {
+            transport = this.createTransport(transport);
+        }
+        catch (e) {
+            this.transports.shift();
+            this.open();
+            return;
+        }
+        transport.open();
+        this.setTransport(transport);
+    }
+    /**
+     * Sets the current transport. Disables the existing one (if any).
+     *
+     * @private
+     */
+    setTransport(transport) {
+        if (this.transport) {
+            this.transport.removeAllListeners();
+        }
+        // set up transport
+        this.transport = transport;
+        // set up transport listeners
+        transport
+            .on("drain", this.onDrain.bind(this))
+            .on("packet", this.onPacket.bind(this))
+            .on("error", this.onError.bind(this))
+            .on("close", (reason) => this.onClose("transport close", reason));
+    }
+    /**
+     * Probes a transport.
+     *
+     * @param {String} name - transport name
+     * @private
+     */
+    probe(name) {
+        let transport = this.createTransport(name);
+        let failed = false;
+        Socket.priorWebsocketSuccess = false;
+        const onTransportOpen = () => {
+            if (failed)
+                return;
+            transport.send([{ type: "ping", data: "probe" }]);
+            transport.once("packet", (msg) => {
+                if (failed)
+                    return;
+                if ("pong" === msg.type && "probe" === msg.data) {
+                    this.upgrading = true;
+                    this.emitReserved("upgrading", transport);
+                    if (!transport)
+                        return;
+                    Socket.priorWebsocketSuccess = "websocket" === transport.name;
+                    this.transport.pause(() => {
+                        if (failed)
+                            return;
+                        if ("closed" === this.readyState)
+                            return;
+                        cleanup();
+                        this.setTransport(transport);
+                        transport.send([{ type: "upgrade" }]);
+                        this.emitReserved("upgrade", transport);
+                        transport = null;
+                        this.upgrading = false;
+                        this.flush();
+                    });
+                }
+                else {
+                    const err = new Error("probe error");
+                    // @ts-ignore
+                    err.transport = transport.name;
+                    this.emitReserved("upgradeError", err);
+                }
+            });
+        };
+        function freezeTransport() {
+            if (failed)
+                return;
+            // Any callback called by transport should be ignored since now
+            failed = true;
+            cleanup();
+            transport.close();
+            transport = null;
+        }
+        // Handle any error that happens while probing
+        const onerror = (err) => {
+            const error = new Error("probe error: " + err);
+            // @ts-ignore
+            error.transport = transport.name;
+            freezeTransport();
+            this.emitReserved("upgradeError", error);
+        };
+        function onTransportClose() {
+            onerror("transport closed");
+        }
+        // When the socket is closed while we're probing
+        function onclose() {
+            onerror("socket closed");
+        }
+        // When the socket is upgraded while we're probing
+        function onupgrade(to) {
+            if (transport && to.name !== transport.name) {
+                freezeTransport();
+            }
+        }
+        // Remove all listeners on the transport and on self
+        const cleanup = () => {
+            transport.removeListener("open", onTransportOpen);
+            transport.removeListener("error", onerror);
+            transport.removeListener("close", onTransportClose);
+            this.off("close", onclose);
+            this.off("upgrading", onupgrade);
+        };
+        transport.once("open", onTransportOpen);
+        transport.once("error", onerror);
+        transport.once("close", onTransportClose);
+        this.once("close", onclose);
+        this.once("upgrading", onupgrade);
+        if (this.upgrades.indexOf("webtransport") !== -1 &&
+            name !== "webtransport") {
+            // favor WebTransport
+            this.setTimeoutFn(() => {
+                if (!failed) {
+                    transport.open();
+                }
+            }, 200);
+        }
+        else {
+            transport.open();
+        }
+    }
+    /**
+     * Called when connection is deemed open.
+     *
+     * @private
+     */
+    onOpen() {
+        this.readyState = "open";
+        Socket.priorWebsocketSuccess = "websocket" === this.transport.name;
+        this.emitReserved("open");
+        this.flush();
+        // we check for `readyState` in case an `open`
+        // listener already closed the socket
+        if ("open" === this.readyState && this.opts.upgrade) {
+            let i = 0;
+            const l = this.upgrades.length;
+            for (; i < l; i++) {
+                this.probe(this.upgrades[i]);
+            }
+        }
+    }
+    /**
+     * Handles a packet.
+     *
+     * @private
+     */
+    onPacket(packet) {
+        if ("opening" === this.readyState ||
+            "open" === this.readyState ||
+            "closing" === this.readyState) {
+            this.emitReserved("packet", packet);
+            // Socket is live - any packet counts
+            this.emitReserved("heartbeat");
+            this.resetPingTimeout();
+            switch (packet.type) {
+                case "open":
+                    this.onHandshake(JSON.parse(packet.data));
+                    break;
+                case "ping":
+                    this.sendPacket("pong");
+                    this.emitReserved("ping");
+                    this.emitReserved("pong");
+                    break;
+                case "error":
+                    const err = new Error("server error");
+                    // @ts-ignore
+                    err.code = packet.data;
+                    this.onError(err);
+                    break;
+                case "message":
+                    this.emitReserved("data", packet.data);
+                    this.emitReserved("message", packet.data);
+                    break;
+            }
+        }
+        else {
+        }
+    }
+    /**
+     * Called upon handshake completion.
+     *
+     * @param {Object} data - handshake obj
+     * @private
+     */
+    onHandshake(data) {
+        this.emitReserved("handshake", data);
+        this.id = data.sid;
+        this.transport.query.sid = data.sid;
+        this.upgrades = this.filterUpgrades(data.upgrades);
+        this.pingInterval = data.pingInterval;
+        this.pingTimeout = data.pingTimeout;
+        this.maxPayload = data.maxPayload;
+        this.onOpen();
+        // In case open handler closes socket
+        if ("closed" === this.readyState)
+            return;
+        this.resetPingTimeout();
+    }
+    /**
+     * Sets and resets ping timeout timer based on server pings.
+     *
+     * @private
+     */
+    resetPingTimeout() {
+        this.clearTimeoutFn(this.pingTimeoutTimer);
+        this.pingTimeoutTimer = this.setTimeoutFn(() => {
+            this.onClose("ping timeout");
+        }, this.pingInterval + this.pingTimeout);
+        if (this.opts.autoUnref) {
+            this.pingTimeoutTimer.unref();
+        }
+    }
+    /**
+     * Called on `drain` event
+     *
+     * @private
+     */
+    onDrain() {
+        this.writeBuffer.splice(0, this.prevBufferLen);
+        // setting prevBufferLen = 0 is very important
+        // for example, when upgrading, upgrade packet is sent over,
+        // and a nonzero prevBufferLen could cause problems on `drain`
+        this.prevBufferLen = 0;
+        if (0 === this.writeBuffer.length) {
+            this.emitReserved("drain");
+        }
+        else {
+            this.flush();
+        }
+    }
+    /**
+     * Flush write buffers.
+     *
+     * @private
+     */
+    flush() {
+        if ("closed" !== this.readyState &&
+            this.transport.writable &&
+            !this.upgrading &&
+            this.writeBuffer.length) {
+            const packets = this.getWritablePackets();
+            this.transport.send(packets);
+            // keep track of current length of writeBuffer
+            // splice writeBuffer and callbackBuffer on `drain`
+            this.prevBufferLen = packets.length;
+            this.emitReserved("flush");
+        }
+    }
+    /**
+     * Ensure the encoded size of the writeBuffer is below the maxPayload value sent by the server (only for HTTP
+     * long-polling)
+     *
+     * @private
+     */
+    getWritablePackets() {
+        const shouldCheckPayloadSize = this.maxPayload &&
+            this.transport.name === "polling" &&
+            this.writeBuffer.length > 1;
+        if (!shouldCheckPayloadSize) {
+            return this.writeBuffer;
+        }
+        let payloadSize = 1; // first packet type
+        for (let i = 0; i < this.writeBuffer.length; i++) {
+            const data = this.writeBuffer[i].data;
+            if (data) {
+                payloadSize += byteLength(data);
+            }
+            if (i > 0 && payloadSize > this.maxPayload) {
+                return this.writeBuffer.slice(0, i);
+            }
+            payloadSize += 2; // separator + packet type
+        }
+        return this.writeBuffer;
+    }
+    /**
+     * Sends a message.
+     *
+     * @param {String} msg - message.
+     * @param {Object} options.
+     * @param {Function} callback function.
+     * @return {Socket} for chaining.
+     */
+    write(msg, options, fn) {
+        this.sendPacket("message", msg, options, fn);
+        return this;
+    }
+    send(msg, options, fn) {
+        this.sendPacket("message", msg, options, fn);
+        return this;
+    }
+    /**
+     * Sends a packet.
+     *
+     * @param {String} type: packet type.
+     * @param {String} data.
+     * @param {Object} options.
+     * @param {Function} fn - callback function.
+     * @private
+     */
+    sendPacket(type, data, options, fn) {
+        if ("function" === typeof data) {
+            fn = data;
+            data = undefined;
+        }
+        if ("function" === typeof options) {
+            fn = options;
+            options = null;
+        }
+        if ("closing" === this.readyState || "closed" === this.readyState) {
+            return;
+        }
+        options = options || {};
+        options.compress = false !== options.compress;
+        const packet = {
+            type: type,
+            data: data,
+            options: options,
+        };
+        this.emitReserved("packetCreate", packet);
+        this.writeBuffer.push(packet);
+        if (fn)
+            this.once("flush", fn);
+        this.flush();
+    }
+    /**
+     * Closes the connection.
+     */
+    close() {
+        const close = () => {
+            this.onClose("forced close");
+            this.transport.close();
+        };
+        const cleanupAndClose = () => {
+            this.off("upgrade", cleanupAndClose);
+            this.off("upgradeError", cleanupAndClose);
+            close();
+        };
+        const waitForUpgrade = () => {
+            // wait for upgrade to finish since we can't send packets while pausing a transport
+            this.once("upgrade", cleanupAndClose);
+            this.once("upgradeError", cleanupAndClose);
+        };
+        if ("opening" === this.readyState || "open" === this.readyState) {
+            this.readyState = "closing";
+            if (this.writeBuffer.length) {
+                this.once("drain", () => {
+                    if (this.upgrading) {
+                        waitForUpgrade();
+                    }
+                    else {
+                        close();
+                    }
+                });
+            }
+            else if (this.upgrading) {
+                waitForUpgrade();
+            }
+            else {
+                close();
+            }
+        }
+        return this;
+    }
+    /**
+     * Called upon transport error
+     *
+     * @private
+     */
+    onError(err) {
+        Socket.priorWebsocketSuccess = false;
+        this.emitReserved("error", err);
+        this.onClose("transport error", err);
+    }
+    /**
+     * Called upon transport close.
+     *
+     * @private
+     */
+    onClose(reason, description) {
+        if ("opening" === this.readyState ||
+            "open" === this.readyState ||
+            "closing" === this.readyState) {
+            // clear timers
+            this.clearTimeoutFn(this.pingTimeoutTimer);
+            // stop event from firing again for transport
+            this.transport.removeAllListeners("close");
+            // ensure transport won't stay open
+            this.transport.close();
+            // ignore further transport communication
+            this.transport.removeAllListeners();
+            if (typeof removeEventListener === "function") {
+                removeEventListener("beforeunload", this.beforeunloadEventListener, false);
+                removeEventListener("offline", this.offlineEventListener, false);
+            }
+            // set ready state
+            this.readyState = "closed";
+            // clear session id
+            this.id = null;
+            // emit close event
+            this.emitReserved("close", reason, description);
+            // clean buffers after, so users can still
+            // grab the buffers on `close` event
+            this.writeBuffer = [];
+            this.prevBufferLen = 0;
+        }
+    }
+    /**
+     * Filters upgrades, returning only those matching client transports.
+     *
+     * @param {Array} upgrades - server upgrades
+     * @private
+     */
+    filterUpgrades(upgrades) {
+        const filteredUpgrades = [];
+        let i = 0;
+        const j = upgrades.length;
+        for (; i < j; i++) {
+            if (~this.transports.indexOf(upgrades[i]))
+                filteredUpgrades.push(upgrades[i]);
+        }
+        return filteredUpgrades;
+    }
+}
+Socket.protocol = protocol;
+
+;// CONCATENATED MODULE: ./node_modules/engine.io-client/build/esm/index.js
+
+
+const esm_protocol = Socket.protocol;
+
+
+
+
+
+
+;// CONCATENATED MODULE: ./node_modules/socket.io-client/build/esm/url.js
+
+/**
+ * URL parser.
+ *
+ * @param uri - url
+ * @param path - the request path of the connection
+ * @param loc - An object meant to mimic window.location.
+ *        Defaults to window.location.
+ * @public
+ */
+function url(uri, path = "", loc) {
+    let obj = uri;
+    // default to window.location
+    loc = loc || (typeof location !== "undefined" && location);
+    if (null == uri)
+        uri = loc.protocol + "//" + loc.host;
+    // relative path support
+    if (typeof uri === "string") {
+        if ("/" === uri.charAt(0)) {
+            if ("/" === uri.charAt(1)) {
+                uri = loc.protocol + uri;
+            }
+            else {
+                uri = loc.host + uri;
+            }
+        }
+        if (!/^(https?|wss?):\/\//.test(uri)) {
+            if ("undefined" !== typeof loc) {
+                uri = loc.protocol + "//" + uri;
+            }
+            else {
+                uri = "https://" + uri;
+            }
+        }
+        // parse
+        obj = parseuri_parse(uri);
+    }
+    // make sure we treat `localhost:80` and `localhost` equally
+    if (!obj.port) {
+        if (/^(http|ws)$/.test(obj.protocol)) {
+            obj.port = "80";
+        }
+        else if (/^(http|ws)s$/.test(obj.protocol)) {
+            obj.port = "443";
+        }
+    }
+    obj.path = obj.path || "/";
+    const ipv6 = obj.host.indexOf(":") !== -1;
+    const host = ipv6 ? "[" + obj.host + "]" : obj.host;
+    // define unique id
+    obj.id = obj.protocol + "://" + host + ":" + obj.port + path;
+    // define href
+    obj.href =
+        obj.protocol +
+            "://" +
+            host +
+            (loc && loc.port === obj.port ? "" : ":" + obj.port);
+    return obj;
+}
+
+;// CONCATENATED MODULE: ./node_modules/socket.io-parser/build/esm/is-binary.js
+const is_binary_withNativeArrayBuffer = typeof ArrayBuffer === "function";
+const is_binary_isView = (obj) => {
+    return typeof ArrayBuffer.isView === "function"
+        ? ArrayBuffer.isView(obj)
+        : obj.buffer instanceof ArrayBuffer;
+};
+const is_binary_toString = Object.prototype.toString;
+const is_binary_withNativeBlob = typeof Blob === "function" ||
+    (typeof Blob !== "undefined" &&
+        is_binary_toString.call(Blob) === "[object BlobConstructor]");
+const withNativeFile = typeof File === "function" ||
+    (typeof File !== "undefined" &&
+        is_binary_toString.call(File) === "[object FileConstructor]");
+/**
+ * Returns true if obj is a Buffer, an ArrayBuffer, a Blob or a File.
+ *
+ * @private
+ */
+function isBinary(obj) {
+    return ((is_binary_withNativeArrayBuffer && (obj instanceof ArrayBuffer || is_binary_isView(obj))) ||
+        (is_binary_withNativeBlob && obj instanceof Blob) ||
+        (withNativeFile && obj instanceof File));
+}
+function hasBinary(obj, toJSON) {
+    if (!obj || typeof obj !== "object") {
+        return false;
+    }
+    if (Array.isArray(obj)) {
+        for (let i = 0, l = obj.length; i < l; i++) {
+            if (hasBinary(obj[i])) {
+                return true;
+            }
+        }
+        return false;
+    }
+    if (isBinary(obj)) {
+        return true;
+    }
+    if (obj.toJSON &&
+        typeof obj.toJSON === "function" &&
+        arguments.length === 1) {
+        return hasBinary(obj.toJSON(), true);
+    }
+    for (const key in obj) {
+        if (Object.prototype.hasOwnProperty.call(obj, key) && hasBinary(obj[key])) {
+            return true;
+        }
+    }
+    return false;
+}
+
+;// CONCATENATED MODULE: ./node_modules/socket.io-parser/build/esm/binary.js
+
+/**
+ * Replaces every Buffer | ArrayBuffer | Blob | File in packet with a numbered placeholder.
+ *
+ * @param {Object} packet - socket.io event packet
+ * @return {Object} with deconstructed packet and list of buffers
+ * @public
+ */
+function deconstructPacket(packet) {
+    const buffers = [];
+    const packetData = packet.data;
+    const pack = packet;
+    pack.data = _deconstructPacket(packetData, buffers);
+    pack.attachments = buffers.length; // number of binary 'attachments'
+    return { packet: pack, buffers: buffers };
+}
+function _deconstructPacket(data, buffers) {
+    if (!data)
+        return data;
+    if (isBinary(data)) {
+        const placeholder = { _placeholder: true, num: buffers.length };
+        buffers.push(data);
+        return placeholder;
+    }
+    else if (Array.isArray(data)) {
+        const newData = new Array(data.length);
+        for (let i = 0; i < data.length; i++) {
+            newData[i] = _deconstructPacket(data[i], buffers);
+        }
+        return newData;
+    }
+    else if (typeof data === "object" && !(data instanceof Date)) {
+        const newData = {};
+        for (const key in data) {
+            if (Object.prototype.hasOwnProperty.call(data, key)) {
+                newData[key] = _deconstructPacket(data[key], buffers);
+            }
+        }
+        return newData;
+    }
+    return data;
+}
+/**
+ * Reconstructs a binary packet from its placeholder packet and buffers
+ *
+ * @param {Object} packet - event packet with placeholders
+ * @param {Array} buffers - binary buffers to put in placeholder positions
+ * @return {Object} reconstructed packet
+ * @public
+ */
+function reconstructPacket(packet, buffers) {
+    packet.data = _reconstructPacket(packet.data, buffers);
+    delete packet.attachments; // no longer useful
+    return packet;
+}
+function _reconstructPacket(data, buffers) {
+    if (!data)
+        return data;
+    if (data && data._placeholder === true) {
+        const isIndexValid = typeof data.num === "number" &&
+            data.num >= 0 &&
+            data.num < buffers.length;
+        if (isIndexValid) {
+            return buffers[data.num]; // appropriate buffer (should be natural order anyway)
+        }
+        else {
+            throw new Error("illegal attachments");
+        }
+    }
+    else if (Array.isArray(data)) {
+        for (let i = 0; i < data.length; i++) {
+            data[i] = _reconstructPacket(data[i], buffers);
+        }
+    }
+    else if (typeof data === "object") {
+        for (const key in data) {
+            if (Object.prototype.hasOwnProperty.call(data, key)) {
+                data[key] = _reconstructPacket(data[key], buffers);
+            }
+        }
+    }
+    return data;
+}
+
+;// CONCATENATED MODULE: ./node_modules/socket.io-parser/build/esm/index.js
+
+
+
+/**
+ * These strings must not be used as event names, as they have a special meaning.
+ */
+const RESERVED_EVENTS = [
+    "connect",
+    "connect_error",
+    "disconnect",
+    "disconnecting",
+    "newListener",
+    "removeListener", // used by the Node.js EventEmitter
+];
+/**
+ * Protocol version.
+ *
+ * @public
+ */
+const build_esm_protocol = 5;
+var PacketType;
+(function (PacketType) {
+    PacketType[PacketType["CONNECT"] = 0] = "CONNECT";
+    PacketType[PacketType["DISCONNECT"] = 1] = "DISCONNECT";
+    PacketType[PacketType["EVENT"] = 2] = "EVENT";
+    PacketType[PacketType["ACK"] = 3] = "ACK";
+    PacketType[PacketType["CONNECT_ERROR"] = 4] = "CONNECT_ERROR";
+    PacketType[PacketType["BINARY_EVENT"] = 5] = "BINARY_EVENT";
+    PacketType[PacketType["BINARY_ACK"] = 6] = "BINARY_ACK";
+})(PacketType || (PacketType = {}));
+/**
+ * A socket.io Encoder instance
+ */
+class Encoder {
+    /**
+     * Encoder constructor
+     *
+     * @param {function} replacer - custom replacer to pass down to JSON.parse
+     */
+    constructor(replacer) {
+        this.replacer = replacer;
+    }
+    /**
+     * Encode a packet as a single string if non-binary, or as a
+     * buffer sequence, depending on packet type.
+     *
+     * @param {Object} obj - packet object
+     */
+    encode(obj) {
+        if (obj.type === PacketType.EVENT || obj.type === PacketType.ACK) {
+            if (hasBinary(obj)) {
+                return this.encodeAsBinary({
+                    type: obj.type === PacketType.EVENT
+                        ? PacketType.BINARY_EVENT
+                        : PacketType.BINARY_ACK,
+                    nsp: obj.nsp,
+                    data: obj.data,
+                    id: obj.id,
+                });
+            }
+        }
+        return [this.encodeAsString(obj)];
+    }
+    /**
+     * Encode packet as string.
+     */
+    encodeAsString(obj) {
+        // first is type
+        let str = "" + obj.type;
+        // attachments if we have them
+        if (obj.type === PacketType.BINARY_EVENT ||
+            obj.type === PacketType.BINARY_ACK) {
+            str += obj.attachments + "-";
+        }
+        // if we have a namespace other than `/`
+        // we append it followed by a comma `,`
+        if (obj.nsp && "/" !== obj.nsp) {
+            str += obj.nsp + ",";
+        }
+        // immediately followed by the id
+        if (null != obj.id) {
+            str += obj.id;
+        }
+        // json data
+        if (null != obj.data) {
+            str += JSON.stringify(obj.data, this.replacer);
+        }
+        return str;
+    }
+    /**
+     * Encode packet as 'buffer sequence' by removing blobs, and
+     * deconstructing packet into object with placeholders and
+     * a list of buffers.
+     */
+    encodeAsBinary(obj) {
+        const deconstruction = deconstructPacket(obj);
+        const pack = this.encodeAsString(deconstruction.packet);
+        const buffers = deconstruction.buffers;
+        buffers.unshift(pack); // add packet info to beginning of data list
+        return buffers; // write all the buffers
+    }
+}
+// see https://stackoverflow.com/questions/8511281/check-if-a-value-is-an-object-in-javascript
+function esm_isObject(value) {
+    return Object.prototype.toString.call(value) === "[object Object]";
+}
+/**
+ * A socket.io Decoder instance
+ *
+ * @return {Object} decoder
+ */
+class Decoder extends Emitter {
+    /**
+     * Decoder constructor
+     *
+     * @param {function} reviver - custom reviver to pass down to JSON.stringify
+     */
+    constructor(reviver) {
+        super();
+        this.reviver = reviver;
+    }
+    /**
+     * Decodes an encoded packet string into packet JSON.
+     *
+     * @param {String} obj - encoded packet
+     */
+    add(obj) {
+        let packet;
+        if (typeof obj === "string") {
+            if (this.reconstructor) {
+                throw new Error("got plaintext data when reconstructing a packet");
+            }
+            packet = this.decodeString(obj);
+            const isBinaryEvent = packet.type === PacketType.BINARY_EVENT;
+            if (isBinaryEvent || packet.type === PacketType.BINARY_ACK) {
+                packet.type = isBinaryEvent ? PacketType.EVENT : PacketType.ACK;
+                // binary packet's json
+                this.reconstructor = new BinaryReconstructor(packet);
+                // no attachments, labeled binary but no binary data to follow
+                if (packet.attachments === 0) {
+                    super.emitReserved("decoded", packet);
+                }
+            }
+            else {
+                // non-binary full packet
+                super.emitReserved("decoded", packet);
+            }
+        }
+        else if (isBinary(obj) || obj.base64) {
+            // raw binary data
+            if (!this.reconstructor) {
+                throw new Error("got binary data when not reconstructing a packet");
+            }
+            else {
+                packet = this.reconstructor.takeBinaryData(obj);
+                if (packet) {
+                    // received final buffer
+                    this.reconstructor = null;
+                    super.emitReserved("decoded", packet);
+                }
+            }
+        }
+        else {
+            throw new Error("Unknown type: " + obj);
+        }
+    }
+    /**
+     * Decode a packet String (JSON data)
+     *
+     * @param {String} str
+     * @return {Object} packet
+     */
+    decodeString(str) {
+        let i = 0;
+        // look up type
+        const p = {
+            type: Number(str.charAt(0)),
+        };
+        if (PacketType[p.type] === undefined) {
+            throw new Error("unknown packet type " + p.type);
+        }
+        // look up attachments if type binary
+        if (p.type === PacketType.BINARY_EVENT ||
+            p.type === PacketType.BINARY_ACK) {
+            const start = i + 1;
+            while (str.charAt(++i) !== "-" && i != str.length) { }
+            const buf = str.substring(start, i);
+            if (buf != Number(buf) || str.charAt(i) !== "-") {
+                throw new Error("Illegal attachments");
+            }
+            p.attachments = Number(buf);
+        }
+        // look up namespace (if any)
+        if ("/" === str.charAt(i + 1)) {
+            const start = i + 1;
+            while (++i) {
+                const c = str.charAt(i);
+                if ("," === c)
+                    break;
+                if (i === str.length)
+                    break;
+            }
+            p.nsp = str.substring(start, i);
+        }
+        else {
+            p.nsp = "/";
+        }
+        // look up id
+        const next = str.charAt(i + 1);
+        if ("" !== next && Number(next) == next) {
+            const start = i + 1;
+            while (++i) {
+                const c = str.charAt(i);
+                if (null == c || Number(c) != c) {
+                    --i;
+                    break;
+                }
+                if (i === str.length)
+                    break;
+            }
+            p.id = Number(str.substring(start, i + 1));
+        }
+        // look up json data
+        if (str.charAt(++i)) {
+            const payload = this.tryParse(str.substr(i));
+            if (Decoder.isPayloadValid(p.type, payload)) {
+                p.data = payload;
+            }
+            else {
+                throw new Error("invalid payload");
+            }
+        }
+        return p;
+    }
+    tryParse(str) {
+        try {
+            return JSON.parse(str, this.reviver);
+        }
+        catch (e) {
+            return false;
+        }
+    }
+    static isPayloadValid(type, payload) {
+        switch (type) {
+            case PacketType.CONNECT:
+                return esm_isObject(payload);
+            case PacketType.DISCONNECT:
+                return payload === undefined;
+            case PacketType.CONNECT_ERROR:
+                return typeof payload === "string" || esm_isObject(payload);
+            case PacketType.EVENT:
+            case PacketType.BINARY_EVENT:
+                return (Array.isArray(payload) &&
+                    (typeof payload[0] === "number" ||
+                        (typeof payload[0] === "string" &&
+                            RESERVED_EVENTS.indexOf(payload[0]) === -1)));
+            case PacketType.ACK:
+            case PacketType.BINARY_ACK:
+                return Array.isArray(payload);
+        }
+    }
+    /**
+     * Deallocates a parser's resources
+     */
+    destroy() {
+        if (this.reconstructor) {
+            this.reconstructor.finishedReconstruction();
+            this.reconstructor = null;
+        }
+    }
+}
+/**
+ * A manager of a binary event's 'buffer sequence'. Should
+ * be constructed whenever a packet of type BINARY_EVENT is
+ * decoded.
+ *
+ * @param {Object} packet
+ * @return {BinaryReconstructor} initialized reconstructor
+ */
+class BinaryReconstructor {
+    constructor(packet) {
+        this.packet = packet;
+        this.buffers = [];
+        this.reconPack = packet;
+    }
+    /**
+     * Method to be called when binary data received from connection
+     * after a BINARY_EVENT packet.
+     *
+     * @param {Buffer | ArrayBuffer} binData - the raw binary data received
+     * @return {null | Object} returns null if more binary data is expected or
+     *   a reconstructed packet object if all buffers have been received.
+     */
+    takeBinaryData(binData) {
+        this.buffers.push(binData);
+        if (this.buffers.length === this.reconPack.attachments) {
+            // done with buffer list
+            const packet = reconstructPacket(this.reconPack, this.buffers);
+            this.finishedReconstruction();
+            return packet;
+        }
+        return null;
+    }
+    /**
+     * Cleans up binary packet reconstruction variables.
+     */
+    finishedReconstruction() {
+        this.reconPack = null;
+        this.buffers = [];
+    }
+}
+
+;// CONCATENATED MODULE: ./node_modules/socket.io-client/build/esm/on.js
+function on(obj, ev, fn) {
+    obj.on(ev, fn);
+    return function subDestroy() {
+        obj.off(ev, fn);
+    };
+}
+
+;// CONCATENATED MODULE: ./node_modules/socket.io-client/build/esm/socket.js
+
+
+
+/**
+ * Internal events.
+ * These events can't be emitted by the user.
+ */
+const socket_RESERVED_EVENTS = Object.freeze({
+    connect: 1,
+    connect_error: 1,
+    disconnect: 1,
+    disconnecting: 1,
+    // EventEmitter reserved events: https://nodejs.org/api/events.html#events_event_newlistener
+    newListener: 1,
+    removeListener: 1,
+});
+/**
+ * A Socket is the fundamental class for interacting with the server.
+ *
+ * A Socket belongs to a certain Namespace (by default /) and uses an underlying {@link Manager} to communicate.
+ *
+ * @example
+ * const socket = io();
+ *
+ * socket.on("connect", () => {
+ *   console.log("connected");
+ * });
+ *
+ * // send an event to the server
+ * socket.emit("foo", "bar");
+ *
+ * socket.on("foobar", () => {
+ *   // an event was received from the server
+ * });
+ *
+ * // upon disconnection
+ * socket.on("disconnect", (reason) => {
+ *   console.log(`disconnected due to ${reason}`);
+ * });
+ */
+class socket_Socket extends Emitter {
+    /**
+     * `Socket` constructor.
+     */
+    constructor(io, nsp, opts) {
+        super();
+        /**
+         * Whether the socket is currently connected to the server.
+         *
+         * @example
+         * const socket = io();
+         *
+         * socket.on("connect", () => {
+         *   console.log(socket.connected); // true
+         * });
+         *
+         * socket.on("disconnect", () => {
+         *   console.log(socket.connected); // false
+         * });
+         */
+        this.connected = false;
+        /**
+         * Whether the connection state was recovered after a temporary disconnection. In that case, any missed packets will
+         * be transmitted by the server.
+         */
+        this.recovered = false;
+        /**
+         * Buffer for packets received before the CONNECT packet
+         */
+        this.receiveBuffer = [];
+        /**
+         * Buffer for packets that will be sent once the socket is connected
+         */
+        this.sendBuffer = [];
+        /**
+         * The queue of packets to be sent with retry in case of failure.
+         *
+         * Packets are sent one by one, each waiting for the server acknowledgement, in order to guarantee the delivery order.
+         * @private
+         */
+        this._queue = [];
+        /**
+         * A sequence to generate the ID of the {@link QueuedPacket}.
+         * @private
+         */
+        this._queueSeq = 0;
+        this.ids = 0;
+        /**
+         * A map containing acknowledgement handlers.
+         *
+         * The `withError` attribute is used to differentiate handlers that accept an error as first argument:
+         *
+         * - `socket.emit("test", (err, value) => { ... })` with `ackTimeout` option
+         * - `socket.timeout(5000).emit("test", (err, value) => { ... })`
+         * - `const value = await socket.emitWithAck("test")`
+         *
+         * From those that don't:
+         *
+         * - `socket.emit("test", (value) => { ... });`
+         *
+         * In the first case, the handlers will be called with an error when:
+         *
+         * - the timeout is reached
+         * - the socket gets disconnected
+         *
+         * In the second case, the handlers will be simply discarded upon disconnection, since the client will never receive
+         * an acknowledgement from the server.
+         *
+         * @private
+         */
+        this.acks = {};
+        this.flags = {};
+        this.io = io;
+        this.nsp = nsp;
+        if (opts && opts.auth) {
+            this.auth = opts.auth;
+        }
+        this._opts = Object.assign({}, opts);
+        if (this.io._autoConnect)
+            this.open();
+    }
+    /**
+     * Whether the socket is currently disconnected
+     *
+     * @example
+     * const socket = io();
+     *
+     * socket.on("connect", () => {
+     *   console.log(socket.disconnected); // false
+     * });
+     *
+     * socket.on("disconnect", () => {
+     *   console.log(socket.disconnected); // true
+     * });
+     */
+    get disconnected() {
+        return !this.connected;
+    }
+    /**
+     * Subscribe to open, close and packet events
+     *
+     * @private
+     */
+    subEvents() {
+        if (this.subs)
+            return;
+        const io = this.io;
+        this.subs = [
+            on(io, "open", this.onopen.bind(this)),
+            on(io, "packet", this.onpacket.bind(this)),
+            on(io, "error", this.onerror.bind(this)),
+            on(io, "close", this.onclose.bind(this)),
+        ];
+    }
+    /**
+     * Whether the Socket will try to reconnect when its Manager connects or reconnects.
+     *
+     * @example
+     * const socket = io();
+     *
+     * console.log(socket.active); // true
+     *
+     * socket.on("disconnect", (reason) => {
+     *   if (reason === "io server disconnect") {
+     *     // the disconnection was initiated by the server, you need to manually reconnect
+     *     console.log(socket.active); // false
+     *   }
+     *   // else the socket will automatically try to reconnect
+     *   console.log(socket.active); // true
+     * });
+     */
+    get active() {
+        return !!this.subs;
+    }
+    /**
+     * "Opens" the socket.
+     *
+     * @example
+     * const socket = io({
+     *   autoConnect: false
+     * });
+     *
+     * socket.connect();
+     */
+    connect() {
+        if (this.connected)
+            return this;
+        this.subEvents();
+        if (!this.io["_reconnecting"])
+            this.io.open(); // ensure open
+        if ("open" === this.io._readyState)
+            this.onopen();
+        return this;
+    }
+    /**
+     * Alias for {@link connect()}.
+     */
+    open() {
+        return this.connect();
+    }
+    /**
+     * Sends a `message` event.
+     *
+     * This method mimics the WebSocket.send() method.
+     *
+     * @see https://developer.mozilla.org/en-US/docs/Web/API/WebSocket/send
+     *
+     * @example
+     * socket.send("hello");
+     *
+     * // this is equivalent to
+     * socket.emit("message", "hello");
+     *
+     * @return self
+     */
+    send(...args) {
+        args.unshift("message");
+        this.emit.apply(this, args);
+        return this;
+    }
+    /**
+     * Override `emit`.
+     * If the event is in `events`, it's emitted normally.
+     *
+     * @example
+     * socket.emit("hello", "world");
+     *
+     * // all serializable datastructures are supported (no need to call JSON.stringify)
+     * socket.emit("hello", 1, "2", { 3: ["4"], 5: Uint8Array.from([6]) });
+     *
+     * // with an acknowledgement from the server
+     * socket.emit("hello", "world", (val) => {
+     *   // ...
+     * });
+     *
+     * @return self
+     */
+    emit(ev, ...args) {
+        if (socket_RESERVED_EVENTS.hasOwnProperty(ev)) {
+            throw new Error('"' + ev.toString() + '" is a reserved event name');
+        }
+        args.unshift(ev);
+        if (this._opts.retries && !this.flags.fromQueue && !this.flags.volatile) {
+            this._addToQueue(args);
+            return this;
+        }
+        const packet = {
+            type: PacketType.EVENT,
+            data: args,
+        };
+        packet.options = {};
+        packet.options.compress = this.flags.compress !== false;
+        // event ack callback
+        if ("function" === typeof args[args.length - 1]) {
+            const id = this.ids++;
+            const ack = args.pop();
+            this._registerAckCallback(id, ack);
+            packet.id = id;
+        }
+        const isTransportWritable = this.io.engine &&
+            this.io.engine.transport &&
+            this.io.engine.transport.writable;
+        const discardPacket = this.flags.volatile && (!isTransportWritable || !this.connected);
+        if (discardPacket) {
+        }
+        else if (this.connected) {
+            this.notifyOutgoingListeners(packet);
+            this.packet(packet);
+        }
+        else {
+            this.sendBuffer.push(packet);
+        }
+        this.flags = {};
+        return this;
+    }
+    /**
+     * @private
+     */
+    _registerAckCallback(id, ack) {
+        var _a;
+        const timeout = (_a = this.flags.timeout) !== null && _a !== void 0 ? _a : this._opts.ackTimeout;
+        if (timeout === undefined) {
+            this.acks[id] = ack;
+            return;
+        }
+        // @ts-ignore
+        const timer = this.io.setTimeoutFn(() => {
+            delete this.acks[id];
+            for (let i = 0; i < this.sendBuffer.length; i++) {
+                if (this.sendBuffer[i].id === id) {
+                    this.sendBuffer.splice(i, 1);
+                }
+            }
+            ack.call(this, new Error("operation has timed out"));
+        }, timeout);
+        const fn = (...args) => {
+            // @ts-ignore
+            this.io.clearTimeoutFn(timer);
+            ack.apply(this, args);
+        };
+        fn.withError = true;
+        this.acks[id] = fn;
+    }
+    /**
+     * Emits an event and waits for an acknowledgement
+     *
+     * @example
+     * // without timeout
+     * const response = await socket.emitWithAck("hello", "world");
+     *
+     * // with a specific timeout
+     * try {
+     *   const response = await socket.timeout(1000).emitWithAck("hello", "world");
+     * } catch (err) {
+     *   // the server did not acknowledge the event in the given delay
+     * }
+     *
+     * @return a Promise that will be fulfilled when the server acknowledges the event
+     */
+    emitWithAck(ev, ...args) {
+        return new Promise((resolve, reject) => {
+            const fn = (arg1, arg2) => {
+                return arg1 ? reject(arg1) : resolve(arg2);
+            };
+            fn.withError = true;
+            args.push(fn);
+            this.emit(ev, ...args);
+        });
+    }
+    /**
+     * Add the packet to the queue.
+     * @param args
+     * @private
+     */
+    _addToQueue(args) {
+        let ack;
+        if (typeof args[args.length - 1] === "function") {
+            ack = args.pop();
+        }
+        const packet = {
+            id: this._queueSeq++,
+            tryCount: 0,
+            pending: false,
+            args,
+            flags: Object.assign({ fromQueue: true }, this.flags),
+        };
+        args.push((err, ...responseArgs) => {
+            if (packet !== this._queue[0]) {
+                // the packet has already been acknowledged
+                return;
+            }
+            const hasError = err !== null;
+            if (hasError) {
+                if (packet.tryCount > this._opts.retries) {
+                    this._queue.shift();
+                    if (ack) {
+                        ack(err);
+                    }
+                }
+            }
+            else {
+                this._queue.shift();
+                if (ack) {
+                    ack(null, ...responseArgs);
+                }
+            }
+            packet.pending = false;
+            return this._drainQueue();
+        });
+        this._queue.push(packet);
+        this._drainQueue();
+    }
+    /**
+     * Send the first packet of the queue, and wait for an acknowledgement from the server.
+     * @param force - whether to resend a packet that has not been acknowledged yet
+     *
+     * @private
+     */
+    _drainQueue(force = false) {
+        if (!this.connected || this._queue.length === 0) {
+            return;
+        }
+        const packet = this._queue[0];
+        if (packet.pending && !force) {
+            return;
+        }
+        packet.pending = true;
+        packet.tryCount++;
+        this.flags = packet.flags;
+        this.emit.apply(this, packet.args);
+    }
+    /**
+     * Sends a packet.
+     *
+     * @param packet
+     * @private
+     */
+    packet(packet) {
+        packet.nsp = this.nsp;
+        this.io._packet(packet);
+    }
+    /**
+     * Called upon engine `open`.
+     *
+     * @private
+     */
+    onopen() {
+        if (typeof this.auth == "function") {
+            this.auth((data) => {
+                this._sendConnectPacket(data);
+            });
+        }
+        else {
+            this._sendConnectPacket(this.auth);
+        }
+    }
+    /**
+     * Sends a CONNECT packet to initiate the Socket.IO session.
+     *
+     * @param data
+     * @private
+     */
+    _sendConnectPacket(data) {
+        this.packet({
+            type: PacketType.CONNECT,
+            data: this._pid
+                ? Object.assign({ pid: this._pid, offset: this._lastOffset }, data)
+                : data,
+        });
+    }
+    /**
+     * Called upon engine or manager `error`.
+     *
+     * @param err
+     * @private
+     */
+    onerror(err) {
+        if (!this.connected) {
+            this.emitReserved("connect_error", err);
+        }
+    }
+    /**
+     * Called upon engine `close`.
+     *
+     * @param reason
+     * @param description
+     * @private
+     */
+    onclose(reason, description) {
+        this.connected = false;
+        delete this.id;
+        this.emitReserved("disconnect", reason, description);
+        this._clearAcks();
+    }
+    /**
+     * Clears the acknowledgement handlers upon disconnection, since the client will never receive an acknowledgement from
+     * the server.
+     *
+     * @private
+     */
+    _clearAcks() {
+        Object.keys(this.acks).forEach((id) => {
+            const isBuffered = this.sendBuffer.some((packet) => String(packet.id) === id);
+            if (!isBuffered) {
+                // note: handlers that do not accept an error as first argument are ignored here
+                const ack = this.acks[id];
+                delete this.acks[id];
+                if (ack.withError) {
+                    ack.call(this, new Error("socket has been disconnected"));
+                }
+            }
+        });
+    }
+    /**
+     * Called with socket packet.
+     *
+     * @param packet
+     * @private
+     */
+    onpacket(packet) {
+        const sameNamespace = packet.nsp === this.nsp;
+        if (!sameNamespace)
+            return;
+        switch (packet.type) {
+            case PacketType.CONNECT:
+                if (packet.data && packet.data.sid) {
+                    this.onconnect(packet.data.sid, packet.data.pid);
+                }
+                else {
+                    this.emitReserved("connect_error", new Error("It seems you are trying to reach a Socket.IO server in v2.x with a v3.x client, but they are not compatible (more information here: https://socket.io/docs/v3/migrating-from-2-x-to-3-0/)"));
+                }
+                break;
+            case PacketType.EVENT:
+            case PacketType.BINARY_EVENT:
+                this.onevent(packet);
+                break;
+            case PacketType.ACK:
+            case PacketType.BINARY_ACK:
+                this.onack(packet);
+                break;
+            case PacketType.DISCONNECT:
+                this.ondisconnect();
+                break;
+            case PacketType.CONNECT_ERROR:
+                this.destroy();
+                const err = new Error(packet.data.message);
+                // @ts-ignore
+                err.data = packet.data.data;
+                this.emitReserved("connect_error", err);
+                break;
+        }
+    }
+    /**
+     * Called upon a server event.
+     *
+     * @param packet
+     * @private
+     */
+    onevent(packet) {
+        const args = packet.data || [];
+        if (null != packet.id) {
+            args.push(this.ack(packet.id));
+        }
+        if (this.connected) {
+            this.emitEvent(args);
+        }
+        else {
+            this.receiveBuffer.push(Object.freeze(args));
+        }
+    }
+    emitEvent(args) {
+        if (this._anyListeners && this._anyListeners.length) {
+            const listeners = this._anyListeners.slice();
+            for (const listener of listeners) {
+                listener.apply(this, args);
+            }
+        }
+        super.emit.apply(this, args);
+        if (this._pid && args.length && typeof args[args.length - 1] === "string") {
+            this._lastOffset = args[args.length - 1];
+        }
+    }
+    /**
+     * Produces an ack callback to emit with an event.
+     *
+     * @private
+     */
+    ack(id) {
+        const self = this;
+        let sent = false;
+        return function (...args) {
+            // prevent double callbacks
+            if (sent)
+                return;
+            sent = true;
+            self.packet({
+                type: PacketType.ACK,
+                id: id,
+                data: args,
+            });
+        };
+    }
+    /**
+     * Called upon a server acknowledgement.
+     *
+     * @param packet
+     * @private
+     */
+    onack(packet) {
+        const ack = this.acks[packet.id];
+        if (typeof ack !== "function") {
+            return;
+        }
+        delete this.acks[packet.id];
+        // @ts-ignore FIXME ack is incorrectly inferred as 'never'
+        if (ack.withError) {
+            packet.data.unshift(null);
+        }
+        // @ts-ignore
+        ack.apply(this, packet.data);
+    }
+    /**
+     * Called upon server connect.
+     *
+     * @private
+     */
+    onconnect(id, pid) {
+        this.id = id;
+        this.recovered = pid && this._pid === pid;
+        this._pid = pid; // defined only if connection state recovery is enabled
+        this.connected = true;
+        this.emitBuffered();
+        this.emitReserved("connect");
+        this._drainQueue(true);
+    }
+    /**
+     * Emit buffered events (received and emitted).
+     *
+     * @private
+     */
+    emitBuffered() {
+        this.receiveBuffer.forEach((args) => this.emitEvent(args));
+        this.receiveBuffer = [];
+        this.sendBuffer.forEach((packet) => {
+            this.notifyOutgoingListeners(packet);
+            this.packet(packet);
+        });
+        this.sendBuffer = [];
+    }
+    /**
+     * Called upon server disconnect.
+     *
+     * @private
+     */
+    ondisconnect() {
+        this.destroy();
+        this.onclose("io server disconnect");
+    }
+    /**
+     * Called upon forced client/server side disconnections,
+     * this method ensures the manager stops tracking us and
+     * that reconnections don't get triggered for this.
+     *
+     * @private
+     */
+    destroy() {
+        if (this.subs) {
+            // clean subscriptions to avoid reconnections
+            this.subs.forEach((subDestroy) => subDestroy());
+            this.subs = undefined;
+        }
+        this.io["_destroy"](this);
+    }
+    /**
+     * Disconnects the socket manually. In that case, the socket will not try to reconnect.
+     *
+     * If this is the last active Socket instance of the {@link Manager}, the low-level connection will be closed.
+     *
+     * @example
+     * const socket = io();
+     *
+     * socket.on("disconnect", (reason) => {
+     *   // console.log(reason); prints "io client disconnect"
+     * });
+     *
+     * socket.disconnect();
+     *
+     * @return self
+     */
+    disconnect() {
+        if (this.connected) {
+            this.packet({ type: PacketType.DISCONNECT });
+        }
+        // remove socket from pool
+        this.destroy();
+        if (this.connected) {
+            // fire events
+            this.onclose("io client disconnect");
+        }
+        return this;
+    }
+    /**
+     * Alias for {@link disconnect()}.
+     *
+     * @return self
+     */
+    close() {
+        return this.disconnect();
+    }
+    /**
+     * Sets the compress flag.
+     *
+     * @example
+     * socket.compress(false).emit("hello");
+     *
+     * @param compress - if `true`, compresses the sending data
+     * @return self
+     */
+    compress(compress) {
+        this.flags.compress = compress;
+        return this;
+    }
+    /**
+     * Sets a modifier for a subsequent event emission that the event message will be dropped when this socket is not
+     * ready to send messages.
+     *
+     * @example
+     * socket.volatile.emit("hello"); // the server may or may not receive it
+     *
+     * @returns self
+     */
+    get volatile() {
+        this.flags.volatile = true;
+        return this;
+    }
+    /**
+     * Sets a modifier for a subsequent event emission that the callback will be called with an error when the
+     * given number of milliseconds have elapsed without an acknowledgement from the server:
+     *
+     * @example
+     * socket.timeout(5000).emit("my-event", (err) => {
+     *   if (err) {
+     *     // the server did not acknowledge the event in the given delay
+     *   }
+     * });
+     *
+     * @returns self
+     */
+    timeout(timeout) {
+        this.flags.timeout = timeout;
+        return this;
+    }
+    /**
+     * Adds a listener that will be fired when any event is emitted. The event name is passed as the first argument to the
+     * callback.
+     *
+     * @example
+     * socket.onAny((event, ...args) => {
+     *   console.log(`got ${event}`);
+     * });
+     *
+     * @param listener
+     */
+    onAny(listener) {
+        this._anyListeners = this._anyListeners || [];
+        this._anyListeners.push(listener);
+        return this;
+    }
+    /**
+     * Adds a listener that will be fired when any event is emitted. The event name is passed as the first argument to the
+     * callback. The listener is added to the beginning of the listeners array.
+     *
+     * @example
+     * socket.prependAny((event, ...args) => {
+     *   console.log(`got event ${event}`);
+     * });
+     *
+     * @param listener
+     */
+    prependAny(listener) {
+        this._anyListeners = this._anyListeners || [];
+        this._anyListeners.unshift(listener);
+        return this;
+    }
+    /**
+     * Removes the listener that will be fired when any event is emitted.
+     *
+     * @example
+     * const catchAllListener = (event, ...args) => {
+     *   console.log(`got event ${event}`);
+     * }
+     *
+     * socket.onAny(catchAllListener);
+     *
+     * // remove a specific listener
+     * socket.offAny(catchAllListener);
+     *
+     * // or remove all listeners
+     * socket.offAny();
+     *
+     * @param listener
+     */
+    offAny(listener) {
+        if (!this._anyListeners) {
+            return this;
+        }
+        if (listener) {
+            const listeners = this._anyListeners;
+            for (let i = 0; i < listeners.length; i++) {
+                if (listener === listeners[i]) {
+                    listeners.splice(i, 1);
+                    return this;
+                }
+            }
+        }
+        else {
+            this._anyListeners = [];
+        }
+        return this;
+    }
+    /**
+     * Returns an array of listeners that are listening for any event that is specified. This array can be manipulated,
+     * e.g. to remove listeners.
+     */
+    listenersAny() {
+        return this._anyListeners || [];
+    }
+    /**
+     * Adds a listener that will be fired when any event is emitted. The event name is passed as the first argument to the
+     * callback.
+     *
+     * Note: acknowledgements sent to the server are not included.
+     *
+     * @example
+     * socket.onAnyOutgoing((event, ...args) => {
+     *   console.log(`sent event ${event}`);
+     * });
+     *
+     * @param listener
+     */
+    onAnyOutgoing(listener) {
+        this._anyOutgoingListeners = this._anyOutgoingListeners || [];
+        this._anyOutgoingListeners.push(listener);
+        return this;
+    }
+    /**
+     * Adds a listener that will be fired when any event is emitted. The event name is passed as the first argument to the
+     * callback. The listener is added to the beginning of the listeners array.
+     *
+     * Note: acknowledgements sent to the server are not included.
+     *
+     * @example
+     * socket.prependAnyOutgoing((event, ...args) => {
+     *   console.log(`sent event ${event}`);
+     * });
+     *
+     * @param listener
+     */
+    prependAnyOutgoing(listener) {
+        this._anyOutgoingListeners = this._anyOutgoingListeners || [];
+        this._anyOutgoingListeners.unshift(listener);
+        return this;
+    }
+    /**
+     * Removes the listener that will be fired when any event is emitted.
+     *
+     * @example
+     * const catchAllListener = (event, ...args) => {
+     *   console.log(`sent event ${event}`);
+     * }
+     *
+     * socket.onAnyOutgoing(catchAllListener);
+     *
+     * // remove a specific listener
+     * socket.offAnyOutgoing(catchAllListener);
+     *
+     * // or remove all listeners
+     * socket.offAnyOutgoing();
+     *
+     * @param [listener] - the catch-all listener (optional)
+     */
+    offAnyOutgoing(listener) {
+        if (!this._anyOutgoingListeners) {
+            return this;
+        }
+        if (listener) {
+            const listeners = this._anyOutgoingListeners;
+            for (let i = 0; i < listeners.length; i++) {
+                if (listener === listeners[i]) {
+                    listeners.splice(i, 1);
+                    return this;
+                }
+            }
+        }
+        else {
+            this._anyOutgoingListeners = [];
+        }
+        return this;
+    }
+    /**
+     * Returns an array of listeners that are listening for any event that is specified. This array can be manipulated,
+     * e.g. to remove listeners.
+     */
+    listenersAnyOutgoing() {
+        return this._anyOutgoingListeners || [];
+    }
+    /**
+     * Notify the listeners for each packet sent
+     *
+     * @param packet
+     *
+     * @private
+     */
+    notifyOutgoingListeners(packet) {
+        if (this._anyOutgoingListeners && this._anyOutgoingListeners.length) {
+            const listeners = this._anyOutgoingListeners.slice();
+            for (const listener of listeners) {
+                listener.apply(this, packet.data);
+            }
+        }
+    }
+}
+
+;// CONCATENATED MODULE: ./node_modules/socket.io-client/build/esm/contrib/backo2.js
+/**
+ * Initialize backoff timer with `opts`.
+ *
+ * - `min` initial timeout in milliseconds [100]
+ * - `max` max timeout [10000]
+ * - `jitter` [0]
+ * - `factor` [2]
+ *
+ * @param {Object} opts
+ * @api public
+ */
+function Backoff(opts) {
+    opts = opts || {};
+    this.ms = opts.min || 100;
+    this.max = opts.max || 10000;
+    this.factor = opts.factor || 2;
+    this.jitter = opts.jitter > 0 && opts.jitter <= 1 ? opts.jitter : 0;
+    this.attempts = 0;
+}
+/**
+ * Return the backoff duration.
+ *
+ * @return {Number}
+ * @api public
+ */
+Backoff.prototype.duration = function () {
+    var ms = this.ms * Math.pow(this.factor, this.attempts++);
+    if (this.jitter) {
+        var rand = Math.random();
+        var deviation = Math.floor(rand * this.jitter * ms);
+        ms = (Math.floor(rand * 10) & 1) == 0 ? ms - deviation : ms + deviation;
+    }
+    return Math.min(ms, this.max) | 0;
+};
+/**
+ * Reset the number of attempts.
+ *
+ * @api public
+ */
+Backoff.prototype.reset = function () {
+    this.attempts = 0;
+};
+/**
+ * Set the minimum duration
+ *
+ * @api public
+ */
+Backoff.prototype.setMin = function (min) {
+    this.ms = min;
+};
+/**
+ * Set the maximum duration
+ *
+ * @api public
+ */
+Backoff.prototype.setMax = function (max) {
+    this.max = max;
+};
+/**
+ * Set the jitter
+ *
+ * @api public
+ */
+Backoff.prototype.setJitter = function (jitter) {
+    this.jitter = jitter;
+};
+
+;// CONCATENATED MODULE: ./node_modules/socket.io-client/build/esm/manager.js
+
+
+
+
+
+
+class Manager extends Emitter {
+    constructor(uri, opts) {
+        var _a;
+        super();
+        this.nsps = {};
+        this.subs = [];
+        if (uri && "object" === typeof uri) {
+            opts = uri;
+            uri = undefined;
+        }
+        opts = opts || {};
+        opts.path = opts.path || "/socket.io";
+        this.opts = opts;
+        installTimerFunctions(this, opts);
+        this.reconnection(opts.reconnection !== false);
+        this.reconnectionAttempts(opts.reconnectionAttempts || Infinity);
+        this.reconnectionDelay(opts.reconnectionDelay || 1000);
+        this.reconnectionDelayMax(opts.reconnectionDelayMax || 5000);
+        this.randomizationFactor((_a = opts.randomizationFactor) !== null && _a !== void 0 ? _a : 0.5);
+        this.backoff = new Backoff({
+            min: this.reconnectionDelay(),
+            max: this.reconnectionDelayMax(),
+            jitter: this.randomizationFactor(),
+        });
+        this.timeout(null == opts.timeout ? 20000 : opts.timeout);
+        this._readyState = "closed";
+        this.uri = uri;
+        const _parser = opts.parser || socket_io_parser_build_esm_namespaceObject;
+        this.encoder = new _parser.Encoder();
+        this.decoder = new _parser.Decoder();
+        this._autoConnect = opts.autoConnect !== false;
+        if (this._autoConnect)
+            this.open();
+    }
+    reconnection(v) {
+        if (!arguments.length)
+            return this._reconnection;
+        this._reconnection = !!v;
+        return this;
+    }
+    reconnectionAttempts(v) {
+        if (v === undefined)
+            return this._reconnectionAttempts;
+        this._reconnectionAttempts = v;
+        return this;
+    }
+    reconnectionDelay(v) {
+        var _a;
+        if (v === undefined)
+            return this._reconnectionDelay;
+        this._reconnectionDelay = v;
+        (_a = this.backoff) === null || _a === void 0 ? void 0 : _a.setMin(v);
+        return this;
+    }
+    randomizationFactor(v) {
+        var _a;
+        if (v === undefined)
+            return this._randomizationFactor;
+        this._randomizationFactor = v;
+        (_a = this.backoff) === null || _a === void 0 ? void 0 : _a.setJitter(v);
+        return this;
+    }
+    reconnectionDelayMax(v) {
+        var _a;
+        if (v === undefined)
+            return this._reconnectionDelayMax;
+        this._reconnectionDelayMax = v;
+        (_a = this.backoff) === null || _a === void 0 ? void 0 : _a.setMax(v);
+        return this;
+    }
+    timeout(v) {
+        if (!arguments.length)
+            return this._timeout;
+        this._timeout = v;
+        return this;
+    }
+    /**
+     * Starts trying to reconnect if reconnection is enabled and we have not
+     * started reconnecting yet
+     *
+     * @private
+     */
+    maybeReconnectOnOpen() {
+        // Only try to reconnect if it's the first time we're connecting
+        if (!this._reconnecting &&
+            this._reconnection &&
+            this.backoff.attempts === 0) {
+            // keeps reconnection from firing twice for the same reconnection loop
+            this.reconnect();
+        }
+    }
+    /**
+     * Sets the current transport `socket`.
+     *
+     * @param {Function} fn - optional, callback
+     * @return self
+     * @public
+     */
+    open(fn) {
+        if (~this._readyState.indexOf("open"))
+            return this;
+        this.engine = new Socket(this.uri, this.opts);
+        const socket = this.engine;
+        const self = this;
+        this._readyState = "opening";
+        this.skipReconnect = false;
+        // emit `open`
+        const openSubDestroy = on(socket, "open", function () {
+            self.onopen();
+            fn && fn();
+        });
+        const onError = (err) => {
+            this.cleanup();
+            this._readyState = "closed";
+            this.emitReserved("error", err);
+            if (fn) {
+                fn(err);
+            }
+            else {
+                // Only do this if there is no fn to handle the error
+                this.maybeReconnectOnOpen();
+            }
+        };
+        // emit `error`
+        const errorSub = on(socket, "error", onError);
+        if (false !== this._timeout) {
+            const timeout = this._timeout;
+            // set timer
+            const timer = this.setTimeoutFn(() => {
+                openSubDestroy();
+                onError(new Error("timeout"));
+                socket.close();
+            }, timeout);
+            if (this.opts.autoUnref) {
+                timer.unref();
+            }
+            this.subs.push(() => {
+                this.clearTimeoutFn(timer);
+            });
+        }
+        this.subs.push(openSubDestroy);
+        this.subs.push(errorSub);
+        return this;
+    }
+    /**
+     * Alias for open()
+     *
+     * @return self
+     * @public
+     */
+    connect(fn) {
+        return this.open(fn);
+    }
+    /**
+     * Called upon transport open.
+     *
+     * @private
+     */
+    onopen() {
+        // clear old subs
+        this.cleanup();
+        // mark as open
+        this._readyState = "open";
+        this.emitReserved("open");
+        // add new subs
+        const socket = this.engine;
+        this.subs.push(on(socket, "ping", this.onping.bind(this)), on(socket, "data", this.ondata.bind(this)), on(socket, "error", this.onerror.bind(this)), on(socket, "close", this.onclose.bind(this)), on(this.decoder, "decoded", this.ondecoded.bind(this)));
+    }
+    /**
+     * Called upon a ping.
+     *
+     * @private
+     */
+    onping() {
+        this.emitReserved("ping");
+    }
+    /**
+     * Called with data.
+     *
+     * @private
+     */
+    ondata(data) {
+        try {
+            this.decoder.add(data);
+        }
+        catch (e) {
+            this.onclose("parse error", e);
+        }
+    }
+    /**
+     * Called when parser fully decodes a packet.
+     *
+     * @private
+     */
+    ondecoded(packet) {
+        // the nextTick call prevents an exception in a user-provided event listener from triggering a disconnection due to a "parse error"
+        nextTick(() => {
+            this.emitReserved("packet", packet);
+        }, this.setTimeoutFn);
+    }
+    /**
+     * Called upon socket error.
+     *
+     * @private
+     */
+    onerror(err) {
+        this.emitReserved("error", err);
+    }
+    /**
+     * Creates a new socket for the given `nsp`.
+     *
+     * @return {Socket}
+     * @public
+     */
+    socket(nsp, opts) {
+        let socket = this.nsps[nsp];
+        if (!socket) {
+            socket = new socket_Socket(this, nsp, opts);
+            this.nsps[nsp] = socket;
+        }
+        else if (this._autoConnect && !socket.active) {
+            socket.connect();
+        }
+        return socket;
+    }
+    /**
+     * Called upon a socket close.
+     *
+     * @param socket
+     * @private
+     */
+    _destroy(socket) {
+        const nsps = Object.keys(this.nsps);
+        for (const nsp of nsps) {
+            const socket = this.nsps[nsp];
+            if (socket.active) {
+                return;
+            }
+        }
+        this._close();
+    }
+    /**
+     * Writes a packet.
+     *
+     * @param packet
+     * @private
+     */
+    _packet(packet) {
+        const encodedPackets = this.encoder.encode(packet);
+        for (let i = 0; i < encodedPackets.length; i++) {
+            this.engine.write(encodedPackets[i], packet.options);
+        }
+    }
+    /**
+     * Clean up transport subscriptions and packet buffer.
+     *
+     * @private
+     */
+    cleanup() {
+        this.subs.forEach((subDestroy) => subDestroy());
+        this.subs.length = 0;
+        this.decoder.destroy();
+    }
+    /**
+     * Close the current socket.
+     *
+     * @private
+     */
+    _close() {
+        this.skipReconnect = true;
+        this._reconnecting = false;
+        this.onclose("forced close");
+        if (this.engine)
+            this.engine.close();
+    }
+    /**
+     * Alias for close()
+     *
+     * @private
+     */
+    disconnect() {
+        return this._close();
+    }
+    /**
+     * Called upon engine close.
+     *
+     * @private
+     */
+    onclose(reason, description) {
+        this.cleanup();
+        this.backoff.reset();
+        this._readyState = "closed";
+        this.emitReserved("close", reason, description);
+        if (this._reconnection && !this.skipReconnect) {
+            this.reconnect();
+        }
+    }
+    /**
+     * Attempt a reconnection.
+     *
+     * @private
+     */
+    reconnect() {
+        if (this._reconnecting || this.skipReconnect)
+            return this;
+        const self = this;
+        if (this.backoff.attempts >= this._reconnectionAttempts) {
+            this.backoff.reset();
+            this.emitReserved("reconnect_failed");
+            this._reconnecting = false;
+        }
+        else {
+            const delay = this.backoff.duration();
+            this._reconnecting = true;
+            const timer = this.setTimeoutFn(() => {
+                if (self.skipReconnect)
+                    return;
+                this.emitReserved("reconnect_attempt", self.backoff.attempts);
+                // check again for the case socket closed in above events
+                if (self.skipReconnect)
+                    return;
+                self.open((err) => {
+                    if (err) {
+                        self._reconnecting = false;
+                        self.reconnect();
+                        this.emitReserved("reconnect_error", err);
+                    }
+                    else {
+                        self.onreconnect();
+                    }
+                });
+            }, delay);
+            if (this.opts.autoUnref) {
+                timer.unref();
+            }
+            this.subs.push(() => {
+                this.clearTimeoutFn(timer);
+            });
+        }
+    }
+    /**
+     * Called upon successful reconnect.
+     *
+     * @private
+     */
+    onreconnect() {
+        const attempt = this.backoff.attempts;
+        this._reconnecting = false;
+        this.backoff.reset();
+        this.emitReserved("reconnect", attempt);
+    }
+}
+
+;// CONCATENATED MODULE: ./node_modules/socket.io-client/build/esm/index.js
+
+
+
+/**
+ * Managers cache.
+ */
+const cache = {};
+function esm_lookup(uri, opts) {
+    if (typeof uri === "object") {
+        opts = uri;
+        uri = undefined;
+    }
+    opts = opts || {};
+    const parsed = url(uri, opts.path || "/socket.io");
+    const source = parsed.source;
+    const id = parsed.id;
+    const path = parsed.path;
+    const sameNamespace = cache[id] && path in cache[id]["nsps"];
+    const newConnection = opts.forceNew ||
+        opts["force new connection"] ||
+        false === opts.multiplex ||
+        sameNamespace;
+    let io;
+    if (newConnection) {
+        io = new Manager(source, opts);
+    }
+    else {
+        if (!cache[id]) {
+            cache[id] = new Manager(source, opts);
+        }
+        io = cache[id];
+    }
+    if (parsed.query && !opts.query) {
+        opts.query = parsed.queryKey;
+    }
+    return io.socket(parsed.path, opts);
+}
+// so that "lookup" can be used both as a function (e.g. `io(...)`) and as a
+// namespace (e.g. `io.connect(...)`), for backward compatibility
+Object.assign(esm_lookup, {
+    Manager: Manager,
+    Socket: socket_Socket,
+    io: esm_lookup,
+    connect: esm_lookup,
+});
+/**
+ * Protocol version.
+ *
+ * @public
+ */
+
+/**
+ * Expose constructors for standalone build.
+ *
+ * @public
+ */
+
+
+;// CONCATENATED MODULE: ./client/hooks/useSocket.js
+
+const socket = esm_lookup.connect("http://localhost:3001");
+const useSocket = () => socket;
+/* harmony default export */ const hooks_useSocket = (useSocket);
+;// CONCATENATED MODULE: ./client/Chat.jsx
 
 const {
-  Sider: App_Sider,
-  Content: App_Content,
-  Footer: App_Footer
+  Sider: Chat_Sider,
+  Content: Chat_Content,
+  Footer: Chat_Footer
 } = es_layout;
+
+
 
 // Style objects
 const siderStyle = {
@@ -32454,16 +31431,7 @@ const channels = [{
   label: "help",
   key: 1
 }];
-const appTheme = {
-  algorithm: theme.darkAlgorithm,
-  components: {
-    Menu: {
-      itemSelectedBg: "rgba(255, 255, 255, 0.3)",
-      itemSelectedColor: "fff"
-    }
-  }
-};
-const App = () => {
+const Chat = () => {
   const [message, setMessage] = (0,react.useState)("");
   const [messages, setMessages] = (0,react.useState)([]);
   const [placeholder, setPlaceholder] = (0,react.useState)("Message #general");
@@ -32484,9 +31452,7 @@ const App = () => {
     setMessages([]);
     socket.emit("room change", channel.label);
   };
-  return /*#__PURE__*/react.createElement(config_provider, {
-    theme: appTheme
-  }, /*#__PURE__*/react.createElement(es_layout, null, /*#__PURE__*/react.createElement(App_Sider, {
+  return /*#__PURE__*/react.createElement(es_layout, null, /*#__PURE__*/react.createElement(Chat_Sider, {
     style: siderStyle
   }, /*#__PURE__*/react.createElement(es_menu, {
     mode: "vertical",
@@ -32496,16 +31462,7956 @@ const App = () => {
     onSelect: onMenuSelect
   })), /*#__PURE__*/react.createElement(es_layout, {
     style: innerLayoutStyle
-  }, /*#__PURE__*/react.createElement(App_Content, {
+  }, /*#__PURE__*/react.createElement(Chat_Content, {
     style: contentStyles
-  }, messages.map(msg => /*#__PURE__*/react.createElement("p", null, msg))), /*#__PURE__*/react.createElement(App_Footer, {
+  }, messages.map(msg => /*#__PURE__*/react.createElement("p", null, msg))), /*#__PURE__*/react.createElement(Chat_Footer, {
     style: footerStyles
   }, /*#__PURE__*/react.createElement(input, {
     placeholder: placeholder,
     onInput: e => setMessage(e.target.value),
     onKeyDown: onSend,
     value: message
+  }))));
+};
+/* harmony default export */ const client_Chat = (Chat);
+;// CONCATENATED MODULE: ./node_modules/antd/es/form/hooks/useDebounce.js
+
+function useDebounce(value) {
+  const [cacheValue, setCacheValue] = react.useState(value);
+  react.useEffect(() => {
+    const timeout = setTimeout(() => {
+      setCacheValue(value);
+    }, value.length ? 0 : 10);
+    return () => {
+      clearTimeout(timeout);
+    };
+  }, [value]);
+  return cacheValue;
+}
+;// CONCATENATED MODULE: ./node_modules/antd/es/form/style/explain.js
+const genFormValidateMotionStyle = token => {
+  const {
+    componentCls
+  } = token;
+  const helpCls = `${componentCls}-show-help`;
+  const helpItemCls = `${componentCls}-show-help-item`;
+  return {
+    [helpCls]: {
+      // Explain holder
+      transition: `opacity ${token.motionDurationSlow} ${token.motionEaseInOut}`,
+      '&-appear, &-enter': {
+        opacity: 0,
+        '&-active': {
+          opacity: 1
+        }
+      },
+      '&-leave': {
+        opacity: 1,
+        '&-active': {
+          opacity: 0
+        }
+      },
+      // Explain
+      [helpItemCls]: {
+        overflow: 'hidden',
+        transition: `height ${token.motionDurationSlow} ${token.motionEaseInOut},
+                     opacity ${token.motionDurationSlow} ${token.motionEaseInOut},
+                     transform ${token.motionDurationSlow} ${token.motionEaseInOut} !important`,
+        [`&${helpItemCls}-appear, &${helpItemCls}-enter`]: {
+          transform: `translateY(-5px)`,
+          opacity: 0,
+          [`&-active`]: {
+            transform: 'translateY(0)',
+            opacity: 1
+          }
+        },
+        [`&${helpItemCls}-leave-active`]: {
+          transform: `translateY(-5px)`
+        }
+      }
+    }
+  };
+};
+/* harmony default export */ const explain = (genFormValidateMotionStyle);
+;// CONCATENATED MODULE: ./node_modules/antd/es/form/style/index.js
+
+
+
+
+
+const resetForm = token => ({
+  legend: {
+    display: 'block',
+    width: '100%',
+    marginBottom: token.marginLG,
+    padding: 0,
+    color: token.colorTextDescription,
+    fontSize: token.fontSizeLG,
+    lineHeight: 'inherit',
+    border: 0,
+    borderBottom: `${unit(token.lineWidth)} ${token.lineType} ${token.colorBorder}`
+  },
+  'input[type="search"]': {
+    boxSizing: 'border-box'
+  },
+  // Position radios and checkboxes better
+  'input[type="radio"], input[type="checkbox"]': {
+    lineHeight: 'normal'
+  },
+  'input[type="file"]': {
+    display: 'block'
+  },
+  // Make range inputs behave like textual form controls
+  'input[type="range"]': {
+    display: 'block',
+    width: '100%'
+  },
+  // Make multiple select elements height not fixed
+  'select[multiple], select[size]': {
+    height: 'auto'
+  },
+  // Focus for file, radio, and checkbox
+  [`input[type='file']:focus,
+  input[type='radio']:focus,
+  input[type='checkbox']:focus`]: {
+    outline: 0,
+    boxShadow: `0 0 0 ${unit(token.controlOutlineWidth)} ${token.controlOutline}`
+  },
+  // Adjust output element
+  output: {
+    display: 'block',
+    paddingTop: 15,
+    color: token.colorText,
+    fontSize: token.fontSize,
+    lineHeight: token.lineHeight
+  }
+});
+const genFormSize = (token, height) => {
+  const {
+    formItemCls
+  } = token;
+  return {
+    [formItemCls]: {
+      [`${formItemCls}-label > label`]: {
+        height
+      },
+      [`${formItemCls}-control-input`]: {
+        minHeight: height
+      }
+    }
+  };
+};
+const genFormStyle = token => {
+  const {
+    componentCls
+  } = token;
+  return {
+    [token.componentCls]: Object.assign(Object.assign(Object.assign({}, resetComponent(token)), resetForm(token)), {
+      [`${componentCls}-text`]: {
+        display: 'inline-block',
+        paddingInlineEnd: token.paddingSM
+      },
+      // ================================================================
+      // =                             Size                             =
+      // ================================================================
+      '&-small': Object.assign({}, genFormSize(token, token.controlHeightSM)),
+      '&-large': Object.assign({}, genFormSize(token, token.controlHeightLG))
+    })
+  };
+};
+const genFormItemStyle = token => {
+  const {
+    formItemCls,
+    iconCls,
+    componentCls,
+    rootPrefixCls,
+    labelRequiredMarkColor,
+    labelColor,
+    labelFontSize,
+    labelHeight,
+    labelColonMarginInlineStart,
+    labelColonMarginInlineEnd,
+    itemMarginBottom
+  } = token;
+  return {
+    [formItemCls]: Object.assign(Object.assign({}, resetComponent(token)), {
+      marginBottom: itemMarginBottom,
+      verticalAlign: 'top',
+      '&-with-help': {
+        transition: 'none'
+      },
+      [`&-hidden,
+        &-hidden.${rootPrefixCls}-row`]: {
+        // https://github.com/ant-design/ant-design/issues/26141
+        display: 'none'
+      },
+      '&-has-warning': {
+        [`${formItemCls}-split`]: {
+          color: token.colorError
+        }
+      },
+      '&-has-error': {
+        [`${formItemCls}-split`]: {
+          color: token.colorWarning
+        }
+      },
+      // ==============================================================
+      // =                            Label                           =
+      // ==============================================================
+      [`${formItemCls}-label`]: {
+        flexGrow: 0,
+        overflow: 'hidden',
+        whiteSpace: 'nowrap',
+        textAlign: 'end',
+        verticalAlign: 'middle',
+        '&-left': {
+          textAlign: 'start'
+        },
+        '&-wrap': {
+          overflow: 'unset',
+          lineHeight: token.lineHeight,
+          whiteSpace: 'unset'
+        },
+        '> label': {
+          position: 'relative',
+          display: 'inline-flex',
+          alignItems: 'center',
+          maxWidth: '100%',
+          height: labelHeight,
+          color: labelColor,
+          fontSize: labelFontSize,
+          [`> ${iconCls}`]: {
+            fontSize: token.fontSize,
+            verticalAlign: 'top'
+          },
+          // Required mark
+          [`&${formItemCls}-required:not(${formItemCls}-required-mark-optional)::before`]: {
+            display: 'inline-block',
+            marginInlineEnd: token.marginXXS,
+            color: labelRequiredMarkColor,
+            fontSize: token.fontSize,
+            fontFamily: 'SimSun, sans-serif',
+            lineHeight: 1,
+            content: '"*"',
+            [`${componentCls}-hide-required-mark &`]: {
+              display: 'none'
+            }
+          },
+          // Optional mark
+          [`${formItemCls}-optional`]: {
+            display: 'inline-block',
+            marginInlineStart: token.marginXXS,
+            color: token.colorTextDescription,
+            [`${componentCls}-hide-required-mark &`]: {
+              display: 'none'
+            }
+          },
+          // Optional mark
+          [`${formItemCls}-tooltip`]: {
+            color: token.colorTextDescription,
+            cursor: 'help',
+            writingMode: 'horizontal-tb',
+            marginInlineStart: token.marginXXS
+          },
+          '&::after': {
+            content: '":"',
+            position: 'relative',
+            marginBlock: 0,
+            marginInlineStart: labelColonMarginInlineStart,
+            marginInlineEnd: labelColonMarginInlineEnd
+          },
+          [`&${formItemCls}-no-colon::after`]: {
+            content: '"\\a0"'
+          }
+        }
+      },
+      // ==============================================================
+      // =                            Input                           =
+      // ==============================================================
+      [`${formItemCls}-control`]: {
+        ['--ant-display']: 'flex',
+        flexDirection: 'column',
+        flexGrow: 1,
+        [`&:first-child:not([class^="'${rootPrefixCls}-col-'"]):not([class*="' ${rootPrefixCls}-col-'"])`]: {
+          width: '100%'
+        },
+        '&-input': {
+          position: 'relative',
+          display: 'flex',
+          alignItems: 'center',
+          minHeight: token.controlHeight,
+          '&-content': {
+            flex: 'auto',
+            maxWidth: '100%'
+          }
+        }
+      },
+      // ==============================================================
+      // =                           Explain                          =
+      // ==============================================================
+      [formItemCls]: {
+        '&-explain, &-extra': {
+          clear: 'both',
+          color: token.colorTextDescription,
+          fontSize: token.fontSize,
+          lineHeight: token.lineHeight
+        },
+        '&-explain-connected': {
+          width: '100%'
+        },
+        '&-extra': {
+          minHeight: token.controlHeightSM,
+          transition: `color ${token.motionDurationMid} ${token.motionEaseOut}` // sync input color transition
+        },
+        '&-explain': {
+          '&-error': {
+            color: token.colorError
+          },
+          '&-warning': {
+            color: token.colorWarning
+          }
+        }
+      },
+      [`&-with-help ${formItemCls}-explain`]: {
+        height: 'auto',
+        opacity: 1
+      },
+      // ==============================================================
+      // =                        Feedback Icon                       =
+      // ==============================================================
+      [`${formItemCls}-feedback-icon`]: {
+        fontSize: token.fontSize,
+        textAlign: 'center',
+        visibility: 'visible',
+        animationName: zoomIn,
+        animationDuration: token.motionDurationMid,
+        animationTimingFunction: token.motionEaseOutBack,
+        pointerEvents: 'none',
+        '&-success': {
+          color: token.colorSuccess
+        },
+        '&-error': {
+          color: token.colorError
+        },
+        '&-warning': {
+          color: token.colorWarning
+        },
+        '&-validating': {
+          color: token.colorPrimary
+        }
+      }
+    })
+  };
+};
+const genHorizontalStyle = token => {
+  const {
+    componentCls,
+    formItemCls
+  } = token;
+  return {
+    [`${componentCls}-horizontal`]: {
+      [`${formItemCls}-label`]: {
+        flexGrow: 0
+      },
+      [`${formItemCls}-control`]: {
+        flex: '1 1 0',
+        // https://github.com/ant-design/ant-design/issues/32777
+        // https://github.com/ant-design/ant-design/issues/33773
+        minWidth: 0
+      },
+      // Do not change this to `ant-col-24`! `-24` match all the responsive rules
+      // https://github.com/ant-design/ant-design/issues/32980
+      // https://github.com/ant-design/ant-design/issues/34903
+      // https://github.com/ant-design/ant-design/issues/44538
+      [`${formItemCls}-label[class$='-24'], ${formItemCls}-label[class*='-24 ']`]: {
+        [`& + ${formItemCls}-control`]: {
+          minWidth: 'unset'
+        }
+      }
+    }
+  };
+};
+const genInlineStyle = token => {
+  const {
+    componentCls,
+    formItemCls
+  } = token;
+  return {
+    [`${componentCls}-inline`]: {
+      display: 'flex',
+      flexWrap: 'wrap',
+      [formItemCls]: {
+        flex: 'none',
+        marginInlineEnd: token.margin,
+        marginBottom: 0,
+        '&-row': {
+          flexWrap: 'nowrap'
+        },
+        [`> ${formItemCls}-label,
+        > ${formItemCls}-control`]: {
+          display: 'inline-block',
+          verticalAlign: 'top'
+        },
+        [`> ${formItemCls}-label`]: {
+          flex: 'none'
+        },
+        [`${componentCls}-text`]: {
+          display: 'inline-block'
+        },
+        [`${formItemCls}-has-feedback`]: {
+          display: 'inline-block'
+        }
+      }
+    }
+  };
+};
+const makeVerticalLayoutLabel = token => ({
+  padding: token.verticalLabelPadding,
+  margin: token.verticalLabelMargin,
+  whiteSpace: 'initial',
+  textAlign: 'start',
+  '> label': {
+    margin: 0,
+    '&::after': {
+      // https://github.com/ant-design/ant-design/issues/43538
+      visibility: 'hidden'
+    }
+  }
+});
+const makeVerticalLayout = token => {
+  const {
+    componentCls,
+    formItemCls,
+    rootPrefixCls
+  } = token;
+  return {
+    [`${formItemCls} ${formItemCls}-label`]: makeVerticalLayoutLabel(token),
+    // ref: https://github.com/ant-design/ant-design/issues/45122
+    [`${componentCls}:not(${componentCls}-inline)`]: {
+      [formItemCls]: {
+        flexWrap: 'wrap',
+        [`${formItemCls}-label, ${formItemCls}-control`]: {
+          // When developer pass `xs: { span }`,
+          // It should follow the `xs` screen config
+          // ref: https://github.com/ant-design/ant-design/issues/44386
+          [`&:not([class*=" ${rootPrefixCls}-col-xs"])`]: {
+            flex: '0 0 100%',
+            maxWidth: '100%'
+          }
+        }
+      }
+    }
+  };
+};
+const genVerticalStyle = token => {
+  const {
+    componentCls,
+    formItemCls,
+    rootPrefixCls
+  } = token;
+  return {
+    [`${componentCls}-vertical`]: {
+      [formItemCls]: {
+        '&-row': {
+          flexDirection: 'column'
+        },
+        '&-label > label': {
+          height: 'auto'
+        },
+        [`${componentCls}-item-control`]: {
+          width: '100%'
+        }
+      }
+    },
+    [`${componentCls}-vertical ${formItemCls}-label,
+      .${rootPrefixCls}-col-24${formItemCls}-label,
+      .${rootPrefixCls}-col-xl-24${formItemCls}-label`]: makeVerticalLayoutLabel(token),
+    [`@media (max-width: ${unit(token.screenXSMax)})`]: [makeVerticalLayout(token), {
+      [componentCls]: {
+        [`.${rootPrefixCls}-col-xs-24${formItemCls}-label`]: makeVerticalLayoutLabel(token)
+      }
+    }],
+    [`@media (max-width: ${unit(token.screenSMMax)})`]: {
+      [componentCls]: {
+        [`.${rootPrefixCls}-col-sm-24${formItemCls}-label`]: makeVerticalLayoutLabel(token)
+      }
+    },
+    [`@media (max-width: ${unit(token.screenMDMax)})`]: {
+      [componentCls]: {
+        [`.${rootPrefixCls}-col-md-24${formItemCls}-label`]: makeVerticalLayoutLabel(token)
+      }
+    },
+    [`@media (max-width: ${unit(token.screenLGMax)})`]: {
+      [componentCls]: {
+        [`.${rootPrefixCls}-col-lg-24${formItemCls}-label`]: makeVerticalLayoutLabel(token)
+      }
+    }
+  };
+};
+// ============================== Export ==============================
+const form_style_prepareComponentToken = token => ({
+  labelRequiredMarkColor: token.colorError,
+  labelColor: token.colorTextHeading,
+  labelFontSize: token.fontSize,
+  labelHeight: token.controlHeight,
+  labelColonMarginInlineStart: token.marginXXS / 2,
+  labelColonMarginInlineEnd: token.marginXS,
+  itemMarginBottom: token.marginLG,
+  verticalLabelPadding: `0 0 ${token.paddingXS}px`,
+  verticalLabelMargin: 0
+});
+const style_prepareToken = (token, rootPrefixCls) => {
+  const formToken = statistic_merge(token, {
+    formItemCls: `${token.componentCls}-item`,
+    rootPrefixCls
+  });
+  return formToken;
+};
+/* harmony default export */ const form_style = (genStyleHooks('Form', (token, _ref) => {
+  let {
+    rootPrefixCls
+  } = _ref;
+  const formToken = style_prepareToken(token, rootPrefixCls);
+  return [genFormStyle(formToken), genFormItemStyle(formToken), explain(formToken), genHorizontalStyle(formToken), genInlineStyle(formToken), genVerticalStyle(formToken), collapse(formToken), zoomIn];
+}, form_style_prepareComponentToken, {
+  // Let From style before the Grid
+  // ref https://github.com/ant-design/ant-design/issues/44386
+  order: -1000
+}));
+;// CONCATENATED MODULE: ./node_modules/antd/es/form/ErrorList.js
+"use client";
+
+
+
+
+
+
+
+
+
+
+
+const ErrorList_EMPTY_LIST = [];
+function toErrorEntity(error, prefix, errorStatus) {
+  let index = arguments.length > 3 && arguments[3] !== undefined ? arguments[3] : 0;
+  return {
+    key: typeof error === 'string' ? error : `${prefix}-${index}`,
+    error,
+    errorStatus
+  };
+}
+const ErrorList = _ref => {
+  let {
+    help,
+    helpStatus,
+    errors = ErrorList_EMPTY_LIST,
+    warnings = ErrorList_EMPTY_LIST,
+    className: rootClassName,
+    fieldId,
+    onVisibleChanged
+  } = _ref;
+  const {
+    prefixCls
+  } = react.useContext(FormItemPrefixContext);
+  const baseClassName = `${prefixCls}-item-explain`;
+  const rootCls = hooks_useCSSVarCls(prefixCls);
+  const [wrapCSSVar, hashId, cssVarCls] = form_style(prefixCls, rootCls);
+  const collapseMotion = (0,react.useMemo)(() => motion(prefixCls), [prefixCls]);
+  // We have to debounce here again since somewhere use ErrorList directly still need no shaking
+  // ref: https://github.com/ant-design/ant-design/issues/36336
+  const debounceErrors = useDebounce(errors);
+  const debounceWarnings = useDebounce(warnings);
+  const fullKeyList = react.useMemo(() => {
+    if (help !== undefined && help !== null) {
+      return [toErrorEntity(help, 'help', helpStatus)];
+    }
+    return [].concat(_toConsumableArray(debounceErrors.map((error, index) => toErrorEntity(error, 'error', 'error', index))), _toConsumableArray(debounceWarnings.map((warning, index) => toErrorEntity(warning, 'warning', 'warning', index))));
+  }, [help, helpStatus, debounceErrors, debounceWarnings]);
+  const helpProps = {};
+  if (fieldId) {
+    helpProps.id = `${fieldId}_help`;
+  }
+  return wrapCSSVar( /*#__PURE__*/react.createElement(rc_motion_es, {
+    motionDeadline: collapseMotion.motionDeadline,
+    motionName: `${prefixCls}-show-help`,
+    visible: !!fullKeyList.length,
+    onVisibleChanged: onVisibleChanged
+  }, holderProps => {
+    const {
+      className: holderClassName,
+      style: holderStyle
+    } = holderProps;
+    return /*#__PURE__*/react.createElement("div", Object.assign({}, helpProps, {
+      className: classnames_default()(baseClassName, holderClassName, cssVarCls, rootCls, rootClassName, hashId),
+      style: holderStyle,
+      role: "alert"
+    }), /*#__PURE__*/react.createElement(CSSMotionList, Object.assign({
+      keys: fullKeyList
+    }, motion(prefixCls), {
+      motionName: `${prefixCls}-show-help-item`,
+      component: false
+    }), itemProps => {
+      const {
+        key,
+        error,
+        errorStatus,
+        className: itemClassName,
+        style: itemStyle
+      } = itemProps;
+      return /*#__PURE__*/react.createElement("div", {
+        key: key,
+        className: classnames_default()(itemClassName, {
+          [`${baseClassName}-${errorStatus}`]: errorStatus
+        }),
+        style: itemStyle
+      }, error);
+    }));
+  }));
+};
+/* harmony default export */ const form_ErrorList = (ErrorList);
+;// CONCATENATED MODULE: ./node_modules/compute-scroll-into-view/dist/index.js
+const t=t=>"object"==typeof t&&null!=t&&1===t.nodeType,e=(t,e)=>(!e||"hidden"!==t)&&("visible"!==t&&"clip"!==t),n=(t,n)=>{if(t.clientHeight<t.scrollHeight||t.clientWidth<t.scrollWidth){const o=getComputedStyle(t,null);return e(o.overflowY,n)||e(o.overflowX,n)||(t=>{const e=(t=>{if(!t.ownerDocument||!t.ownerDocument.defaultView)return null;try{return t.ownerDocument.defaultView.frameElement}catch(t){return null}})(t);return!!e&&(e.clientHeight<t.scrollHeight||e.clientWidth<t.scrollWidth)})(t)}return!1},o=(t,e,n,o,l,r,i,s)=>r<t&&i>e||r>t&&i<e?0:r<=t&&s<=n||i>=e&&s>=n?r-t-o:i>e&&s<n||r<t&&s>n?i-e+l:0,l=t=>{const e=t.parentElement;return null==e?t.getRootNode().host||null:e},dist_r=(e,r)=>{var i,s,d,h;if("undefined"==typeof document)return[];const{scrollMode:c,block:f,inline:u,boundary:a,skipOverflowHiddenElements:g}=r,p="function"==typeof a?a:t=>t!==a;if(!t(e))throw new TypeError("Invalid target");const m=document.scrollingElement||document.documentElement,w=[];let W=e;for(;t(W)&&p(W);){if(W=l(W),W===m){w.push(W);break}null!=W&&W===document.body&&n(W)&&!n(document.documentElement)||null!=W&&n(W,g)&&w.push(W)}const b=null!=(s=null==(i=window.visualViewport)?void 0:i.width)?s:innerWidth,H=null!=(h=null==(d=window.visualViewport)?void 0:d.height)?h:innerHeight,{scrollX:y,scrollY:M}=window,{height:v,width:E,top:x,right:C,bottom:I,left:R}=e.getBoundingClientRect(),{top:T,right:B,bottom:F,left:V}=(t=>{const e=window.getComputedStyle(t);return{top:parseFloat(e.scrollMarginTop)||0,right:parseFloat(e.scrollMarginRight)||0,bottom:parseFloat(e.scrollMarginBottom)||0,left:parseFloat(e.scrollMarginLeft)||0}})(e);let k="start"===f||"nearest"===f?x-T:"end"===f?I+F:x+v/2-T+F,D="center"===u?R+E/2-V+B:"end"===u?C+B:R-V;const L=[];for(let t=0;t<w.length;t++){const e=w[t],{height:n,width:l,top:r,right:i,bottom:s,left:d}=e.getBoundingClientRect();if("if-needed"===c&&x>=0&&R>=0&&I<=H&&C<=b&&x>=r&&I<=s&&R>=d&&C<=i)return L;const h=getComputedStyle(e),a=parseInt(h.borderLeftWidth,10),g=parseInt(h.borderTopWidth,10),p=parseInt(h.borderRightWidth,10),W=parseInt(h.borderBottomWidth,10);let T=0,B=0;const F="offsetWidth"in e?e.offsetWidth-e.clientWidth-a-p:0,V="offsetHeight"in e?e.offsetHeight-e.clientHeight-g-W:0,S="offsetWidth"in e?0===e.offsetWidth?0:l/e.offsetWidth:0,X="offsetHeight"in e?0===e.offsetHeight?0:n/e.offsetHeight:0;if(m===e)T="start"===f?k:"end"===f?k-H:"nearest"===f?o(M,M+H,H,g,W,M+k,M+k+v,v):k-H/2,B="start"===u?D:"center"===u?D-b/2:"end"===u?D-b:o(y,y+b,b,a,p,y+D,y+D+E,E),T=Math.max(0,T+M),B=Math.max(0,B+y);else{T="start"===f?k-r-g:"end"===f?k-s+W+V:"nearest"===f?o(r,s,n,g,W+V,k,k+v,v):k-(r+n/2)+V/2,B="start"===u?D-d-a:"center"===u?D-(d+l/2)+F/2:"end"===u?D-i+p+F:o(d,i,l,a,p+F,D,D+E,E);const{scrollLeft:t,scrollTop:h}=e;T=0===X?0:Math.max(0,Math.min(h+T/X,e.scrollHeight-n/X+V)),B=0===S?0:Math.max(0,Math.min(t+B/S,e.scrollWidth-l/S+F)),k+=h-T,D+=t-B}L.push({el:e,top:T,left:B})}return L};//# sourceMappingURL=index.js.map
+
+;// CONCATENATED MODULE: ./node_modules/scroll-into-view-if-needed/dist/index.js
+const dist_o=t=>!1===t?{block:"end",inline:"nearest"}:(t=>t===Object(t)&&0!==Object.keys(t).length)(t)?t:{block:"start",inline:"nearest"};function dist_e(e,r){if(!e.isConnected||!(t=>{let o=t;for(;o&&o.parentNode;){if(o.parentNode===document)return!0;o=o.parentNode instanceof ShadowRoot?o.parentNode.host:o.parentNode}return!1})(e))return;const n=(t=>{const o=window.getComputedStyle(t);return{top:parseFloat(o.scrollMarginTop)||0,right:parseFloat(o.scrollMarginRight)||0,bottom:parseFloat(o.scrollMarginBottom)||0,left:parseFloat(o.scrollMarginLeft)||0}})(e);if((t=>"object"==typeof t&&"function"==typeof t.behavior)(r))return r.behavior(dist_r(e,r));const l="boolean"==typeof r||null==r?void 0:r.behavior;for(const{el:a,top:i,left:s}of dist_r(e,dist_o(r))){const t=i-n.top+n.bottom,o=s-n.left+n.right;a.scroll({top:t,left:o,behavior:l})}}//# sourceMappingURL=index.js.map
+
+;// CONCATENATED MODULE: ./node_modules/antd/es/form/util.js
+// form item name black list.  in form ,you can use form.id get the form item element.
+// use object hasOwnProperty will get better performance if black list is longer.
+const formItemNameBlackList = ['parentNode'];
+// default form item id prefix.
+const defaultItemNamePrefixCls = 'form_item';
+function util_toArray(candidate) {
+  if (candidate === undefined || candidate === false) return [];
+  return Array.isArray(candidate) ? candidate : [candidate];
+}
+function getFieldId(namePath, formName) {
+  if (!namePath.length) {
+    return undefined;
+  }
+  const mergedId = namePath.join('_');
+  if (formName) {
+    return `${formName}_${mergedId}`;
+  }
+  const isIllegalName = formItemNameBlackList.includes(mergedId);
+  return isIllegalName ? `${defaultItemNamePrefixCls}_${mergedId}` : mergedId;
+}
+/**
+ * Get merged status by meta or passed `validateStatus`.
+ */
+function getStatus(errors, warnings, meta, defaultValidateStatus, hasFeedback, validateStatus) {
+  let status = defaultValidateStatus;
+  if (validateStatus !== undefined) {
+    status = validateStatus;
+  } else if (meta.validating) {
+    status = 'validating';
+  } else if (errors.length) {
+    status = 'error';
+  } else if (warnings.length) {
+    status = 'warning';
+  } else if (meta.touched || hasFeedback && meta.validated) {
+    // success feedback should display when pass hasFeedback prop and current value is valid value
+    status = 'success';
+  }
+  return status;
+}
+;// CONCATENATED MODULE: ./node_modules/antd/es/form/hooks/useForm.js
+
+
+
+
+function toNamePathStr(name) {
+  const namePath = util_toArray(name);
+  return namePath.join('_');
+}
+function useForm_useForm(form) {
+  const [rcForm] = es_useForm();
+  const itemsRef = react.useRef({});
+  const wrapForm = react.useMemo(() => form !== null && form !== void 0 ? form : Object.assign(Object.assign({}, rcForm), {
+    __INTERNAL__: {
+      itemRef: name => node => {
+        const namePathStr = toNamePathStr(name);
+        if (node) {
+          itemsRef.current[namePathStr] = node;
+        } else {
+          delete itemsRef.current[namePathStr];
+        }
+      }
+    },
+    scrollToField: function (name) {
+      let options = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : {};
+      const namePath = util_toArray(name);
+      const fieldId = getFieldId(namePath, wrapForm.__INTERNAL__.name);
+      const node = fieldId ? document.getElementById(fieldId) : null;
+      if (node) {
+        dist_e(node, Object.assign({
+          scrollMode: 'if-needed',
+          block: 'nearest'
+        }, options));
+      }
+    },
+    getFieldInstance: name => {
+      const namePathStr = toNamePathStr(name);
+      return itemsRef.current[namePathStr];
+    }
+  }), [form, rcForm]);
+  return [wrapForm];
+}
+;// CONCATENATED MODULE: ./node_modules/antd/es/form/validateMessagesContext.js
+"use client";
+
+
+// ZombieJ: We export single file here since
+// ConfigProvider use this which will make loop deps
+// to import whole `rc-field-form`
+/* harmony default export */ const validateMessagesContext = (/*#__PURE__*/(0,react.createContext)(undefined));
+;// CONCATENATED MODULE: ./node_modules/antd/es/form/Form.js
+"use client";
+
+var Form_rest = undefined && undefined.__rest || function (s, e) {
+  var t = {};
+  for (var p in s) if (Object.prototype.hasOwnProperty.call(s, p) && e.indexOf(p) < 0) t[p] = s[p];
+  if (s != null && typeof Object.getOwnPropertySymbols === "function") for (var i = 0, p = Object.getOwnPropertySymbols(s); i < p.length; i++) {
+    if (e.indexOf(p[i]) < 0 && Object.prototype.propertyIsEnumerable.call(s, p[i])) t[p[i]] = s[p[i]];
+  }
+  return t;
+};
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+const Form_InternalForm = (props, ref) => {
+  const contextDisabled = react.useContext(config_provider_DisabledContext);
+  const {
+    getPrefixCls,
+    direction,
+    form: contextForm
+  } = react.useContext(context_ConfigContext);
+  const {
+      prefixCls: customizePrefixCls,
+      className,
+      rootClassName,
+      size,
+      disabled = contextDisabled,
+      form,
+      colon,
+      labelAlign,
+      labelWrap,
+      labelCol,
+      wrapperCol,
+      hideRequiredMark,
+      layout = 'horizontal',
+      scrollToFirstError,
+      requiredMark,
+      onFinishFailed,
+      name,
+      style,
+      feedbackIcons,
+      variant
+    } = props,
+    restFormProps = Form_rest(props, ["prefixCls", "className", "rootClassName", "size", "disabled", "form", "colon", "labelAlign", "labelWrap", "labelCol", "wrapperCol", "hideRequiredMark", "layout", "scrollToFirstError", "requiredMark", "onFinishFailed", "name", "style", "feedbackIcons", "variant"]);
+  const mergedSize = hooks_useSize(size);
+  const contextValidateMessages = react.useContext(validateMessagesContext);
+  if (false) {}
+  const mergedRequiredMark = (0,react.useMemo)(() => {
+    if (requiredMark !== undefined) {
+      return requiredMark;
+    }
+    if (hideRequiredMark) {
+      return false;
+    }
+    if (contextForm && contextForm.requiredMark !== undefined) {
+      return contextForm.requiredMark;
+    }
+    return true;
+  }, [hideRequiredMark, requiredMark, contextForm]);
+  const mergedColon = colon !== null && colon !== void 0 ? colon : contextForm === null || contextForm === void 0 ? void 0 : contextForm.colon;
+  const prefixCls = getPrefixCls('form', customizePrefixCls);
+  // Style
+  const rootCls = hooks_useCSSVarCls(prefixCls);
+  const [wrapCSSVar, hashId, cssVarCls] = form_style(prefixCls, rootCls);
+  const formClassName = classnames_default()(prefixCls, `${prefixCls}-${layout}`, {
+    [`${prefixCls}-hide-required-mark`]: mergedRequiredMark === false,
+    [`${prefixCls}-rtl`]: direction === 'rtl',
+    [`${prefixCls}-${mergedSize}`]: mergedSize
+  }, cssVarCls, rootCls, hashId, contextForm === null || contextForm === void 0 ? void 0 : contextForm.className, className, rootClassName);
+  const [wrapForm] = useForm_useForm(form);
+  const {
+    __INTERNAL__
+  } = wrapForm;
+  __INTERNAL__.name = name;
+  const formContextValue = (0,react.useMemo)(() => ({
+    name,
+    labelAlign,
+    labelCol,
+    labelWrap,
+    wrapperCol,
+    vertical: layout === 'vertical',
+    colon: mergedColon,
+    requiredMark: mergedRequiredMark,
+    itemRef: __INTERNAL__.itemRef,
+    form: wrapForm,
+    feedbackIcons
+  }), [name, labelAlign, labelCol, wrapperCol, layout, mergedColon, mergedRequiredMark, wrapForm, feedbackIcons]);
+  react.useImperativeHandle(ref, () => wrapForm);
+  const scrollToField = (options, fieldName) => {
+    if (options) {
+      let defaultScrollToFirstError = {
+        block: 'nearest'
+      };
+      if (typeof options === 'object') {
+        defaultScrollToFirstError = options;
+      }
+      wrapForm.scrollToField(fieldName, defaultScrollToFirstError);
+    }
+  };
+  const onInternalFinishFailed = errorInfo => {
+    onFinishFailed === null || onFinishFailed === void 0 ? void 0 : onFinishFailed(errorInfo);
+    if (errorInfo.errorFields.length) {
+      const fieldName = errorInfo.errorFields[0].name;
+      if (scrollToFirstError !== undefined) {
+        scrollToField(scrollToFirstError, fieldName);
+        return;
+      }
+      if (contextForm && contextForm.scrollToFirstError !== undefined) {
+        scrollToField(contextForm.scrollToFirstError, fieldName);
+      }
+    }
+  };
+  return wrapCSSVar( /*#__PURE__*/react.createElement(VariantContext.Provider, {
+    value: variant
+  }, /*#__PURE__*/react.createElement(DisabledContextProvider, {
+    disabled: disabled
+  }, /*#__PURE__*/react.createElement(config_provider_SizeContext.Provider, {
+    value: mergedSize
+  }, /*#__PURE__*/react.createElement(context_FormProvider, {
+    // This is not list in API, we pass with spread
+    validateMessages: contextValidateMessages
+  }, /*#__PURE__*/react.createElement(context_FormContext.Provider, {
+    value: formContextValue
+  }, /*#__PURE__*/react.createElement(rc_field_form_es, Object.assign({
+    id: name
+  }, restFormProps, {
+    name: name,
+    onFinishFailed: onInternalFinishFailed,
+    form: wrapForm,
+    style: Object.assign(Object.assign({}, contextForm === null || contextForm === void 0 ? void 0 : contextForm.style), style),
+    className: formClassName
+  }))))))));
+};
+const Form_Form = /*#__PURE__*/react.forwardRef(Form_InternalForm);
+if (false) {}
+
+/* harmony default export */ const form_Form = (Form_Form);
+;// CONCATENATED MODULE: ./node_modules/antd/es/form/hooks/useChildren.js
+
+function useChildren(children) {
+  if (typeof children === 'function') {
+    return children;
+  }
+  const childList = toArray_toArray(children);
+  return childList.length <= 1 ? childList[0] : childList;
+}
+;// CONCATENATED MODULE: ./node_modules/antd/es/form/hooks/useFormItemStatus.js
+
+
+
+const useFormItemStatus = () => {
+  const {
+    status,
+    errors = [],
+    warnings = []
+  } = (0,react.useContext)(FormItemInputContext);
+  if (false) {}
+  return {
+    status,
+    errors,
+    warnings
+  };
+};
+// Only used for compatible package. Not promise this will work on future version.
+useFormItemStatus.Context = FormItemInputContext;
+/* harmony default export */ const hooks_useFormItemStatus = (useFormItemStatus);
+;// CONCATENATED MODULE: ./node_modules/antd/es/form/hooks/useFrameState.js
+
+
+
+function useFrameState(defaultValue) {
+  const [value, setValue] = react.useState(defaultValue);
+  const frameRef = (0,react.useRef)(null);
+  const batchRef = (0,react.useRef)([]);
+  const destroyRef = (0,react.useRef)(false);
+  react.useEffect(() => {
+    destroyRef.current = false;
+    return () => {
+      destroyRef.current = true;
+      es_raf.cancel(frameRef.current);
+      frameRef.current = null;
+    };
+  }, []);
+  function setFrameValue(updater) {
+    if (destroyRef.current) {
+      return;
+    }
+    if (frameRef.current === null) {
+      batchRef.current = [];
+      frameRef.current = es_raf(() => {
+        frameRef.current = null;
+        setValue(prevValue => {
+          let current = prevValue;
+          batchRef.current.forEach(func => {
+            current = func(current);
+          });
+          return current;
+        });
+      });
+    }
+    batchRef.current.push(updater);
+  }
+  return [value, setFrameValue];
+}
+;// CONCATENATED MODULE: ./node_modules/antd/es/form/hooks/useItemRef.js
+
+
+
+function useItemRef() {
+  const {
+    itemRef
+  } = react.useContext(context_FormContext);
+  const cacheRef = react.useRef({});
+  function getRef(name, children) {
+    const childrenRef = children && typeof children === 'object' && children.ref;
+    const nameStr = name.join('_');
+    if (cacheRef.current.name !== nameStr || cacheRef.current.originRef !== childrenRef) {
+      cacheRef.current.name = nameStr;
+      cacheRef.current.originRef = childrenRef;
+      cacheRef.current.ref = composeRef(itemRef(name), childrenRef);
+    }
+    return cacheRef.current.ref;
+  }
+  return getRef;
+}
+;// CONCATENATED MODULE: ./node_modules/antd/es/_util/responsiveObserver.js
+
+
+const responsiveArray = ['xxl', 'xl', 'lg', 'md', 'sm', 'xs'];
+const getResponsiveMap = token => ({
+  xs: `(max-width: ${token.screenXSMax}px)`,
+  sm: `(min-width: ${token.screenSM}px)`,
+  md: `(min-width: ${token.screenMD}px)`,
+  lg: `(min-width: ${token.screenLG}px)`,
+  xl: `(min-width: ${token.screenXL}px)`,
+  xxl: `(min-width: ${token.screenXXL}px)`
+});
+/**
+ * Ensures that the breakpoints token are valid, in good order
+ * For each breakpoint : screenMin <= screen <= screenMax and screenMax <= nextScreenMin
+ */
+const validateBreakpoints = token => {
+  const indexableToken = token;
+  const revBreakpoints = [].concat(responsiveArray).reverse();
+  revBreakpoints.forEach((breakpoint, i) => {
+    const breakpointUpper = breakpoint.toUpperCase();
+    const screenMin = `screen${breakpointUpper}Min`;
+    const screen = `screen${breakpointUpper}`;
+    if (!(indexableToken[screenMin] <= indexableToken[screen])) {
+      throw new Error(`${screenMin}<=${screen} fails : !(${indexableToken[screenMin]}<=${indexableToken[screen]})`);
+    }
+    if (i < revBreakpoints.length - 1) {
+      const screenMax = `screen${breakpointUpper}Max`;
+      if (!(indexableToken[screen] <= indexableToken[screenMax])) {
+        throw new Error(`${screen}<=${screenMax} fails : !(${indexableToken[screen]}<=${indexableToken[screenMax]})`);
+      }
+      const nextBreakpointUpperMin = revBreakpoints[i + 1].toUpperCase();
+      const nextScreenMin = `screen${nextBreakpointUpperMin}Min`;
+      if (!(indexableToken[screenMax] <= indexableToken[nextScreenMin])) {
+        throw new Error(`${screenMax}<=${nextScreenMin} fails : !(${indexableToken[screenMax]}<=${indexableToken[nextScreenMin]})`);
+      }
+    }
+  });
+  return token;
+};
+function useResponsiveObserver() {
+  const [, token] = useToken();
+  const responsiveMap = getResponsiveMap(validateBreakpoints(token));
+  // To avoid repeat create instance, we add `useMemo` here.
+  return react.useMemo(() => {
+    const subscribers = new Map();
+    let subUid = -1;
+    let screens = {};
+    return {
+      matchHandlers: {},
+      dispatch(pointMap) {
+        screens = pointMap;
+        subscribers.forEach(func => func(screens));
+        return subscribers.size >= 1;
+      },
+      subscribe(func) {
+        if (!subscribers.size) this.register();
+        subUid += 1;
+        subscribers.set(subUid, func);
+        func(screens);
+        return subUid;
+      },
+      unsubscribe(paramToken) {
+        subscribers.delete(paramToken);
+        if (!subscribers.size) this.unregister();
+      },
+      unregister() {
+        Object.keys(responsiveMap).forEach(screen => {
+          const matchMediaQuery = responsiveMap[screen];
+          const handler = this.matchHandlers[matchMediaQuery];
+          handler === null || handler === void 0 ? void 0 : handler.mql.removeListener(handler === null || handler === void 0 ? void 0 : handler.listener);
+        });
+        subscribers.clear();
+      },
+      register() {
+        Object.keys(responsiveMap).forEach(screen => {
+          const matchMediaQuery = responsiveMap[screen];
+          const listener = _ref => {
+            let {
+              matches
+            } = _ref;
+            this.dispatch(Object.assign(Object.assign({}, screens), {
+              [screen]: matches
+            }));
+          };
+          const mql = window.matchMedia(matchMediaQuery);
+          mql.addListener(listener);
+          this.matchHandlers[matchMediaQuery] = {
+            mql,
+            listener
+          };
+          listener(mql);
+        });
+      },
+      responsiveMap
+    };
+  }, [token]);
+}
+const matchScreen = (screens, screenSizes) => {
+  if (screenSizes && typeof screenSizes === 'object') {
+    for (let i = 0; i < responsiveArray.length; i++) {
+      const breakpoint = responsiveArray[i];
+      if (screens[breakpoint] && screenSizes[breakpoint] !== undefined) {
+        return screenSizes[breakpoint];
+      }
+    }
+  }
+};
+;// CONCATENATED MODULE: ./node_modules/antd/es/grid/RowContext.js
+
+const RowContext = /*#__PURE__*/(0,react.createContext)({});
+/* harmony default export */ const grid_RowContext = (RowContext);
+;// CONCATENATED MODULE: ./node_modules/antd/es/grid/style/index.js
+
+
+// ============================== Row-Shared ==============================
+const genGridRowStyle = token => {
+  const {
+    componentCls
+  } = token;
+  return {
+    // Grid system
+    [componentCls]: {
+      display: 'flex',
+      flexFlow: 'row wrap',
+      minWidth: 0,
+      '&::before, &::after': {
+        display: 'flex'
+      },
+      '&-no-wrap': {
+        flexWrap: 'nowrap'
+      },
+      // The origin of the X-axis
+      '&-start': {
+        justifyContent: 'flex-start'
+      },
+      // The center of the X-axis
+      '&-center': {
+        justifyContent: 'center'
+      },
+      // The opposite of the X-axis
+      '&-end': {
+        justifyContent: 'flex-end'
+      },
+      '&-space-between': {
+        justifyContent: 'space-between'
+      },
+      '&-space-around': {
+        justifyContent: 'space-around'
+      },
+      '&-space-evenly': {
+        justifyContent: 'space-evenly'
+      },
+      // Align at the top
+      '&-top': {
+        alignItems: 'flex-start'
+      },
+      // Align at the center
+      '&-middle': {
+        alignItems: 'center'
+      },
+      '&-bottom': {
+        alignItems: 'flex-end'
+      }
+    }
+  };
+};
+// ============================== Col-Shared ==============================
+const genGridColStyle = token => {
+  const {
+    componentCls
+  } = token;
+  return {
+    // Grid system
+    [componentCls]: {
+      position: 'relative',
+      maxWidth: '100%',
+      // Prevent columns from collapsing when empty
+      minHeight: 1
+    }
+  };
+};
+const genLoopGridColumnsStyle = (token, sizeCls) => {
+  const {
+    prefixCls,
+    componentCls,
+    gridColumns
+  } = token;
+  const gridColumnsStyle = {};
+  for (let i = gridColumns; i >= 0; i--) {
+    if (i === 0) {
+      gridColumnsStyle[`${componentCls}${sizeCls}-${i}`] = {
+        display: 'none'
+      };
+      gridColumnsStyle[`${componentCls}-push-${i}`] = {
+        insetInlineStart: 'auto'
+      };
+      gridColumnsStyle[`${componentCls}-pull-${i}`] = {
+        insetInlineEnd: 'auto'
+      };
+      gridColumnsStyle[`${componentCls}${sizeCls}-push-${i}`] = {
+        insetInlineStart: 'auto'
+      };
+      gridColumnsStyle[`${componentCls}${sizeCls}-pull-${i}`] = {
+        insetInlineEnd: 'auto'
+      };
+      gridColumnsStyle[`${componentCls}${sizeCls}-offset-${i}`] = {
+        marginInlineStart: 0
+      };
+      gridColumnsStyle[`${componentCls}${sizeCls}-order-${i}`] = {
+        order: 0
+      };
+    } else {
+      gridColumnsStyle[`${componentCls}${sizeCls}-${i}`] = [
+      // https://github.com/ant-design/ant-design/issues/44456
+      // Form set `display: flex` on Col which will override `display: block`.
+      // Let's get it from css variable to support override.
+      {
+        ['--ant-display']: 'block',
+        // Fallback to display if variable not support
+        display: 'block'
+      }, {
+        display: 'var(--ant-display)',
+        flex: `0 0 ${i / gridColumns * 100}%`,
+        maxWidth: `${i / gridColumns * 100}%`
+      }];
+      gridColumnsStyle[`${componentCls}${sizeCls}-push-${i}`] = {
+        insetInlineStart: `${i / gridColumns * 100}%`
+      };
+      gridColumnsStyle[`${componentCls}${sizeCls}-pull-${i}`] = {
+        insetInlineEnd: `${i / gridColumns * 100}%`
+      };
+      gridColumnsStyle[`${componentCls}${sizeCls}-offset-${i}`] = {
+        marginInlineStart: `${i / gridColumns * 100}%`
+      };
+      gridColumnsStyle[`${componentCls}${sizeCls}-order-${i}`] = {
+        order: i
+      };
+    }
+  }
+  // Flex CSS Var
+  gridColumnsStyle[`${componentCls}${sizeCls}-flex`] = {
+    flex: `var(--${prefixCls}${sizeCls}-flex)`
+  };
+  return gridColumnsStyle;
+};
+const genGridStyle = (token, sizeCls) => genLoopGridColumnsStyle(token, sizeCls);
+const genGridMediaStyle = (token, screenSize, sizeCls) => ({
+  [`@media (min-width: ${unit(screenSize)})`]: Object.assign({}, genGridStyle(token, sizeCls))
+});
+const prepareRowComponentToken = () => ({});
+const prepareColComponentToken = () => ({});
+// ============================== Export ==============================
+const useRowStyle = genStyleHooks('Grid', genGridRowStyle, prepareRowComponentToken);
+const useColStyle = genStyleHooks('Grid', token => {
+  const gridToken = statistic_merge(token, {
+    gridColumns: 24 // Row is divided into 24 parts in Grid
+  });
+  const gridMediaSizesMap = {
+    '-sm': gridToken.screenSMMin,
+    '-md': gridToken.screenMDMin,
+    '-lg': gridToken.screenLGMin,
+    '-xl': gridToken.screenXLMin,
+    '-xxl': gridToken.screenXXLMin
+  };
+  return [genGridColStyle(gridToken), genGridStyle(gridToken, ''), genGridStyle(gridToken, '-xs'), Object.keys(gridMediaSizesMap).map(key => genGridMediaStyle(gridToken, gridMediaSizesMap[key], key)).reduce((pre, cur) => Object.assign(Object.assign({}, pre), cur), {})];
+}, prepareColComponentToken);
+;// CONCATENATED MODULE: ./node_modules/antd/es/grid/row.js
+"use client";
+
+var row_rest = undefined && undefined.__rest || function (s, e) {
+  var t = {};
+  for (var p in s) if (Object.prototype.hasOwnProperty.call(s, p) && e.indexOf(p) < 0) t[p] = s[p];
+  if (s != null && typeof Object.getOwnPropertySymbols === "function") for (var i = 0, p = Object.getOwnPropertySymbols(s); i < p.length; i++) {
+    if (e.indexOf(p[i]) < 0 && Object.prototype.propertyIsEnumerable.call(s, p[i])) t[p[i]] = s[p[i]];
+  }
+  return t;
+};
+
+
+
+
+
+
+const RowAligns = (/* unused pure expression or super */ null && (['top', 'middle', 'bottom', 'stretch']));
+const RowJustify = (/* unused pure expression or super */ null && (['start', 'end', 'center', 'space-around', 'space-between', 'space-evenly']));
+function useMergedPropByScreen(oriProp, screen) {
+  const [prop, setProp] = react.useState(typeof oriProp === 'string' ? oriProp : '');
+  const calcMergedAlignOrJustify = () => {
+    if (typeof oriProp === 'string') {
+      setProp(oriProp);
+    }
+    if (typeof oriProp !== 'object') {
+      return;
+    }
+    for (let i = 0; i < responsiveArray.length; i++) {
+      const breakpoint = responsiveArray[i];
+      // if do not match, do nothing
+      if (!screen[breakpoint]) {
+        continue;
+      }
+      const curVal = oriProp[breakpoint];
+      if (curVal !== undefined) {
+        setProp(curVal);
+        return;
+      }
+    }
+  };
+  react.useEffect(() => {
+    calcMergedAlignOrJustify();
+  }, [JSON.stringify(oriProp), screen]);
+  return prop;
+}
+const Row = /*#__PURE__*/react.forwardRef((props, ref) => {
+  const {
+      prefixCls: customizePrefixCls,
+      justify,
+      align,
+      className,
+      style,
+      children,
+      gutter = 0,
+      wrap
+    } = props,
+    others = row_rest(props, ["prefixCls", "justify", "align", "className", "style", "children", "gutter", "wrap"]);
+  const {
+    getPrefixCls,
+    direction
+  } = react.useContext(context_ConfigContext);
+  const [screens, setScreens] = react.useState({
+    xs: true,
+    sm: true,
+    md: true,
+    lg: true,
+    xl: true,
+    xxl: true
+  });
+  // to save screens info when responsiveObserve callback had been call
+  const [curScreens, setCurScreens] = react.useState({
+    xs: false,
+    sm: false,
+    md: false,
+    lg: false,
+    xl: false,
+    xxl: false
+  });
+  // ================================== calc responsive data ==================================
+  const mergedAlign = useMergedPropByScreen(align, curScreens);
+  const mergedJustify = useMergedPropByScreen(justify, curScreens);
+  const gutterRef = react.useRef(gutter);
+  const responsiveObserver = useResponsiveObserver();
+  // ================================== Effect ==================================
+  react.useEffect(() => {
+    const token = responsiveObserver.subscribe(screen => {
+      setCurScreens(screen);
+      const currentGutter = gutterRef.current || 0;
+      if (!Array.isArray(currentGutter) && typeof currentGutter === 'object' || Array.isArray(currentGutter) && (typeof currentGutter[0] === 'object' || typeof currentGutter[1] === 'object')) {
+        setScreens(screen);
+      }
+    });
+    return () => responsiveObserver.unsubscribe(token);
+  }, []);
+  // ================================== Render ==================================
+  const getGutter = () => {
+    const results = [undefined, undefined];
+    const normalizedGutter = Array.isArray(gutter) ? gutter : [gutter, undefined];
+    normalizedGutter.forEach((g, index) => {
+      if (typeof g === 'object') {
+        for (let i = 0; i < responsiveArray.length; i++) {
+          const breakpoint = responsiveArray[i];
+          if (screens[breakpoint] && g[breakpoint] !== undefined) {
+            results[index] = g[breakpoint];
+            break;
+          }
+        }
+      } else {
+        results[index] = g;
+      }
+    });
+    return results;
+  };
+  const prefixCls = getPrefixCls('row', customizePrefixCls);
+  const [wrapCSSVar, hashId, cssVarCls] = useRowStyle(prefixCls);
+  const gutters = getGutter();
+  const classes = classnames_default()(prefixCls, {
+    [`${prefixCls}-no-wrap`]: wrap === false,
+    [`${prefixCls}-${mergedJustify}`]: mergedJustify,
+    [`${prefixCls}-${mergedAlign}`]: mergedAlign,
+    [`${prefixCls}-rtl`]: direction === 'rtl'
+  }, className, hashId, cssVarCls);
+  // Add gutter related style
+  const rowStyle = {};
+  const horizontalGutter = gutters[0] != null && gutters[0] > 0 ? gutters[0] / -2 : undefined;
+  if (horizontalGutter) {
+    rowStyle.marginLeft = horizontalGutter;
+    rowStyle.marginRight = horizontalGutter;
+  }
+  // "gutters" is a new array in each rendering phase, it'll make 'React.useMemo' effectless.
+  // So we deconstruct "gutters" variable here.
+  const [gutterH, gutterV] = gutters;
+  rowStyle.rowGap = gutterV;
+  const rowContext = react.useMemo(() => ({
+    gutter: [gutterH, gutterV],
+    wrap
+  }), [gutterH, gutterV, wrap]);
+  return wrapCSSVar( /*#__PURE__*/react.createElement(grid_RowContext.Provider, {
+    value: rowContext
+  }, /*#__PURE__*/react.createElement("div", Object.assign({}, others, {
+    className: classes,
+    style: Object.assign(Object.assign({}, rowStyle), style),
+    ref: ref
+  }), children)));
+});
+if (false) {}
+/* harmony default export */ const row = (Row);
+;// CONCATENATED MODULE: ./node_modules/antd/es/grid/col.js
+"use client";
+
+var col_rest = undefined && undefined.__rest || function (s, e) {
+  var t = {};
+  for (var p in s) if (Object.prototype.hasOwnProperty.call(s, p) && e.indexOf(p) < 0) t[p] = s[p];
+  if (s != null && typeof Object.getOwnPropertySymbols === "function") for (var i = 0, p = Object.getOwnPropertySymbols(s); i < p.length; i++) {
+    if (e.indexOf(p[i]) < 0 && Object.prototype.propertyIsEnumerable.call(s, p[i])) t[p[i]] = s[p[i]];
+  }
+  return t;
+};
+
+
+
+
+
+function parseFlex(flex) {
+  if (typeof flex === 'number') {
+    return `${flex} ${flex} auto`;
+  }
+  if (/^\d+(\.\d+)?(px|em|rem|%)$/.test(flex)) {
+    return `0 0 ${flex}`;
+  }
+  return flex;
+}
+const sizes = ['xs', 'sm', 'md', 'lg', 'xl', 'xxl'];
+const Col = /*#__PURE__*/react.forwardRef((props, ref) => {
+  const {
+    getPrefixCls,
+    direction
+  } = react.useContext(context_ConfigContext);
+  const {
+    gutter,
+    wrap
+  } = react.useContext(grid_RowContext);
+  const {
+      prefixCls: customizePrefixCls,
+      span,
+      order,
+      offset,
+      push,
+      pull,
+      className,
+      children,
+      flex,
+      style
+    } = props,
+    others = col_rest(props, ["prefixCls", "span", "order", "offset", "push", "pull", "className", "children", "flex", "style"]);
+  const prefixCls = getPrefixCls('col', customizePrefixCls);
+  const [wrapCSSVar, hashId, cssVarCls] = useColStyle(prefixCls);
+  // ===================== Size ======================
+  const sizeStyle = {};
+  let sizeClassObj = {};
+  sizes.forEach(size => {
+    let sizeProps = {};
+    const propSize = props[size];
+    if (typeof propSize === 'number') {
+      sizeProps.span = propSize;
+    } else if (typeof propSize === 'object') {
+      sizeProps = propSize || {};
+    }
+    delete others[size];
+    sizeClassObj = Object.assign(Object.assign({}, sizeClassObj), {
+      [`${prefixCls}-${size}-${sizeProps.span}`]: sizeProps.span !== undefined,
+      [`${prefixCls}-${size}-order-${sizeProps.order}`]: sizeProps.order || sizeProps.order === 0,
+      [`${prefixCls}-${size}-offset-${sizeProps.offset}`]: sizeProps.offset || sizeProps.offset === 0,
+      [`${prefixCls}-${size}-push-${sizeProps.push}`]: sizeProps.push || sizeProps.push === 0,
+      [`${prefixCls}-${size}-pull-${sizeProps.pull}`]: sizeProps.pull || sizeProps.pull === 0,
+      [`${prefixCls}-rtl`]: direction === 'rtl'
+    });
+    // Responsive flex layout
+    if (sizeProps.flex) {
+      sizeClassObj[`${prefixCls}-${size}-flex`] = true;
+      sizeStyle[`--${prefixCls}-${size}-flex`] = parseFlex(sizeProps.flex);
+    }
+  });
+  // ==================== Normal =====================
+  const classes = classnames_default()(prefixCls, {
+    [`${prefixCls}-${span}`]: span !== undefined,
+    [`${prefixCls}-order-${order}`]: order,
+    [`${prefixCls}-offset-${offset}`]: offset,
+    [`${prefixCls}-push-${push}`]: push,
+    [`${prefixCls}-pull-${pull}`]: pull
+  }, className, sizeClassObj, hashId, cssVarCls);
+  const mergedStyle = {};
+  // Horizontal gutter use padding
+  if (gutter && gutter[0] > 0) {
+    const horizontalGutter = gutter[0] / 2;
+    mergedStyle.paddingLeft = horizontalGutter;
+    mergedStyle.paddingRight = horizontalGutter;
+  }
+  if (flex) {
+    mergedStyle.flex = parseFlex(flex);
+    // Hack for Firefox to avoid size issue
+    // https://github.com/ant-design/ant-design/pull/20023#issuecomment-564389553
+    if (wrap === false && !mergedStyle.minWidth) {
+      mergedStyle.minWidth = 0;
+    }
+  }
+  // ==================== Render =====================
+  return wrapCSSVar( /*#__PURE__*/react.createElement("div", Object.assign({}, others, {
+    style: Object.assign(Object.assign(Object.assign({}, mergedStyle), style), sizeStyle),
+    className: classes,
+    ref: ref
+  }), children));
+});
+if (false) {}
+/* harmony default export */ const col = (Col);
+;// CONCATENATED MODULE: ./node_modules/antd/es/form/style/fallbackCmp.js
+/**
+ * Fallback of IE.
+ * Safe to remove.
+ */
+// Style as inline component
+
+
+// ============================= Fallback =============================
+const genFallbackStyle = token => {
+  const {
+    formItemCls
+  } = token;
+  return {
+    '@media screen and (-ms-high-contrast: active), (-ms-high-contrast: none)': {
+      // Fallback for IE, safe to remove we not support it anymore
+      [`${formItemCls}-control`]: {
+        display: 'flex'
+      }
+    }
+  };
+};
+// ============================== Export ==============================
+/* harmony default export */ const fallbackCmp = (genSubStyleComponent(['Form', 'item-item'], (token, _ref) => {
+  let {
+    rootPrefixCls
+  } = _ref;
+  const formToken = style_prepareToken(token, rootPrefixCls);
+  return [genFallbackStyle(formToken)];
+}));
+;// CONCATENATED MODULE: ./node_modules/antd/es/form/FormItemInput.js
+"use client";
+
+
+
+
+
+
+
+const FormItemInput = props => {
+  const {
+    prefixCls,
+    status,
+    wrapperCol,
+    children,
+    errors,
+    warnings,
+    _internalItemRender: formItemRender,
+    extra,
+    help,
+    fieldId,
+    marginBottom,
+    onErrorVisibleChanged
+  } = props;
+  const baseClassName = `${prefixCls}-item`;
+  const formContext = react.useContext(context_FormContext);
+  const mergedWrapperCol = wrapperCol || formContext.wrapperCol || {};
+  const className = classnames_default()(`${baseClassName}-control`, mergedWrapperCol.className);
+  // Pass to sub FormItem should not with col info
+  const subFormContext = react.useMemo(() => Object.assign({}, formContext), [formContext]);
+  delete subFormContext.labelCol;
+  delete subFormContext.wrapperCol;
+  const inputDom = /*#__PURE__*/react.createElement("div", {
+    className: `${baseClassName}-control-input`
+  }, /*#__PURE__*/react.createElement("div", {
+    className: `${baseClassName}-control-input-content`
+  }, children));
+  const formItemContext = react.useMemo(() => ({
+    prefixCls,
+    status
+  }), [prefixCls, status]);
+  const errorListDom = marginBottom !== null || errors.length || warnings.length ? ( /*#__PURE__*/react.createElement("div", {
+    style: {
+      display: 'flex',
+      flexWrap: 'nowrap'
+    }
+  }, /*#__PURE__*/react.createElement(FormItemPrefixContext.Provider, {
+    value: formItemContext
+  }, /*#__PURE__*/react.createElement(form_ErrorList, {
+    fieldId: fieldId,
+    errors: errors,
+    warnings: warnings,
+    help: help,
+    helpStatus: status,
+    className: `${baseClassName}-explain-connected`,
+    onVisibleChanged: onErrorVisibleChanged
+  })), !!marginBottom && /*#__PURE__*/react.createElement("div", {
+    style: {
+      width: 0,
+      height: marginBottom
+    }
+  }))) : null;
+  const extraProps = {};
+  if (fieldId) {
+    extraProps.id = `${fieldId}_extra`;
+  }
+  // If extra = 0, && will goes wrong
+  // 0&&error -> 0
+  const extraDom = extra ? ( /*#__PURE__*/react.createElement("div", Object.assign({}, extraProps, {
+    className: `${baseClassName}-extra`
+  }), extra)) : null;
+  const dom = formItemRender && formItemRender.mark === 'pro_table_render' && formItemRender.render ? formItemRender.render(props, {
+    input: inputDom,
+    errorList: errorListDom,
+    extra: extraDom
+  }) : ( /*#__PURE__*/react.createElement(react.Fragment, null, inputDom, errorListDom, extraDom));
+  return /*#__PURE__*/react.createElement(context_FormContext.Provider, {
+    value: subFormContext
+  }, /*#__PURE__*/react.createElement(col, Object.assign({}, mergedWrapperCol, {
+    className: className
+  }), dom), /*#__PURE__*/react.createElement(fallbackCmp, {
+    prefixCls: prefixCls
+  }));
+};
+/* harmony default export */ const form_FormItemInput = (FormItemInput);
+;// CONCATENATED MODULE: ./node_modules/@ant-design/icons-svg/es/asn/QuestionCircleOutlined.js
+// This icon file is generated automatically.
+var QuestionCircleOutlined = { "icon": { "tag": "svg", "attrs": { "viewBox": "64 64 896 896", "focusable": "false" }, "children": [{ "tag": "path", "attrs": { "d": "M512 64C264.6 64 64 264.6 64 512s200.6 448 448 448 448-200.6 448-448S759.4 64 512 64zm0 820c-205.4 0-372-166.6-372-372s166.6-372 372-372 372 166.6 372 372-166.6 372-372 372z" } }, { "tag": "path", "attrs": { "d": "M623.6 316.7C593.6 290.4 554 276 512 276s-81.6 14.5-111.6 40.7C369.2 344 352 380.7 352 420v7.6c0 4.4 3.6 8 8 8h48c4.4 0 8-3.6 8-8V420c0-44.1 43.1-80 96-80s96 35.9 96 80c0 31.1-22 59.6-56.1 72.7-21.2 8.1-39.2 22.3-52.1 40.9-13.1 19-19.9 41.8-19.9 64.9V620c0 4.4 3.6 8 8 8h48c4.4 0 8-3.6 8-8v-22.7a48.3 48.3 0 0130.9-44.8c59-22.7 97.1-74.7 97.1-132.5.1-39.3-17.1-76-48.3-103.3zM472 732a40 40 0 1080 0 40 40 0 10-80 0z" } }] }, "name": "question-circle", "theme": "outlined" };
+/* harmony default export */ const asn_QuestionCircleOutlined = (QuestionCircleOutlined);
+
+;// CONCATENATED MODULE: ./node_modules/@ant-design/icons/es/icons/QuestionCircleOutlined.js
+
+// GENERATE BY ./scripts/generate.ts
+// DON NOT EDIT IT MANUALLY
+
+
+
+
+var QuestionCircleOutlined_QuestionCircleOutlined = function QuestionCircleOutlined(props, ref) {
+  return /*#__PURE__*/react.createElement(AntdIcon, _extends({}, props, {
+    ref: ref,
+    icon: asn_QuestionCircleOutlined
+  }));
+};
+
+/**![question-circle](data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNTAiIGhlaWdodD0iNTAiIGZpbGw9IiNjYWNhY2EiIHZpZXdCb3g9IjY0IDY0IDg5NiA4OTYiIGZvY3VzYWJsZT0iZmFsc2UiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PHBhdGggZD0iTTUxMiA2NEMyNjQuNiA2NCA2NCAyNjQuNiA2NCA1MTJzMjAwLjYgNDQ4IDQ0OCA0NDggNDQ4LTIwMC42IDQ0OC00NDhTNzU5LjQgNjQgNTEyIDY0em0wIDgyMGMtMjA1LjQgMC0zNzItMTY2LjYtMzcyLTM3MnMxNjYuNi0zNzIgMzcyLTM3MiAzNzIgMTY2LjYgMzcyIDM3Mi0xNjYuNiAzNzItMzcyIDM3MnoiIC8+PHBhdGggZD0iTTYyMy42IDMxNi43QzU5My42IDI5MC40IDU1NCAyNzYgNTEyIDI3NnMtODEuNiAxNC41LTExMS42IDQwLjdDMzY5LjIgMzQ0IDM1MiAzODAuNyAzNTIgNDIwdjcuNmMwIDQuNCAzLjYgOCA4IDhoNDhjNC40IDAgOC0zLjYgOC04VjQyMGMwLTQ0LjEgNDMuMS04MCA5Ni04MHM5NiAzNS45IDk2IDgwYzAgMzEuMS0yMiA1OS42LTU2LjEgNzIuNy0yMS4yIDguMS0zOS4yIDIyLjMtNTIuMSA0MC45LTEzLjEgMTktMTkuOSA0MS44LTE5LjkgNjQuOVY2MjBjMCA0LjQgMy42IDggOCA4aDQ4YzQuNCAwIDgtMy42IDgtOHYtMjIuN2E0OC4zIDQ4LjMgMCAwMTMwLjktNDQuOGM1OS0yMi43IDk3LjEtNzQuNyA5Ny4xLTEzMi41LjEtMzkuMy0xNy4xLTc2LTQ4LjMtMTAzLjN6TTQ3MiA3MzJhNDAgNDAgMCAxMDgwIDAgNDAgNDAgMCAxMC04MCAweiIgLz48L3N2Zz4=) */
+var QuestionCircleOutlined_RefIcon = /*#__PURE__*/react.forwardRef(QuestionCircleOutlined_QuestionCircleOutlined);
+if (false) {}
+/* harmony default export */ const icons_QuestionCircleOutlined = (QuestionCircleOutlined_RefIcon);
+;// CONCATENATED MODULE: ./node_modules/rc-pagination/es/locale/en_US.js
+var locale = {
+  // Options
+  items_per_page: '/ page',
+  jump_to: 'Go to',
+  jump_to_confirm: 'confirm',
+  page: 'Page',
+  // Pagination
+  prev_page: 'Previous Page',
+  next_page: 'Next Page',
+  prev_5: 'Previous 5 Pages',
+  next_5: 'Next 5 Pages',
+  prev_3: 'Previous 3 Pages',
+  next_3: 'Next 3 Pages',
+  page_size: 'Page Size'
+};
+/* harmony default export */ const en_US = (locale);
+;// CONCATENATED MODULE: ./node_modules/rc-picker/es/locale/en_US.js
+var en_US_locale = {
+  locale: 'en_US',
+  today: 'Today',
+  now: 'Now',
+  backToToday: 'Back to today',
+  ok: 'OK',
+  clear: 'Clear',
+  month: 'Month',
+  year: 'Year',
+  timeSelect: 'select time',
+  dateSelect: 'select date',
+  weekSelect: 'Choose a week',
+  monthSelect: 'Choose a month',
+  yearSelect: 'Choose a year',
+  decadeSelect: 'Choose a decade',
+  yearFormat: 'YYYY',
+  dateFormat: 'M/D/YYYY',
+  dayFormat: 'D',
+  dateTimeFormat: 'M/D/YYYY HH:mm:ss',
+  monthBeforeYear: true,
+  previousMonth: 'Previous month (PageUp)',
+  nextMonth: 'Next month (PageDown)',
+  previousYear: 'Last year (Control + left)',
+  nextYear: 'Next year (Control + right)',
+  previousDecade: 'Last decade',
+  nextDecade: 'Next decade',
+  previousCentury: 'Last century',
+  nextCentury: 'Next century'
+};
+/* harmony default export */ const locale_en_US = (en_US_locale);
+;// CONCATENATED MODULE: ./node_modules/antd/es/time-picker/locale/en_US.js
+const locale_en_US_locale = {
+  placeholder: 'Select time',
+  rangePlaceholder: ['Start time', 'End time']
+};
+/* harmony default export */ const time_picker_locale_en_US = (locale_en_US_locale);
+;// CONCATENATED MODULE: ./node_modules/antd/es/date-picker/locale/en_US.js
+
+
+// Merge into a locale object
+const date_picker_locale_en_US_locale = {
+  lang: Object.assign({
+    placeholder: 'Select date',
+    yearPlaceholder: 'Select year',
+    quarterPlaceholder: 'Select quarter',
+    monthPlaceholder: 'Select month',
+    weekPlaceholder: 'Select week',
+    rangePlaceholder: ['Start date', 'End date'],
+    rangeYearPlaceholder: ['Start year', 'End year'],
+    rangeQuarterPlaceholder: ['Start quarter', 'End quarter'],
+    rangeMonthPlaceholder: ['Start month', 'End month'],
+    rangeWeekPlaceholder: ['Start week', 'End week']
+  }, locale_en_US),
+  timePickerLocale: Object.assign({}, time_picker_locale_en_US)
+};
+// All settings at:
+// https://github.com/ant-design/ant-design/blob/master/components/date-picker/locale/example.json
+/* harmony default export */ const date_picker_locale_en_US = (date_picker_locale_en_US_locale);
+;// CONCATENATED MODULE: ./node_modules/antd/es/calendar/locale/en_US.js
+
+/* harmony default export */ const calendar_locale_en_US = (date_picker_locale_en_US);
+;// CONCATENATED MODULE: ./node_modules/antd/es/locale/en_US.js
+/* eslint-disable no-template-curly-in-string */
+
+
+
+
+const en_US_typeTemplate = '${label} is not a valid ${type}';
+const localeValues = {
+  locale: 'en',
+  Pagination: en_US,
+  DatePicker: date_picker_locale_en_US,
+  TimePicker: time_picker_locale_en_US,
+  Calendar: calendar_locale_en_US,
+  global: {
+    placeholder: 'Please select'
+  },
+  Table: {
+    filterTitle: 'Filter menu',
+    filterConfirm: 'OK',
+    filterReset: 'Reset',
+    filterEmptyText: 'No filters',
+    filterCheckall: 'Select all items',
+    filterSearchPlaceholder: 'Search in filters',
+    emptyText: 'No data',
+    selectAll: 'Select current page',
+    selectInvert: 'Invert current page',
+    selectNone: 'Clear all data',
+    selectionAll: 'Select all data',
+    sortTitle: 'Sort',
+    expand: 'Expand row',
+    collapse: 'Collapse row',
+    triggerDesc: 'Click to sort descending',
+    triggerAsc: 'Click to sort ascending',
+    cancelSort: 'Click to cancel sorting'
+  },
+  Tour: {
+    Next: 'Next',
+    Previous: 'Previous',
+    Finish: 'Finish'
+  },
+  Modal: {
+    okText: 'OK',
+    cancelText: 'Cancel',
+    justOkText: 'OK'
+  },
+  Popconfirm: {
+    okText: 'OK',
+    cancelText: 'Cancel'
+  },
+  Transfer: {
+    titles: ['', ''],
+    searchPlaceholder: 'Search here',
+    itemUnit: 'item',
+    itemsUnit: 'items',
+    remove: 'Remove',
+    selectCurrent: 'Select current page',
+    removeCurrent: 'Remove current page',
+    selectAll: 'Select all data',
+    removeAll: 'Remove all data',
+    selectInvert: 'Invert current page'
+  },
+  Upload: {
+    uploading: 'Uploading...',
+    removeFile: 'Remove file',
+    uploadError: 'Upload error',
+    previewFile: 'Preview file',
+    downloadFile: 'Download file'
+  },
+  Empty: {
+    description: 'No data'
+  },
+  Icon: {
+    icon: 'icon'
+  },
+  Text: {
+    edit: 'Edit',
+    copy: 'Copy',
+    copied: 'Copied',
+    expand: 'Expand',
+    collapse: 'Collapse'
+  },
+  Form: {
+    optional: '(optional)',
+    defaultValidateMessages: {
+      default: 'Field validation error for ${label}',
+      required: 'Please enter ${label}',
+      enum: '${label} must be one of [${enum}]',
+      whitespace: '${label} cannot be a blank character',
+      date: {
+        format: '${label} date format is invalid',
+        parse: '${label} cannot be converted to a date',
+        invalid: '${label} is an invalid date'
+      },
+      types: {
+        string: en_US_typeTemplate,
+        method: en_US_typeTemplate,
+        array: en_US_typeTemplate,
+        object: en_US_typeTemplate,
+        number: en_US_typeTemplate,
+        date: en_US_typeTemplate,
+        boolean: en_US_typeTemplate,
+        integer: en_US_typeTemplate,
+        float: en_US_typeTemplate,
+        regexp: en_US_typeTemplate,
+        email: en_US_typeTemplate,
+        url: en_US_typeTemplate,
+        hex: en_US_typeTemplate
+      },
+      string: {
+        len: '${label} must be ${len} characters',
+        min: '${label} must be at least ${min} characters',
+        max: '${label} must be up to ${max} characters',
+        range: '${label} must be between ${min}-${max} characters'
+      },
+      number: {
+        len: '${label} must be equal to ${len}',
+        min: '${label} must be minimum ${min}',
+        max: '${label} must be maximum ${max}',
+        range: '${label} must be between ${min}-${max}'
+      },
+      array: {
+        len: 'Must be ${len} ${label}',
+        min: 'At least ${min} ${label}',
+        max: 'At most ${max} ${label}',
+        range: 'The amount of ${label} must be between ${min}-${max}'
+      },
+      pattern: {
+        mismatch: '${label} does not match the pattern ${pattern}'
+      }
+    }
+  },
+  Image: {
+    preview: 'Preview'
+  },
+  QRCode: {
+    expired: 'QR code expired',
+    refresh: 'Refresh',
+    scanned: 'Scanned'
+  },
+  ColorPicker: {
+    presetEmpty: 'Empty'
+  }
+};
+/* harmony default export */ const es_locale_en_US = (localeValues);
+;// CONCATENATED MODULE: ./node_modules/antd/es/locale/context.js
+
+const LocaleContext = /*#__PURE__*/(0,react.createContext)(undefined);
+/* harmony default export */ const locale_context = (LocaleContext);
+;// CONCATENATED MODULE: ./node_modules/antd/es/locale/useLocale.js
+
+
+
+const useLocale = (componentName, defaultLocale) => {
+  const fullLocale = react.useContext(locale_context);
+  const getLocale = react.useMemo(() => {
+    var _a;
+    const locale = defaultLocale || es_locale_en_US[componentName];
+    const localeFromContext = (_a = fullLocale === null || fullLocale === void 0 ? void 0 : fullLocale[componentName]) !== null && _a !== void 0 ? _a : {};
+    return Object.assign(Object.assign({}, typeof locale === 'function' ? locale() : locale), localeFromContext || {});
+  }, [componentName, defaultLocale, fullLocale]);
+  const getLocaleCode = react.useMemo(() => {
+    const localeCode = fullLocale === null || fullLocale === void 0 ? void 0 : fullLocale.locale;
+    // Had use LocaleProvide but didn't set locale
+    if ((fullLocale === null || fullLocale === void 0 ? void 0 : fullLocale.exist) && !localeCode) {
+      return es_locale_en_US.locale;
+    }
+    return localeCode;
+  }, [fullLocale]);
+  return [getLocale, getLocaleCode];
+};
+/* harmony default export */ const locale_useLocale = (useLocale);
+;// CONCATENATED MODULE: ./node_modules/antd/es/form/FormItemLabel.js
+"use client";
+
+var FormItemLabel_rest = undefined && undefined.__rest || function (s, e) {
+  var t = {};
+  for (var p in s) if (Object.prototype.hasOwnProperty.call(s, p) && e.indexOf(p) < 0) t[p] = s[p];
+  if (s != null && typeof Object.getOwnPropertySymbols === "function") for (var i = 0, p = Object.getOwnPropertySymbols(s); i < p.length; i++) {
+    if (e.indexOf(p[i]) < 0 && Object.prototype.propertyIsEnumerable.call(s, p[i])) t[p[i]] = s[p[i]];
+  }
+  return t;
+};
+
+
+
+
+
+
+
+
+function toTooltipProps(tooltip) {
+  if (!tooltip) {
+    return null;
+  }
+  if (typeof tooltip === 'object' && ! /*#__PURE__*/react.isValidElement(tooltip)) {
+    return tooltip;
+  }
+  return {
+    title: tooltip
+  };
+}
+const FormItemLabel = _ref => {
+  let {
+    prefixCls,
+    label,
+    htmlFor,
+    labelCol,
+    labelAlign,
+    colon,
+    required,
+    requiredMark,
+    tooltip
+  } = _ref;
+  var _a;
+  const [formLocale] = locale_useLocale('Form');
+  const {
+    vertical,
+    labelAlign: contextLabelAlign,
+    labelCol: contextLabelCol,
+    labelWrap,
+    colon: contextColon
+  } = react.useContext(context_FormContext);
+  if (!label) {
+    return null;
+  }
+  const mergedLabelCol = labelCol || contextLabelCol || {};
+  const mergedLabelAlign = labelAlign || contextLabelAlign;
+  const labelClsBasic = `${prefixCls}-item-label`;
+  const labelColClassName = classnames_default()(labelClsBasic, mergedLabelAlign === 'left' && `${labelClsBasic}-left`, mergedLabelCol.className, {
+    [`${labelClsBasic}-wrap`]: !!labelWrap
+  });
+  let labelChildren = label;
+  // Keep label is original where there should have no colon
+  const computedColon = colon === true || contextColon !== false && colon !== false;
+  const haveColon = computedColon && !vertical;
+  // Remove duplicated user input colon
+  if (haveColon && typeof label === 'string' && label.trim() !== '') {
+    labelChildren = label.replace(/[:|：]\s*$/, '');
+  }
+  // Tooltip
+  const tooltipProps = toTooltipProps(tooltip);
+  if (tooltipProps) {
+    const {
+        icon = /*#__PURE__*/react.createElement(icons_QuestionCircleOutlined, null)
+      } = tooltipProps,
+      restTooltipProps = FormItemLabel_rest(tooltipProps, ["icon"]);
+    const tooltipNode = /*#__PURE__*/react.createElement(es_tooltip, Object.assign({}, restTooltipProps), /*#__PURE__*/react.cloneElement(icon, {
+      className: `${prefixCls}-item-tooltip`,
+      title: '',
+      onClick: e => {
+        // Prevent label behavior in tooltip icon
+        // https://github.com/ant-design/ant-design/issues/46154
+        e.preventDefault();
+      },
+      tabIndex: null
+    }));
+    labelChildren = /*#__PURE__*/react.createElement(react.Fragment, null, labelChildren, tooltipNode);
+  }
+  // Required Mark
+  const isOptionalMark = requiredMark === 'optional';
+  const isRenderMark = typeof requiredMark === 'function';
+  if (isRenderMark) {
+    labelChildren = requiredMark(labelChildren, {
+      required: !!required
+    });
+  } else if (isOptionalMark && !required) {
+    labelChildren = /*#__PURE__*/react.createElement(react.Fragment, null, labelChildren, /*#__PURE__*/react.createElement("span", {
+      className: `${prefixCls}-item-optional`,
+      title: ""
+    }, (formLocale === null || formLocale === void 0 ? void 0 : formLocale.optional) || ((_a = es_locale_en_US.Form) === null || _a === void 0 ? void 0 : _a.optional)));
+  }
+  const labelClassName = classnames_default()({
+    [`${prefixCls}-item-required`]: required,
+    [`${prefixCls}-item-required-mark-optional`]: isOptionalMark || isRenderMark,
+    [`${prefixCls}-item-no-colon`]: !computedColon
+  });
+  return /*#__PURE__*/react.createElement(col, Object.assign({}, mergedLabelCol, {
+    className: labelColClassName
+  }), /*#__PURE__*/react.createElement("label", {
+    htmlFor: htmlFor,
+    className: labelClassName,
+    title: typeof label === 'string' ? label : ''
+  }, labelChildren));
+};
+/* harmony default export */ const form_FormItemLabel = (FormItemLabel);
+;// CONCATENATED MODULE: ./node_modules/@ant-design/icons-svg/es/asn/CheckCircleFilled.js
+// This icon file is generated automatically.
+var CheckCircleFilled = { "icon": { "tag": "svg", "attrs": { "viewBox": "64 64 896 896", "focusable": "false" }, "children": [{ "tag": "path", "attrs": { "d": "M512 64C264.6 64 64 264.6 64 512s200.6 448 448 448 448-200.6 448-448S759.4 64 512 64zm193.5 301.7l-210.6 292a31.8 31.8 0 01-51.7 0L318.5 484.9c-3.8-5.3 0-12.7 6.5-12.7h46.9c10.2 0 19.9 4.9 25.9 13.3l71.2 98.8 157.2-218c6-8.3 15.6-13.3 25.9-13.3H699c6.5 0 10.3 7.4 6.5 12.7z" } }] }, "name": "check-circle", "theme": "filled" };
+/* harmony default export */ const asn_CheckCircleFilled = (CheckCircleFilled);
+
+;// CONCATENATED MODULE: ./node_modules/@ant-design/icons/es/icons/CheckCircleFilled.js
+
+// GENERATE BY ./scripts/generate.ts
+// DON NOT EDIT IT MANUALLY
+
+
+
+
+var CheckCircleFilled_CheckCircleFilled = function CheckCircleFilled(props, ref) {
+  return /*#__PURE__*/react.createElement(AntdIcon, _extends({}, props, {
+    ref: ref,
+    icon: asn_CheckCircleFilled
+  }));
+};
+
+/**![check-circle](data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNTAiIGhlaWdodD0iNTAiIGZpbGw9IiNjYWNhY2EiIHZpZXdCb3g9IjY0IDY0IDg5NiA4OTYiIGZvY3VzYWJsZT0iZmFsc2UiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PHBhdGggZD0iTTUxMiA2NEMyNjQuNiA2NCA2NCAyNjQuNiA2NCA1MTJzMjAwLjYgNDQ4IDQ0OCA0NDggNDQ4LTIwMC42IDQ0OC00NDhTNzU5LjQgNjQgNTEyIDY0em0xOTMuNSAzMDEuN2wtMjEwLjYgMjkyYTMxLjggMzEuOCAwIDAxLTUxLjcgMEwzMTguNSA0ODQuOWMtMy44LTUuMyAwLTEyLjcgNi41LTEyLjdoNDYuOWMxMC4yIDAgMTkuOSA0LjkgMjUuOSAxMy4zbDcxLjIgOTguOCAxNTcuMi0yMThjNi04LjMgMTUuNi0xMy4zIDI1LjktMTMuM0g2OTljNi41IDAgMTAuMyA3LjQgNi41IDEyLjd6IiAvPjwvc3ZnPg==) */
+var CheckCircleFilled_RefIcon = /*#__PURE__*/react.forwardRef(CheckCircleFilled_CheckCircleFilled);
+if (false) {}
+/* harmony default export */ const icons_CheckCircleFilled = (CheckCircleFilled_RefIcon);
+;// CONCATENATED MODULE: ./node_modules/@ant-design/icons-svg/es/asn/ExclamationCircleFilled.js
+// This icon file is generated automatically.
+var ExclamationCircleFilled = { "icon": { "tag": "svg", "attrs": { "viewBox": "64 64 896 896", "focusable": "false" }, "children": [{ "tag": "path", "attrs": { "d": "M512 64C264.6 64 64 264.6 64 512s200.6 448 448 448 448-200.6 448-448S759.4 64 512 64zm-32 232c0-4.4 3.6-8 8-8h48c4.4 0 8 3.6 8 8v272c0 4.4-3.6 8-8 8h-48c-4.4 0-8-3.6-8-8V296zm32 440a48.01 48.01 0 010-96 48.01 48.01 0 010 96z" } }] }, "name": "exclamation-circle", "theme": "filled" };
+/* harmony default export */ const asn_ExclamationCircleFilled = (ExclamationCircleFilled);
+
+;// CONCATENATED MODULE: ./node_modules/@ant-design/icons/es/icons/ExclamationCircleFilled.js
+
+// GENERATE BY ./scripts/generate.ts
+// DON NOT EDIT IT MANUALLY
+
+
+
+
+var ExclamationCircleFilled_ExclamationCircleFilled = function ExclamationCircleFilled(props, ref) {
+  return /*#__PURE__*/react.createElement(AntdIcon, _extends({}, props, {
+    ref: ref,
+    icon: asn_ExclamationCircleFilled
+  }));
+};
+
+/**![exclamation-circle](data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNTAiIGhlaWdodD0iNTAiIGZpbGw9IiNjYWNhY2EiIHZpZXdCb3g9IjY0IDY0IDg5NiA4OTYiIGZvY3VzYWJsZT0iZmFsc2UiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PHBhdGggZD0iTTUxMiA2NEMyNjQuNiA2NCA2NCAyNjQuNiA2NCA1MTJzMjAwLjYgNDQ4IDQ0OCA0NDggNDQ4LTIwMC42IDQ0OC00NDhTNzU5LjQgNjQgNTEyIDY0em0tMzIgMjMyYzAtNC40IDMuNi04IDgtOGg0OGM0LjQgMCA4IDMuNiA4IDh2MjcyYzAgNC40LTMuNiA4LTggOGgtNDhjLTQuNCAwLTgtMy42LTgtOFYyOTZ6bTMyIDQ0MGE0OC4wMSA0OC4wMSAwIDAxMC05NiA0OC4wMSA0OC4wMSAwIDAxMCA5NnoiIC8+PC9zdmc+) */
+var ExclamationCircleFilled_RefIcon = /*#__PURE__*/react.forwardRef(ExclamationCircleFilled_ExclamationCircleFilled);
+if (false) {}
+/* harmony default export */ const icons_ExclamationCircleFilled = (ExclamationCircleFilled_RefIcon);
+;// CONCATENATED MODULE: ./node_modules/antd/es/form/FormItem/StatusProvider.js
+"use client";
+
+
+
+
+
+
+
+
+
+const iconMap = {
+  success: icons_CheckCircleFilled,
+  warning: icons_ExclamationCircleFilled,
+  error: icons_CloseCircleFilled,
+  validating: icons_LoadingOutlined
+};
+function StatusProvider(_ref) {
+  let {
+    children,
+    errors,
+    warnings,
+    hasFeedback,
+    validateStatus,
+    prefixCls,
+    meta,
+    noStyle
+  } = _ref;
+  const itemPrefixCls = `${prefixCls}-item`;
+  const {
+    feedbackIcons
+  } = react.useContext(context_FormContext);
+  const mergedValidateStatus = getStatus(errors, warnings, meta, null, !!hasFeedback, validateStatus);
+  const {
+    isFormItemInput: parentIsFormItemInput,
+    status: parentStatus,
+    hasFeedback: parentHasFeedback,
+    feedbackIcon: parentFeedbackIcon
+  } = react.useContext(FormItemInputContext);
+  // ====================== Context =======================
+  const formItemStatusContext = react.useMemo(() => {
+    var _a;
+    let feedbackIcon;
+    if (hasFeedback) {
+      const customIcons = hasFeedback !== true && hasFeedback.icons || feedbackIcons;
+      const customIconNode = mergedValidateStatus && ((_a = customIcons === null || customIcons === void 0 ? void 0 : customIcons({
+        status: mergedValidateStatus,
+        errors,
+        warnings
+      })) === null || _a === void 0 ? void 0 : _a[mergedValidateStatus]);
+      const IconNode = mergedValidateStatus && iconMap[mergedValidateStatus];
+      feedbackIcon = customIconNode !== false && IconNode ? ( /*#__PURE__*/react.createElement("span", {
+        className: classnames_default()(`${itemPrefixCls}-feedback-icon`, `${itemPrefixCls}-feedback-icon-${mergedValidateStatus}`)
+      }, customIconNode || /*#__PURE__*/react.createElement(IconNode, null))) : null;
+    }
+    const context = {
+      status: mergedValidateStatus || '',
+      errors,
+      warnings,
+      hasFeedback: !!hasFeedback,
+      feedbackIcon,
+      isFormItemInput: true
+    };
+    // No style will follow parent context
+    if (noStyle) {
+      context.status = (mergedValidateStatus !== null && mergedValidateStatus !== void 0 ? mergedValidateStatus : parentStatus) || '';
+      context.isFormItemInput = parentIsFormItemInput;
+      context.hasFeedback = !!(hasFeedback !== null && hasFeedback !== void 0 ? hasFeedback : parentHasFeedback);
+      context.feedbackIcon = hasFeedback !== undefined ? context.feedbackIcon : parentFeedbackIcon;
+    }
+    return context;
+  }, [mergedValidateStatus, hasFeedback, noStyle, parentIsFormItemInput, parentStatus]);
+  // ======================= Render =======================
+  return /*#__PURE__*/react.createElement(FormItemInputContext.Provider, {
+    value: formItemStatusContext
+  }, children);
+}
+;// CONCATENATED MODULE: ./node_modules/antd/es/form/FormItem/ItemHolder.js
+"use client";
+
+var ItemHolder_rest = undefined && undefined.__rest || function (s, e) {
+  var t = {};
+  for (var p in s) if (Object.prototype.hasOwnProperty.call(s, p) && e.indexOf(p) < 0) t[p] = s[p];
+  if (s != null && typeof Object.getOwnPropertySymbols === "function") for (var i = 0, p = Object.getOwnPropertySymbols(s); i < p.length; i++) {
+    if (e.indexOf(p[i]) < 0 && Object.prototype.propertyIsEnumerable.call(s, p[i])) t[p[i]] = s[p[i]];
+  }
+  return t;
+};
+
+
+
+
+
+
+
+
+
+
+
+
+function ItemHolder(props) {
+  const {
+      prefixCls,
+      className,
+      rootClassName,
+      style,
+      help,
+      errors,
+      warnings,
+      validateStatus,
+      meta,
+      hasFeedback,
+      hidden,
+      children,
+      fieldId,
+      required,
+      isRequired,
+      onSubItemMetaChange
+    } = props,
+    restProps = ItemHolder_rest(props, ["prefixCls", "className", "rootClassName", "style", "help", "errors", "warnings", "validateStatus", "meta", "hasFeedback", "hidden", "children", "fieldId", "required", "isRequired", "onSubItemMetaChange"]);
+  const itemPrefixCls = `${prefixCls}-item`;
+  const {
+    requiredMark
+  } = react.useContext(context_FormContext);
+  // ======================== Margin ========================
+  const itemRef = react.useRef(null);
+  const debounceErrors = useDebounce(errors);
+  const debounceWarnings = useDebounce(warnings);
+  const hasHelp = help !== undefined && help !== null;
+  const hasError = !!(hasHelp || errors.length || warnings.length);
+  const isOnScreen = !!itemRef.current && isVisible(itemRef.current);
+  const [marginBottom, setMarginBottom] = react.useState(null);
+  hooks_useLayoutEffect(() => {
+    if (hasError && itemRef.current) {
+      // The element must be part of the DOMTree to use getComputedStyle
+      // https://stackoverflow.com/questions/35360711/getcomputedstyle-returns-a-cssstyledeclaration-but-all-properties-are-empty-on-a
+      const itemStyle = getComputedStyle(itemRef.current);
+      setMarginBottom(parseInt(itemStyle.marginBottom, 10));
+    }
+  }, [hasError, isOnScreen]);
+  const onErrorVisibleChanged = nextVisible => {
+    if (!nextVisible) {
+      setMarginBottom(null);
+    }
+  };
+  // ======================== Status ========================
+  const getValidateState = function () {
+    let isDebounce = arguments.length > 0 && arguments[0] !== undefined ? arguments[0] : false;
+    const _errors = isDebounce ? debounceErrors : meta.errors;
+    const _warnings = isDebounce ? debounceWarnings : meta.warnings;
+    return getStatus(_errors, _warnings, meta, '', !!hasFeedback, validateStatus);
+  };
+  const mergedValidateStatus = getValidateState();
+  // ======================== Render ========================
+  const itemClassName = classnames_default()(itemPrefixCls, className, rootClassName, {
+    [`${itemPrefixCls}-with-help`]: hasHelp || debounceErrors.length || debounceWarnings.length,
+    // Status
+    [`${itemPrefixCls}-has-feedback`]: mergedValidateStatus && hasFeedback,
+    [`${itemPrefixCls}-has-success`]: mergedValidateStatus === 'success',
+    [`${itemPrefixCls}-has-warning`]: mergedValidateStatus === 'warning',
+    [`${itemPrefixCls}-has-error`]: mergedValidateStatus === 'error',
+    [`${itemPrefixCls}-is-validating`]: mergedValidateStatus === 'validating',
+    [`${itemPrefixCls}-hidden`]: hidden
+  });
+  return /*#__PURE__*/react.createElement("div", {
+    className: itemClassName,
+    style: style,
+    ref: itemRef
+  }, /*#__PURE__*/react.createElement(row, Object.assign({
+    className: `${itemPrefixCls}-row`
+  }, omit(restProps, ['_internalItemRender', 'colon', 'dependencies', 'extra', 'fieldKey', 'getValueFromEvent', 'getValueProps', 'htmlFor', 'id',
+  // It is deprecated because `htmlFor` is its replacement.
+  'initialValue', 'isListField', 'label', 'labelAlign', 'labelCol', 'labelWrap', 'messageVariables', 'name', 'normalize', 'noStyle', 'preserve', 'requiredMark', 'rules', 'shouldUpdate', 'trigger', 'tooltip', 'validateFirst', 'validateTrigger', 'valuePropName', 'wrapperCol', 'validateDebounce'])), /*#__PURE__*/react.createElement(form_FormItemLabel, Object.assign({
+    htmlFor: fieldId
+  }, props, {
+    requiredMark: requiredMark,
+    required: required !== null && required !== void 0 ? required : isRequired,
+    prefixCls: prefixCls
+  })), /*#__PURE__*/react.createElement(form_FormItemInput, Object.assign({}, props, meta, {
+    errors: debounceErrors,
+    warnings: debounceWarnings,
+    prefixCls: prefixCls,
+    status: mergedValidateStatus,
+    help: help,
+    marginBottom: marginBottom,
+    onErrorVisibleChanged: onErrorVisibleChanged
+  }), /*#__PURE__*/react.createElement(NoStyleItemContext.Provider, {
+    value: onSubItemMetaChange
+  }, /*#__PURE__*/react.createElement(StatusProvider, {
+    prefixCls: prefixCls,
+    meta: meta,
+    errors: meta.errors,
+    warnings: meta.warnings,
+    hasFeedback: hasFeedback,
+    // Already calculated
+    validateStatus: mergedValidateStatus
+  }, children)))), !!marginBottom && ( /*#__PURE__*/react.createElement("div", {
+    className: `${itemPrefixCls}-margin-offset`,
+    style: {
+      marginBottom: -marginBottom
+    }
+  })));
+}
+;// CONCATENATED MODULE: ./node_modules/antd/es/form/FormItem/index.js
+"use client";
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+const NAME_SPLIT = '__SPLIT__';
+const ValidateStatuses = (/* unused pure expression or super */ null && (['success', 'warning', 'error', 'validating', '']));
+// https://github.com/ant-design/ant-design/issues/46417
+// `getValueProps` may modify the value props name,
+// we should check if the control is similar.
+function isSimilarControl(a, b) {
+  const keysA = Object.keys(a);
+  const keysB = Object.keys(b);
+  return keysA.length === keysB.length && keysA.every(key => {
+    const propValueA = a[key];
+    const propValueB = b[key];
+    return propValueA === propValueB || typeof propValueA === 'function' || typeof propValueB === 'function';
+  });
+}
+const MemoInput = /*#__PURE__*/react.memo(_ref => {
+  let {
+    children
+  } = _ref;
+  return children;
+}, (prev, next) => isSimilarControl(prev.control, next.control) && prev.update === next.update && prev.childProps.length === next.childProps.length && prev.childProps.every((value, index) => value === next.childProps[index]));
+function genEmptyMeta() {
+  return {
+    errors: [],
+    warnings: [],
+    touched: false,
+    validating: false,
+    name: [],
+    validated: false
+  };
+}
+function InternalFormItem(props) {
+  const {
+    name,
+    noStyle,
+    className,
+    dependencies,
+    prefixCls: customizePrefixCls,
+    shouldUpdate,
+    rules,
+    children,
+    required,
+    label,
+    messageVariables,
+    trigger = 'onChange',
+    validateTrigger,
+    hidden,
+    help
+  } = props;
+  const {
+    getPrefixCls
+  } = react.useContext(context_ConfigContext);
+  const {
+    name: formName
+  } = react.useContext(context_FormContext);
+  const mergedChildren = useChildren(children);
+  const isRenderProps = typeof mergedChildren === 'function';
+  const notifyParentMetaChange = react.useContext(NoStyleItemContext);
+  const {
+    validateTrigger: contextValidateTrigger
+  } = react.useContext(FieldContext);
+  const mergedValidateTrigger = validateTrigger !== undefined ? validateTrigger : contextValidateTrigger;
+  const hasName = !(name === undefined || name === null);
+  const prefixCls = getPrefixCls('form', customizePrefixCls);
+  // Style
+  const rootCls = hooks_useCSSVarCls(prefixCls);
+  const [wrapCSSVar, hashId, cssVarCls] = form_style(prefixCls, rootCls);
+  // ========================= Warn =========================
+  const warning = warning_devUseWarning('Form.Item');
+  if (false) {}
+  // ========================= MISC =========================
+  // Get `noStyle` required info
+  const listContext = react.useContext(es_ListContext);
+  const fieldKeyPathRef = react.useRef();
+  // ======================== Errors ========================
+  // >>>>> Collect sub field errors
+  const [subFieldErrors, setSubFieldErrors] = useFrameState({});
+  // >>>>> Current field errors
+  const [meta, setMeta] = useSafeState(() => genEmptyMeta());
+  const onMetaChange = nextMeta => {
+    // This keyInfo is not correct when field is removed
+    // Since origin keyManager no longer keep the origin key anymore
+    // Which means we need cache origin one and reuse when removed
+    const keyInfo = listContext === null || listContext === void 0 ? void 0 : listContext.getKey(nextMeta.name);
+    // Destroy will reset all the meta
+    setMeta(nextMeta.destroy ? genEmptyMeta() : nextMeta, true);
+    // Bump to parent since noStyle
+    if (noStyle && help !== false && notifyParentMetaChange) {
+      let namePath = nextMeta.name;
+      if (!nextMeta.destroy) {
+        if (keyInfo !== undefined) {
+          const [fieldKey, restPath] = keyInfo;
+          namePath = [fieldKey].concat(_toConsumableArray(restPath));
+          fieldKeyPathRef.current = namePath;
+        }
+      } else {
+        // Use origin cache data
+        namePath = fieldKeyPathRef.current || namePath;
+      }
+      notifyParentMetaChange(nextMeta, namePath);
+    }
+  };
+  // >>>>> Collect noStyle Field error to the top FormItem
+  const onSubItemMetaChange = (subMeta, uniqueKeys) => {
+    // Only `noStyle` sub item will trigger
+    setSubFieldErrors(prevSubFieldErrors => {
+      const clone = Object.assign({}, prevSubFieldErrors);
+      // name: ['user', 1] + key: [4] = ['user', 4]
+      const mergedNamePath = [].concat(_toConsumableArray(subMeta.name.slice(0, -1)), _toConsumableArray(uniqueKeys));
+      const mergedNameKey = mergedNamePath.join(NAME_SPLIT);
+      if (subMeta.destroy) {
+        // Remove
+        delete clone[mergedNameKey];
+      } else {
+        // Update
+        clone[mergedNameKey] = subMeta;
+      }
+      return clone;
+    });
+  };
+  // >>>>> Get merged errors
+  const [mergedErrors, mergedWarnings] = react.useMemo(() => {
+    const errorList = _toConsumableArray(meta.errors);
+    const warningList = _toConsumableArray(meta.warnings);
+    Object.values(subFieldErrors).forEach(subFieldError => {
+      errorList.push.apply(errorList, _toConsumableArray(subFieldError.errors || []));
+      warningList.push.apply(warningList, _toConsumableArray(subFieldError.warnings || []));
+    });
+    return [errorList, warningList];
+  }, [subFieldErrors, meta.errors, meta.warnings]);
+  // ===================== Children Ref =====================
+  const getItemRef = useItemRef();
+  // ======================== Render ========================
+  function renderLayout(baseChildren, fieldId, isRequired) {
+    if (noStyle && !hidden) {
+      return /*#__PURE__*/react.createElement(StatusProvider, {
+        prefixCls: prefixCls,
+        hasFeedback: props.hasFeedback,
+        validateStatus: props.validateStatus,
+        meta: meta,
+        errors: mergedErrors,
+        warnings: mergedWarnings,
+        noStyle: true
+      }, baseChildren);
+    }
+    return /*#__PURE__*/react.createElement(ItemHolder, Object.assign({
+      key: "row"
+    }, props, {
+      className: classnames_default()(className, cssVarCls, rootCls, hashId),
+      prefixCls: prefixCls,
+      fieldId: fieldId,
+      isRequired: isRequired,
+      errors: mergedErrors,
+      warnings: mergedWarnings,
+      meta: meta,
+      onSubItemMetaChange: onSubItemMetaChange
+    }), baseChildren);
+  }
+  if (!hasName && !isRenderProps && !dependencies) {
+    return wrapCSSVar(renderLayout(mergedChildren));
+  }
+  let variables = {};
+  if (typeof label === 'string') {
+    variables.label = label;
+  } else if (name) {
+    variables.label = String(name);
+  }
+  if (messageVariables) {
+    variables = Object.assign(Object.assign({}, variables), messageVariables);
+  }
+  // >>>>> With Field
+  return wrapCSSVar( /*#__PURE__*/react.createElement(es_Field, Object.assign({}, props, {
+    messageVariables: variables,
+    trigger: trigger,
+    validateTrigger: mergedValidateTrigger,
+    onMetaChange: onMetaChange
+  }), (control, renderMeta, context) => {
+    const mergedName = util_toArray(name).length && renderMeta ? renderMeta.name : [];
+    const fieldId = getFieldId(mergedName, formName);
+    const isRequired = required !== undefined ? required : !!(rules && rules.some(rule => {
+      if (rule && typeof rule === 'object' && rule.required && !rule.warningOnly) {
+        return true;
+      }
+      if (typeof rule === 'function') {
+        const ruleEntity = rule(context);
+        return ruleEntity && ruleEntity.required && !ruleEntity.warningOnly;
+      }
+      return false;
+    }));
+    // ======================= Children =======================
+    const mergedControl = Object.assign({}, control);
+    let childNode = null;
+     false ? 0 : void 0;
+    if (Array.isArray(mergedChildren) && hasName) {
+       false ? 0 : void 0;
+      childNode = mergedChildren;
+    } else if (isRenderProps && (!(shouldUpdate || dependencies) || hasName)) {
+       false ? 0 : void 0;
+       false ? 0 : void 0;
+    } else if (dependencies && !isRenderProps && !hasName) {
+       false ? 0 : void 0;
+    } else if ( /*#__PURE__*/react.isValidElement(mergedChildren)) {
+       false ? 0 : void 0;
+      const childProps = Object.assign(Object.assign({}, mergedChildren.props), mergedControl);
+      if (!childProps.id) {
+        childProps.id = fieldId;
+      }
+      if (help || mergedErrors.length > 0 || mergedWarnings.length > 0 || props.extra) {
+        const describedbyArr = [];
+        if (help || mergedErrors.length > 0) {
+          describedbyArr.push(`${fieldId}_help`);
+        }
+        if (props.extra) {
+          describedbyArr.push(`${fieldId}_extra`);
+        }
+        childProps['aria-describedby'] = describedbyArr.join(' ');
+      }
+      if (mergedErrors.length > 0) {
+        childProps['aria-invalid'] = 'true';
+      }
+      if (isRequired) {
+        childProps['aria-required'] = 'true';
+      }
+      if (supportRef(mergedChildren)) {
+        childProps.ref = getItemRef(mergedName, mergedChildren);
+      }
+      // We should keep user origin event handler
+      const triggers = new Set([].concat(_toConsumableArray(util_toArray(trigger)), _toConsumableArray(util_toArray(mergedValidateTrigger))));
+      triggers.forEach(eventName => {
+        childProps[eventName] = function () {
+          var _a2, _c2;
+          var _a, _b, _c;
+          for (var _len = arguments.length, args = new Array(_len), _key = 0; _key < _len; _key++) {
+            args[_key] = arguments[_key];
+          }
+          (_a = mergedControl[eventName]) === null || _a === void 0 ? void 0 : (_a2 = _a).call.apply(_a2, [mergedControl].concat(args));
+          (_c = (_b = mergedChildren.props)[eventName]) === null || _c === void 0 ? void 0 : (_c2 = _c).call.apply(_c2, [_b].concat(args));
+        };
+      });
+      // List of props that need to be watched for changes -> if changes are detected in MemoInput -> rerender
+      const watchingChildProps = [childProps['aria-required'], childProps['aria-invalid'], childProps['aria-describedby']];
+      childNode = /*#__PURE__*/react.createElement(MemoInput, {
+        control: mergedControl,
+        update: mergedChildren,
+        childProps: watchingChildProps
+      }, cloneElement(mergedChildren, childProps));
+    } else if (isRenderProps && (shouldUpdate || dependencies) && !hasName) {
+      childNode = mergedChildren(context);
+    } else {
+       false ? 0 : void 0;
+      childNode = mergedChildren;
+    }
+    return renderLayout(childNode, fieldId, isRequired);
+  }));
+}
+const FormItem = InternalFormItem;
+FormItem.useStatus = hooks_useFormItemStatus;
+/* harmony default export */ const form_FormItem = (FormItem);
+;// CONCATENATED MODULE: ./node_modules/antd/es/form/FormList.js
+"use client";
+
+var FormList_rest = undefined && undefined.__rest || function (s, e) {
+  var t = {};
+  for (var p in s) if (Object.prototype.hasOwnProperty.call(s, p) && e.indexOf(p) < 0) t[p] = s[p];
+  if (s != null && typeof Object.getOwnPropertySymbols === "function") for (var i = 0, p = Object.getOwnPropertySymbols(s); i < p.length; i++) {
+    if (e.indexOf(p[i]) < 0 && Object.prototype.propertyIsEnumerable.call(s, p[i])) t[p[i]] = s[p[i]];
+  }
+  return t;
+};
+
+
+
+
+
+const FormList = _a => {
+  var {
+      prefixCls: customizePrefixCls,
+      children
+    } = _a,
+    props = FormList_rest(_a, ["prefixCls", "children"]);
+  if (false) {}
+  const {
+    getPrefixCls
+  } = react.useContext(context_ConfigContext);
+  const prefixCls = getPrefixCls('form', customizePrefixCls);
+  const contextValue = react.useMemo(() => ({
+    prefixCls,
+    status: 'error'
+  }), [prefixCls]);
+  return /*#__PURE__*/react.createElement(es_List, Object.assign({}, props), (fields, operation, meta) => ( /*#__PURE__*/react.createElement(FormItemPrefixContext.Provider, {
+    value: contextValue
+  }, children(fields.map(field => Object.assign(Object.assign({}, field), {
+    fieldKey: field.key
+  })), operation, {
+    errors: meta.errors,
+    warnings: meta.warnings
+  }))));
+};
+/* harmony default export */ const form_FormList = (FormList);
+;// CONCATENATED MODULE: ./node_modules/antd/es/form/hooks/useFormInstance.js
+
+
+function useFormInstance() {
+  const {
+    form
+  } = (0,react.useContext)(context_FormContext);
+  return form;
+}
+;// CONCATENATED MODULE: ./node_modules/antd/es/form/index.js
+"use client";
+
+
+
+
+
+
+
+
+const es_form_Form = form_Form;
+es_form_Form.Item = form_FormItem;
+es_form_Form.List = form_FormList;
+es_form_Form.ErrorList = form_ErrorList;
+es_form_Form.useForm = useForm_useForm;
+es_form_Form.useFormInstance = useFormInstance;
+es_form_Form.useWatch = es_useWatch;
+es_form_Form.Provider = context_FormProvider;
+es_form_Form.create = () => {
+   false ? 0 : void 0;
+};
+/* harmony default export */ const es_form = (es_form_Form);
+;// CONCATENATED MODULE: ./node_modules/antd/es/_util/gapSize.js
+function isPresetSize(size) {
+  return ['small', 'middle', 'large'].includes(size);
+}
+function isValidGapNumber(size) {
+  if (!size) {
+    // The case of size = 0 is deliberately excluded here, because the default value of the gap attribute in CSS is 0, so if the user passes 0 in, we can directly ignore it.
+    return false;
+  }
+  return typeof size === 'number' && !Number.isNaN(size);
+}
+;// CONCATENATED MODULE: ./node_modules/antd/es/flex/utils.js
+
+const flexWrapValues = ['wrap', 'nowrap', 'wrap-reverse'];
+const justifyContentValues = ['flex-start', 'flex-end', 'start', 'end', 'center', 'space-between', 'space-around', 'space-evenly', 'stretch', 'normal', 'left', 'right'];
+const alignItemsValues = ['center', 'start', 'end', 'flex-start', 'flex-end', 'self-start', 'self-end', 'baseline', 'normal', 'stretch'];
+const genClsWrap = (prefixCls, props) => {
+  const wrapCls = {};
+  flexWrapValues.forEach(cssKey => {
+    wrapCls[`${prefixCls}-wrap-${cssKey}`] = props.wrap === cssKey;
+  });
+  return wrapCls;
+};
+const genClsAlign = (prefixCls, props) => {
+  const alignCls = {};
+  alignItemsValues.forEach(cssKey => {
+    alignCls[`${prefixCls}-align-${cssKey}`] = props.align === cssKey;
+  });
+  alignCls[`${prefixCls}-align-stretch`] = !props.align && !!props.vertical;
+  return alignCls;
+};
+const genClsJustify = (prefixCls, props) => {
+  const justifyCls = {};
+  justifyContentValues.forEach(cssKey => {
+    justifyCls[`${prefixCls}-justify-${cssKey}`] = props.justify === cssKey;
+  });
+  return justifyCls;
+};
+function createFlexClassNames(prefixCls, props) {
+  return classnames_default()(Object.assign(Object.assign(Object.assign({}, genClsWrap(prefixCls, props)), genClsAlign(prefixCls, props)), genClsJustify(prefixCls, props)));
+}
+/* harmony default export */ const utils = (createFlexClassNames);
+;// CONCATENATED MODULE: ./node_modules/antd/es/flex/style/index.js
+
+
+const genFlexStyle = token => {
+  const {
+    componentCls
+  } = token;
+  return {
+    [componentCls]: {
+      display: 'flex',
+      '&-vertical': {
+        flexDirection: 'column'
+      },
+      '&-rtl': {
+        direction: 'rtl'
+      },
+      '&:empty': {
+        display: 'none'
+      }
+    }
+  };
+};
+const genFlexGapStyle = token => {
+  const {
+    componentCls
+  } = token;
+  return {
+    [componentCls]: {
+      '&-gap-small': {
+        gap: token.flexGapSM
+      },
+      '&-gap-middle': {
+        gap: token.flexGap
+      },
+      '&-gap-large': {
+        gap: token.flexGapLG
+      }
+    }
+  };
+};
+const genFlexWrapStyle = token => {
+  const {
+    componentCls
+  } = token;
+  const wrapStyle = {};
+  flexWrapValues.forEach(value => {
+    wrapStyle[`${componentCls}-wrap-${value}`] = {
+      flexWrap: value
+    };
+  });
+  return wrapStyle;
+};
+const genAlignItemsStyle = token => {
+  const {
+    componentCls
+  } = token;
+  const alignStyle = {};
+  alignItemsValues.forEach(value => {
+    alignStyle[`${componentCls}-align-${value}`] = {
+      alignItems: value
+    };
+  });
+  return alignStyle;
+};
+const genJustifyContentStyle = token => {
+  const {
+    componentCls
+  } = token;
+  const justifyStyle = {};
+  justifyContentValues.forEach(value => {
+    justifyStyle[`${componentCls}-justify-${value}`] = {
+      justifyContent: value
+    };
+  });
+  return justifyStyle;
+};
+const flex_style_prepareComponentToken = () => ({});
+/* harmony default export */ const flex_style = (genStyleHooks('Flex', token => {
+  const {
+    paddingXS,
+    padding,
+    paddingLG
+  } = token;
+  const flexToken = statistic_merge(token, {
+    flexGapSM: paddingXS,
+    flexGap: padding,
+    flexGapLG: paddingLG
+  });
+  return [genFlexStyle(flexToken), genFlexGapStyle(flexToken), genFlexWrapStyle(flexToken), genAlignItemsStyle(flexToken), genJustifyContentStyle(flexToken)];
+}, flex_style_prepareComponentToken, {
+  // Flex component don't apply extra font style
+  // https://github.com/ant-design/ant-design/issues/46403
+  resetStyle: false
+}));
+;// CONCATENATED MODULE: ./node_modules/antd/es/flex/index.js
+"use client";
+
+var flex_rest = undefined && undefined.__rest || function (s, e) {
+  var t = {};
+  for (var p in s) if (Object.prototype.hasOwnProperty.call(s, p) && e.indexOf(p) < 0) t[p] = s[p];
+  if (s != null && typeof Object.getOwnPropertySymbols === "function") for (var i = 0, p = Object.getOwnPropertySymbols(s); i < p.length; i++) {
+    if (e.indexOf(p[i]) < 0 && Object.prototype.propertyIsEnumerable.call(s, p[i])) t[p[i]] = s[p[i]];
+  }
+  return t;
+};
+
+
+
+
+
+
+
+const Flex = /*#__PURE__*/react.forwardRef((props, ref) => {
+  const {
+      prefixCls: customizePrefixCls,
+      rootClassName,
+      className,
+      style,
+      flex,
+      gap,
+      children,
+      vertical = false,
+      component: Component = 'div'
+    } = props,
+    othersProps = flex_rest(props, ["prefixCls", "rootClassName", "className", "style", "flex", "gap", "children", "vertical", "component"]);
+  const {
+    flex: ctxFlex,
+    direction: ctxDirection,
+    getPrefixCls
+  } = react.useContext(context_ConfigContext);
+  const prefixCls = getPrefixCls('flex', customizePrefixCls);
+  const [wrapCSSVar, hashId, cssVarCls] = flex_style(prefixCls);
+  const mergedVertical = vertical !== null && vertical !== void 0 ? vertical : ctxFlex === null || ctxFlex === void 0 ? void 0 : ctxFlex.vertical;
+  const mergedCls = classnames_default()(className, rootClassName, ctxFlex === null || ctxFlex === void 0 ? void 0 : ctxFlex.className, prefixCls, hashId, cssVarCls, utils(prefixCls, props), {
+    [`${prefixCls}-rtl`]: ctxDirection === 'rtl',
+    [`${prefixCls}-gap-${gap}`]: isPresetSize(gap),
+    [`${prefixCls}-vertical`]: mergedVertical
+  });
+  const mergedStyle = Object.assign(Object.assign({}, ctxFlex === null || ctxFlex === void 0 ? void 0 : ctxFlex.style), style);
+  if (flex) {
+    mergedStyle.flex = flex;
+  }
+  if (gap && !isPresetSize(gap)) {
+    mergedStyle.gap = gap;
+  }
+  return wrapCSSVar( /*#__PURE__*/react.createElement(Component, Object.assign({
+    ref: ref,
+    className: mergedCls,
+    style: mergedStyle
+  }, omit(othersProps, ['justify', 'wrap', 'align'])), children));
+});
+if (false) {}
+/* harmony default export */ const flex = (Flex);
+;// CONCATENATED MODULE: ./node_modules/antd/es/skeleton/Element.js
+"use client";
+
+
+
+const Element_Element = props => {
+  const {
+    prefixCls,
+    className,
+    style,
+    size,
+    shape
+  } = props;
+  const sizeCls = classnames_default()({
+    [`${prefixCls}-lg`]: size === 'large',
+    [`${prefixCls}-sm`]: size === 'small'
+  });
+  const shapeCls = classnames_default()({
+    [`${prefixCls}-circle`]: shape === 'circle',
+    [`${prefixCls}-square`]: shape === 'square',
+    [`${prefixCls}-round`]: shape === 'round'
+  });
+  const sizeStyle = react.useMemo(() => typeof size === 'number' ? {
+    width: size,
+    height: size,
+    lineHeight: `${size}px`
+  } : {}, [size]);
+  return /*#__PURE__*/react.createElement("span", {
+    className: classnames_default()(prefixCls, sizeCls, shapeCls, className),
+    style: Object.assign(Object.assign({}, sizeStyle), style)
+  });
+};
+/* harmony default export */ const skeleton_Element = (Element_Element);
+;// CONCATENATED MODULE: ./node_modules/antd/es/skeleton/style/index.js
+
+
+const skeletonClsLoading = new Keyframes(`ant-skeleton-loading`, {
+  '0%': {
+    backgroundPosition: '100% 50%'
+  },
+  '100%': {
+    backgroundPosition: '0 50%'
+  }
+});
+const genSkeletonElementCommonSize = size => ({
+  height: size,
+  lineHeight: unit(size)
+});
+const genSkeletonElementAvatarSize = size => Object.assign({
+  width: size
+}, genSkeletonElementCommonSize(size));
+const genSkeletonColor = token => ({
+  background: token.skeletonLoadingBackground,
+  backgroundSize: '400% 100%',
+  animationName: skeletonClsLoading,
+  animationDuration: token.skeletonLoadingMotionDuration,
+  animationTimingFunction: 'ease',
+  animationIterationCount: 'infinite'
+});
+const genSkeletonElementInputSize = (size, calc) => Object.assign({
+  width: calc(size).mul(5).equal(),
+  minWidth: calc(size).mul(5).equal()
+}, genSkeletonElementCommonSize(size));
+const genSkeletonElementAvatar = token => {
+  const {
+    skeletonAvatarCls,
+    gradientFromColor,
+    controlHeight,
+    controlHeightLG,
+    controlHeightSM
+  } = token;
+  return {
+    [`${skeletonAvatarCls}`]: Object.assign({
+      display: 'inline-block',
+      verticalAlign: 'top',
+      background: gradientFromColor
+    }, genSkeletonElementAvatarSize(controlHeight)),
+    [`${skeletonAvatarCls}${skeletonAvatarCls}-circle`]: {
+      borderRadius: '50%'
+    },
+    [`${skeletonAvatarCls}${skeletonAvatarCls}-lg`]: Object.assign({}, genSkeletonElementAvatarSize(controlHeightLG)),
+    [`${skeletonAvatarCls}${skeletonAvatarCls}-sm`]: Object.assign({}, genSkeletonElementAvatarSize(controlHeightSM))
+  };
+};
+const genSkeletonElementInput = token => {
+  const {
+    controlHeight,
+    borderRadiusSM,
+    skeletonInputCls,
+    controlHeightLG,
+    controlHeightSM,
+    gradientFromColor,
+    calc
+  } = token;
+  return {
+    [`${skeletonInputCls}`]: Object.assign({
+      display: 'inline-block',
+      verticalAlign: 'top',
+      background: gradientFromColor,
+      borderRadius: borderRadiusSM
+    }, genSkeletonElementInputSize(controlHeight, calc)),
+    [`${skeletonInputCls}-lg`]: Object.assign({}, genSkeletonElementInputSize(controlHeightLG, calc)),
+    [`${skeletonInputCls}-sm`]: Object.assign({}, genSkeletonElementInputSize(controlHeightSM, calc))
+  };
+};
+const genSkeletonElementImageSize = size => Object.assign({
+  width: size
+}, genSkeletonElementCommonSize(size));
+const genSkeletonElementImage = token => {
+  const {
+    skeletonImageCls,
+    imageSizeBase,
+    gradientFromColor,
+    borderRadiusSM,
+    calc
+  } = token;
+  return {
+    [`${skeletonImageCls}`]: Object.assign(Object.assign({
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      verticalAlign: 'top',
+      background: gradientFromColor,
+      borderRadius: borderRadiusSM
+    }, genSkeletonElementImageSize(calc(imageSizeBase).mul(2).equal())), {
+      [`${skeletonImageCls}-path`]: {
+        fill: '#bfbfbf'
+      },
+      [`${skeletonImageCls}-svg`]: Object.assign(Object.assign({}, genSkeletonElementImageSize(imageSizeBase)), {
+        maxWidth: calc(imageSizeBase).mul(4).equal(),
+        maxHeight: calc(imageSizeBase).mul(4).equal()
+      }),
+      [`${skeletonImageCls}-svg${skeletonImageCls}-svg-circle`]: {
+        borderRadius: '50%'
+      }
+    }),
+    [`${skeletonImageCls}${skeletonImageCls}-circle`]: {
+      borderRadius: '50%'
+    }
+  };
+};
+const genSkeletonElementButtonShape = (token, size, buttonCls) => {
+  const {
+    skeletonButtonCls
+  } = token;
+  return {
+    [`${buttonCls}${skeletonButtonCls}-circle`]: {
+      width: size,
+      minWidth: size,
+      borderRadius: '50%'
+    },
+    [`${buttonCls}${skeletonButtonCls}-round`]: {
+      borderRadius: size
+    }
+  };
+};
+const genSkeletonElementButtonSize = (size, calc) => Object.assign({
+  width: calc(size).mul(2).equal(),
+  minWidth: calc(size).mul(2).equal()
+}, genSkeletonElementCommonSize(size));
+const genSkeletonElementButton = token => {
+  const {
+    borderRadiusSM,
+    skeletonButtonCls,
+    controlHeight,
+    controlHeightLG,
+    controlHeightSM,
+    gradientFromColor,
+    calc
+  } = token;
+  return Object.assign(Object.assign(Object.assign(Object.assign(Object.assign({
+    [`${skeletonButtonCls}`]: Object.assign({
+      display: 'inline-block',
+      verticalAlign: 'top',
+      background: gradientFromColor,
+      borderRadius: borderRadiusSM,
+      width: calc(controlHeight).mul(2).equal(),
+      minWidth: calc(controlHeight).mul(2).equal()
+    }, genSkeletonElementButtonSize(controlHeight, calc))
+  }, genSkeletonElementButtonShape(token, controlHeight, skeletonButtonCls)), {
+    [`${skeletonButtonCls}-lg`]: Object.assign({}, genSkeletonElementButtonSize(controlHeightLG, calc))
+  }), genSkeletonElementButtonShape(token, controlHeightLG, `${skeletonButtonCls}-lg`)), {
+    [`${skeletonButtonCls}-sm`]: Object.assign({}, genSkeletonElementButtonSize(controlHeightSM, calc))
+  }), genSkeletonElementButtonShape(token, controlHeightSM, `${skeletonButtonCls}-sm`));
+};
+// =============================== Base ===============================
+const genBaseStyle = token => {
+  const {
+    componentCls,
+    skeletonAvatarCls,
+    skeletonTitleCls,
+    skeletonParagraphCls,
+    skeletonButtonCls,
+    skeletonInputCls,
+    skeletonImageCls,
+    controlHeight,
+    controlHeightLG,
+    controlHeightSM,
+    gradientFromColor,
+    padding,
+    marginSM,
+    borderRadius,
+    titleHeight,
+    blockRadius,
+    paragraphLiHeight,
+    controlHeightXS,
+    paragraphMarginTop
+  } = token;
+  return {
+    [`${componentCls}`]: {
+      display: 'table',
+      width: '100%',
+      [`${componentCls}-header`]: {
+        display: 'table-cell',
+        paddingInlineEnd: padding,
+        verticalAlign: 'top',
+        // Avatar
+        [`${skeletonAvatarCls}`]: Object.assign({
+          display: 'inline-block',
+          verticalAlign: 'top',
+          background: gradientFromColor
+        }, genSkeletonElementAvatarSize(controlHeight)),
+        [`${skeletonAvatarCls}-circle`]: {
+          borderRadius: '50%'
+        },
+        [`${skeletonAvatarCls}-lg`]: Object.assign({}, genSkeletonElementAvatarSize(controlHeightLG)),
+        [`${skeletonAvatarCls}-sm`]: Object.assign({}, genSkeletonElementAvatarSize(controlHeightSM))
+      },
+      [`${componentCls}-content`]: {
+        display: 'table-cell',
+        width: '100%',
+        verticalAlign: 'top',
+        // Title
+        [`${skeletonTitleCls}`]: {
+          width: '100%',
+          height: titleHeight,
+          background: gradientFromColor,
+          borderRadius: blockRadius,
+          [`+ ${skeletonParagraphCls}`]: {
+            marginBlockStart: controlHeightSM
+          }
+        },
+        // paragraph
+        [`${skeletonParagraphCls}`]: {
+          padding: 0,
+          '> li': {
+            width: '100%',
+            height: paragraphLiHeight,
+            listStyle: 'none',
+            background: gradientFromColor,
+            borderRadius: blockRadius,
+            '+ li': {
+              marginBlockStart: controlHeightXS
+            }
+          }
+        },
+        [`${skeletonParagraphCls}> li:last-child:not(:first-child):not(:nth-child(2))`]: {
+          width: '61%'
+        }
+      },
+      [`&-round ${componentCls}-content`]: {
+        [`${skeletonTitleCls}, ${skeletonParagraphCls} > li`]: {
+          borderRadius
+        }
+      }
+    },
+    [`${componentCls}-with-avatar ${componentCls}-content`]: {
+      // Title
+      [`${skeletonTitleCls}`]: {
+        marginBlockStart: marginSM,
+        [`+ ${skeletonParagraphCls}`]: {
+          marginBlockStart: paragraphMarginTop
+        }
+      }
+    },
+    // Skeleton element
+    [`${componentCls}${componentCls}-element`]: Object.assign(Object.assign(Object.assign(Object.assign({
+      display: 'inline-block',
+      width: 'auto'
+    }, genSkeletonElementButton(token)), genSkeletonElementAvatar(token)), genSkeletonElementInput(token)), genSkeletonElementImage(token)),
+    // Skeleton Block Button, Input
+    [`${componentCls}${componentCls}-block`]: {
+      width: '100%',
+      [`${skeletonButtonCls}`]: {
+        width: '100%'
+      },
+      [`${skeletonInputCls}`]: {
+        width: '100%'
+      }
+    },
+    // With active animation
+    [`${componentCls}${componentCls}-active`]: {
+      [`
+        ${skeletonTitleCls},
+        ${skeletonParagraphCls} > li,
+        ${skeletonAvatarCls},
+        ${skeletonButtonCls},
+        ${skeletonInputCls},
+        ${skeletonImageCls}
+      `]: Object.assign({}, genSkeletonColor(token))
+    }
+  };
+};
+// ============================== Export ==============================
+const skeleton_style_prepareComponentToken = token => {
+  const {
+    colorFillContent,
+    colorFill
+  } = token;
+  const gradientFromColor = colorFillContent;
+  const gradientToColor = colorFill;
+  return {
+    color: gradientFromColor,
+    colorGradientEnd: gradientToColor,
+    gradientFromColor,
+    gradientToColor,
+    titleHeight: token.controlHeight / 2,
+    blockRadius: token.borderRadiusSM,
+    paragraphMarginTop: token.marginLG + token.marginXXS,
+    paragraphLiHeight: token.controlHeight / 2
+  };
+};
+/* harmony default export */ const skeleton_style = (genStyleHooks('Skeleton', token => {
+  const {
+    componentCls,
+    calc
+  } = token;
+  const skeletonToken = statistic_merge(token, {
+    skeletonAvatarCls: `${componentCls}-avatar`,
+    skeletonTitleCls: `${componentCls}-title`,
+    skeletonParagraphCls: `${componentCls}-paragraph`,
+    skeletonButtonCls: `${componentCls}-button`,
+    skeletonInputCls: `${componentCls}-input`,
+    skeletonImageCls: `${componentCls}-image`,
+    imageSizeBase: calc(token.controlHeight).mul(1.5).equal(),
+    borderRadius: 100,
+    // Large number to make capsule shape
+    skeletonLoadingBackground: `linear-gradient(90deg, ${token.gradientFromColor} 25%, ${token.gradientToColor} 37%, ${token.gradientFromColor} 63%)`,
+    skeletonLoadingMotionDuration: '1.4s'
+  });
+  return [genBaseStyle(skeletonToken)];
+}, skeleton_style_prepareComponentToken, {
+  deprecatedTokens: [['color', 'gradientFromColor'], ['colorGradientEnd', 'gradientToColor']]
+}));
+;// CONCATENATED MODULE: ./node_modules/antd/es/skeleton/Avatar.js
+"use client";
+
+
+
+
+
+
+
+const SkeletonAvatar = props => {
+  const {
+    prefixCls: customizePrefixCls,
+    className,
+    rootClassName,
+    active,
+    shape = 'circle',
+    size = 'default'
+  } = props;
+  const {
+    getPrefixCls
+  } = react.useContext(context_ConfigContext);
+  const prefixCls = getPrefixCls('skeleton', customizePrefixCls);
+  const [wrapCSSVar, hashId, cssVarCls] = skeleton_style(prefixCls);
+  const otherProps = omit(props, ['prefixCls', 'className']);
+  const cls = classnames_default()(prefixCls, `${prefixCls}-element`, {
+    [`${prefixCls}-active`]: active
+  }, className, rootClassName, hashId, cssVarCls);
+  return wrapCSSVar( /*#__PURE__*/react.createElement("div", {
+    className: cls
+  }, /*#__PURE__*/react.createElement(skeleton_Element, Object.assign({
+    prefixCls: `${prefixCls}-avatar`,
+    shape: shape,
+    size: size
+  }, otherProps))));
+};
+/* harmony default export */ const Avatar = (SkeletonAvatar);
+;// CONCATENATED MODULE: ./node_modules/antd/es/skeleton/Button.js
+"use client";
+
+
+
+
+
+
+
+const SkeletonButton = props => {
+  const {
+    prefixCls: customizePrefixCls,
+    className,
+    rootClassName,
+    active,
+    block = false,
+    size = 'default'
+  } = props;
+  const {
+    getPrefixCls
+  } = react.useContext(context_ConfigContext);
+  const prefixCls = getPrefixCls('skeleton', customizePrefixCls);
+  const [wrapCSSVar, hashId, cssVarCls] = skeleton_style(prefixCls);
+  const otherProps = omit(props, ['prefixCls']);
+  const cls = classnames_default()(prefixCls, `${prefixCls}-element`, {
+    [`${prefixCls}-active`]: active,
+    [`${prefixCls}-block`]: block
+  }, className, rootClassName, hashId, cssVarCls);
+  return wrapCSSVar( /*#__PURE__*/react.createElement("div", {
+    className: cls
+  }, /*#__PURE__*/react.createElement(skeleton_Element, Object.assign({
+    prefixCls: `${prefixCls}-button`,
+    size: size
+  }, otherProps))));
+};
+/* harmony default export */ const skeleton_Button = (SkeletonButton);
+;// CONCATENATED MODULE: ./node_modules/antd/es/skeleton/Image.js
+"use client";
+
+
+
+
+
+const path = 'M365.714286 329.142857q0 45.714286-32.036571 77.677714t-77.677714 32.036571-77.677714-32.036571-32.036571-77.677714 32.036571-77.677714 77.677714-32.036571 77.677714 32.036571 32.036571 77.677714zM950.857143 548.571429l0 256-804.571429 0 0-109.714286 182.857143-182.857143 91.428571 91.428571 292.571429-292.571429zM1005.714286 146.285714l-914.285714 0q-7.460571 0-12.873143 5.412571t-5.412571 12.873143l0 694.857143q0 7.460571 5.412571 12.873143t12.873143 5.412571l914.285714 0q7.460571 0 12.873143-5.412571t5.412571-12.873143l0-694.857143q0-7.460571-5.412571-12.873143t-12.873143-5.412571zM1097.142857 164.571429l0 694.857143q0 37.741714-26.843429 64.585143t-64.585143 26.843429l-914.285714 0q-37.741714 0-64.585143-26.843429t-26.843429-64.585143l0-694.857143q0-37.741714 26.843429-64.585143t64.585143-26.843429l914.285714 0q37.741714 0 64.585143 26.843429t26.843429 64.585143z';
+const SkeletonImage = props => {
+  const {
+    prefixCls: customizePrefixCls,
+    className,
+    rootClassName,
+    style,
+    active
+  } = props;
+  const {
+    getPrefixCls
+  } = react.useContext(context_ConfigContext);
+  const prefixCls = getPrefixCls('skeleton', customizePrefixCls);
+  const [wrapCSSVar, hashId, cssVarCls] = skeleton_style(prefixCls);
+  const cls = classnames_default()(prefixCls, `${prefixCls}-element`, {
+    [`${prefixCls}-active`]: active
+  }, className, rootClassName, hashId, cssVarCls);
+  return wrapCSSVar( /*#__PURE__*/react.createElement("div", {
+    className: cls
+  }, /*#__PURE__*/react.createElement("div", {
+    className: classnames_default()(`${prefixCls}-image`, className),
+    style: style
+  }, /*#__PURE__*/react.createElement("svg", {
+    viewBox: "0 0 1098 1024",
+    xmlns: "http://www.w3.org/2000/svg",
+    className: `${prefixCls}-image-svg`
+  }, /*#__PURE__*/react.createElement("path", {
+    d: path,
+    className: `${prefixCls}-image-path`
   })))));
+};
+/* harmony default export */ const Image = (SkeletonImage);
+;// CONCATENATED MODULE: ./node_modules/antd/es/skeleton/Input.js
+"use client";
+
+
+
+
+
+
+
+const SkeletonInput = props => {
+  const {
+    prefixCls: customizePrefixCls,
+    className,
+    rootClassName,
+    active,
+    block,
+    size = 'default'
+  } = props;
+  const {
+    getPrefixCls
+  } = react.useContext(context_ConfigContext);
+  const prefixCls = getPrefixCls('skeleton', customizePrefixCls);
+  const [wrapCSSVar, hashId, cssVarCls] = skeleton_style(prefixCls);
+  const otherProps = omit(props, ['prefixCls']);
+  const cls = classnames_default()(prefixCls, `${prefixCls}-element`, {
+    [`${prefixCls}-active`]: active,
+    [`${prefixCls}-block`]: block
+  }, className, rootClassName, hashId, cssVarCls);
+  return wrapCSSVar( /*#__PURE__*/react.createElement("div", {
+    className: cls
+  }, /*#__PURE__*/react.createElement(skeleton_Element, Object.assign({
+    prefixCls: `${prefixCls}-input`,
+    size: size
+  }, otherProps))));
+};
+/* harmony default export */ const skeleton_Input = (SkeletonInput);
+;// CONCATENATED MODULE: ./node_modules/@ant-design/icons-svg/es/asn/DotChartOutlined.js
+// This icon file is generated automatically.
+var DotChartOutlined = { "icon": { "tag": "svg", "attrs": { "viewBox": "64 64 896 896", "focusable": "false" }, "children": [{ "tag": "path", "attrs": { "d": "M888 792H200V168c0-4.4-3.6-8-8-8h-56c-4.4 0-8 3.6-8 8v688c0 4.4 3.6 8 8 8h752c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8zM288 604a64 64 0 10128 0 64 64 0 10-128 0zm118-224a48 48 0 1096 0 48 48 0 10-96 0zm158 228a96 96 0 10192 0 96 96 0 10-192 0zm148-314a56 56 0 10112 0 56 56 0 10-112 0z" } }] }, "name": "dot-chart", "theme": "outlined" };
+/* harmony default export */ const asn_DotChartOutlined = (DotChartOutlined);
+
+;// CONCATENATED MODULE: ./node_modules/@ant-design/icons/es/icons/DotChartOutlined.js
+
+// GENERATE BY ./scripts/generate.ts
+// DON NOT EDIT IT MANUALLY
+
+
+
+
+var DotChartOutlined_DotChartOutlined = function DotChartOutlined(props, ref) {
+  return /*#__PURE__*/react.createElement(AntdIcon, _extends({}, props, {
+    ref: ref,
+    icon: asn_DotChartOutlined
+  }));
+};
+
+/**![dot-chart](data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNTAiIGhlaWdodD0iNTAiIGZpbGw9IiNjYWNhY2EiIHZpZXdCb3g9IjY0IDY0IDg5NiA4OTYiIGZvY3VzYWJsZT0iZmFsc2UiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PHBhdGggZD0iTTg4OCA3OTJIMjAwVjE2OGMwLTQuNC0zLjYtOC04LThoLTU2Yy00LjQgMC04IDMuNi04IDh2Njg4YzAgNC40IDMuNiA4IDggOGg3NTJjNC40IDAgOC0zLjYgOC04di01NmMwLTQuNC0zLjYtOC04LTh6TTI4OCA2MDRhNjQgNjQgMCAxMDEyOCAwIDY0IDY0IDAgMTAtMTI4IDB6bTExOC0yMjRhNDggNDggMCAxMDk2IDAgNDggNDggMCAxMC05NiAwem0xNTggMjI4YTk2IDk2IDAgMTAxOTIgMCA5NiA5NiAwIDEwLTE5MiAwem0xNDgtMzE0YTU2IDU2IDAgMTAxMTIgMCA1NiA1NiAwIDEwLTExMiAweiIgLz48L3N2Zz4=) */
+var DotChartOutlined_RefIcon = /*#__PURE__*/react.forwardRef(DotChartOutlined_DotChartOutlined);
+if (false) {}
+/* harmony default export */ const icons_DotChartOutlined = (DotChartOutlined_RefIcon);
+;// CONCATENATED MODULE: ./node_modules/antd/es/skeleton/Node.js
+"use client";
+
+
+
+
+
+
+const SkeletonNode = props => {
+  const {
+    prefixCls: customizePrefixCls,
+    className,
+    rootClassName,
+    style,
+    active,
+    children
+  } = props;
+  const {
+    getPrefixCls
+  } = react.useContext(context_ConfigContext);
+  const prefixCls = getPrefixCls('skeleton', customizePrefixCls);
+  const [wrapCSSVar, hashId, cssVarCls] = skeleton_style(prefixCls);
+  const cls = classnames_default()(prefixCls, `${prefixCls}-element`, {
+    [`${prefixCls}-active`]: active
+  }, hashId, className, rootClassName, cssVarCls);
+  const content = children !== null && children !== void 0 ? children : /*#__PURE__*/react.createElement(icons_DotChartOutlined, null);
+  return wrapCSSVar( /*#__PURE__*/react.createElement("div", {
+    className: cls
+  }, /*#__PURE__*/react.createElement("div", {
+    className: classnames_default()(`${prefixCls}-image`, className),
+    style: style
+  }, content)));
+};
+/* harmony default export */ const Node = (SkeletonNode);
+;// CONCATENATED MODULE: ./node_modules/antd/es/skeleton/Paragraph.js
+"use client";
+
+
+
+
+const getWidth = (index, props) => {
+  const {
+    width,
+    rows = 2
+  } = props;
+  if (Array.isArray(width)) {
+    return width[index];
+  }
+  // last paragraph
+  if (rows - 1 === index) {
+    return width;
+  }
+  return undefined;
+};
+const Paragraph = props => {
+  const {
+    prefixCls,
+    className,
+    style,
+    rows
+  } = props;
+  const rowList = _toConsumableArray(Array(rows)).map((_, index) => (
+  /*#__PURE__*/
+  // eslint-disable-next-line react/no-array-index-key
+  react.createElement("li", {
+    key: index,
+    style: {
+      width: getWidth(index, props)
+    }
+  })));
+  return /*#__PURE__*/react.createElement("ul", {
+    className: classnames_default()(prefixCls, className),
+    style: style
+  }, rowList);
+};
+/* harmony default export */ const skeleton_Paragraph = (Paragraph);
+;// CONCATENATED MODULE: ./node_modules/antd/es/skeleton/Title.js
+"use client";
+
+/* eslint-disable jsx-a11y/heading-has-content */
+
+
+const Title = _ref => {
+  let {
+    prefixCls,
+    className,
+    width,
+    style
+  } = _ref;
+  return /*#__PURE__*/react.createElement("h3", {
+    className: classnames_default()(prefixCls, className),
+    style: Object.assign({
+      width
+    }, style)
+  });
+};
+/* harmony default export */ const skeleton_Title = (Title);
+;// CONCATENATED MODULE: ./node_modules/antd/es/skeleton/Skeleton.js
+"use client";
+
+
+
+
+
+
+
+
+
+
+
+
+
+function getComponentProps(prop) {
+  if (prop && typeof prop === 'object') {
+    return prop;
+  }
+  return {};
+}
+function getAvatarBasicProps(hasTitle, hasParagraph) {
+  if (hasTitle && !hasParagraph) {
+    // Square avatar
+    return {
+      size: 'large',
+      shape: 'square'
+    };
+  }
+  return {
+    size: 'large',
+    shape: 'circle'
+  };
+}
+function getTitleBasicProps(hasAvatar, hasParagraph) {
+  if (!hasAvatar && hasParagraph) {
+    return {
+      width: '38%'
+    };
+  }
+  if (hasAvatar && hasParagraph) {
+    return {
+      width: '50%'
+    };
+  }
+  return {};
+}
+function getParagraphBasicProps(hasAvatar, hasTitle) {
+  const basicProps = {};
+  // Width
+  if (!hasAvatar || !hasTitle) {
+    basicProps.width = '61%';
+  }
+  // Rows
+  if (!hasAvatar && hasTitle) {
+    basicProps.rows = 3;
+  } else {
+    basicProps.rows = 2;
+  }
+  return basicProps;
+}
+const Skeleton = props => {
+  const {
+    prefixCls: customizePrefixCls,
+    loading,
+    className,
+    rootClassName,
+    style,
+    children,
+    avatar = false,
+    title = true,
+    paragraph = true,
+    active,
+    round
+  } = props;
+  const {
+    getPrefixCls,
+    direction,
+    skeleton
+  } = react.useContext(context_ConfigContext);
+  const prefixCls = getPrefixCls('skeleton', customizePrefixCls);
+  const [wrapCSSVar, hashId, cssVarCls] = skeleton_style(prefixCls);
+  if (loading || !('loading' in props)) {
+    const hasAvatar = !!avatar;
+    const hasTitle = !!title;
+    const hasParagraph = !!paragraph;
+    // Avatar
+    let avatarNode;
+    if (hasAvatar) {
+      const avatarProps = Object.assign(Object.assign({
+        prefixCls: `${prefixCls}-avatar`
+      }, getAvatarBasicProps(hasTitle, hasParagraph)), getComponentProps(avatar));
+      // We direct use SkeletonElement as avatar in skeleton internal.
+      avatarNode = /*#__PURE__*/react.createElement("div", {
+        className: `${prefixCls}-header`
+      }, /*#__PURE__*/react.createElement(skeleton_Element, Object.assign({}, avatarProps)));
+    }
+    let contentNode;
+    if (hasTitle || hasParagraph) {
+      // Title
+      let $title;
+      if (hasTitle) {
+        const titleProps = Object.assign(Object.assign({
+          prefixCls: `${prefixCls}-title`
+        }, getTitleBasicProps(hasAvatar, hasParagraph)), getComponentProps(title));
+        $title = /*#__PURE__*/react.createElement(skeleton_Title, Object.assign({}, titleProps));
+      }
+      // Paragraph
+      let paragraphNode;
+      if (hasParagraph) {
+        const paragraphProps = Object.assign(Object.assign({
+          prefixCls: `${prefixCls}-paragraph`
+        }, getParagraphBasicProps(hasAvatar, hasTitle)), getComponentProps(paragraph));
+        paragraphNode = /*#__PURE__*/react.createElement(skeleton_Paragraph, Object.assign({}, paragraphProps));
+      }
+      contentNode = /*#__PURE__*/react.createElement("div", {
+        className: `${prefixCls}-content`
+      }, $title, paragraphNode);
+    }
+    const cls = classnames_default()(prefixCls, {
+      [`${prefixCls}-with-avatar`]: hasAvatar,
+      [`${prefixCls}-active`]: active,
+      [`${prefixCls}-rtl`]: direction === 'rtl',
+      [`${prefixCls}-round`]: round
+    }, skeleton === null || skeleton === void 0 ? void 0 : skeleton.className, className, rootClassName, hashId, cssVarCls);
+    return wrapCSSVar( /*#__PURE__*/react.createElement("div", {
+      className: cls,
+      style: Object.assign(Object.assign({}, skeleton === null || skeleton === void 0 ? void 0 : skeleton.style), style)
+    }, avatarNode, contentNode));
+  }
+  return children !== null && children !== void 0 ? children : null;
+};
+Skeleton.Button = skeleton_Button;
+Skeleton.Avatar = Avatar;
+Skeleton.Input = skeleton_Input;
+Skeleton.Image = Image;
+Skeleton.Node = Node;
+if (false) {}
+/* harmony default export */ const skeleton_Skeleton = (Skeleton);
+;// CONCATENATED MODULE: ./node_modules/antd/es/skeleton/index.js
+"use client";
+
+
+/* harmony default export */ const skeleton = (skeleton_Skeleton);
+;// CONCATENATED MODULE: ./node_modules/@ant-design/icons-svg/es/asn/CloseOutlined.js
+// This icon file is generated automatically.
+var CloseOutlined = { "icon": { "tag": "svg", "attrs": { "fill-rule": "evenodd", "viewBox": "64 64 896 896", "focusable": "false" }, "children": [{ "tag": "path", "attrs": { "d": "M799.86 166.31c.02 0 .04.02.08.06l57.69 57.7c.04.03.05.05.06.08a.12.12 0 010 .06c0 .03-.02.05-.06.09L569.93 512l287.7 287.7c.04.04.05.06.06.09a.12.12 0 010 .07c0 .02-.02.04-.06.08l-57.7 57.69c-.03.04-.05.05-.07.06a.12.12 0 01-.07 0c-.03 0-.05-.02-.09-.06L512 569.93l-287.7 287.7c-.04.04-.06.05-.09.06a.12.12 0 01-.07 0c-.02 0-.04-.02-.08-.06l-57.69-57.7c-.04-.03-.05-.05-.06-.07a.12.12 0 010-.07c0-.03.02-.05.06-.09L454.07 512l-287.7-287.7c-.04-.04-.05-.06-.06-.09a.12.12 0 010-.07c0-.02.02-.04.06-.08l57.7-57.69c.03-.04.05-.05.07-.06a.12.12 0 01.07 0c.03 0 .05.02.09.06L512 454.07l287.7-287.7c.04-.04.06-.05.09-.06a.12.12 0 01.07 0z" } }] }, "name": "close", "theme": "outlined" };
+/* harmony default export */ const asn_CloseOutlined = (CloseOutlined);
+
+;// CONCATENATED MODULE: ./node_modules/@ant-design/icons/es/icons/CloseOutlined.js
+
+// GENERATE BY ./scripts/generate.ts
+// DON NOT EDIT IT MANUALLY
+
+
+
+
+var CloseOutlined_CloseOutlined = function CloseOutlined(props, ref) {
+  return /*#__PURE__*/react.createElement(AntdIcon, _extends({}, props, {
+    ref: ref,
+    icon: asn_CloseOutlined
+  }));
+};
+
+/**![close](data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNTAiIGhlaWdodD0iNTAiIGZpbGw9IiNjYWNhY2EiIGZpbGwtcnVsZT0iZXZlbm9kZCIgdmlld0JveD0iNjQgNjQgODk2IDg5NiIgZm9jdXNhYmxlPSJmYWxzZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cGF0aCBkPSJNNzk5Ljg2IDE2Ni4zMWMuMDIgMCAuMDQuMDIuMDguMDZsNTcuNjkgNTcuN2MuMDQuMDMuMDUuMDUuMDYuMDhhLjEyLjEyIDAgMDEwIC4wNmMwIC4wMy0uMDIuMDUtLjA2LjA5TDU2OS45MyA1MTJsMjg3LjcgMjg3LjdjLjA0LjA0LjA1LjA2LjA2LjA5YS4xMi4xMiAwIDAxMCAuMDdjMCAuMDItLjAyLjA0LS4wNi4wOGwtNTcuNyA1Ny42OWMtLjAzLjA0LS4wNS4wNS0uMDcuMDZhLjEyLjEyIDAgMDEtLjA3IDBjLS4wMyAwLS4wNS0uMDItLjA5LS4wNkw1MTIgNTY5LjkzbC0yODcuNyAyODcuN2MtLjA0LjA0LS4wNi4wNS0uMDkuMDZhLjEyLjEyIDAgMDEtLjA3IDBjLS4wMiAwLS4wNC0uMDItLjA4LS4wNmwtNTcuNjktNTcuN2MtLjA0LS4wMy0uMDUtLjA1LS4wNi0uMDdhLjEyLjEyIDAgMDEwLS4wN2MwLS4wMy4wMi0uMDUuMDYtLjA5TDQ1NC4wNyA1MTJsLTI4Ny43LTI4Ny43Yy0uMDQtLjA0LS4wNS0uMDYtLjA2LS4wOWEuMTIuMTIgMCAwMTAtLjA3YzAtLjAyLjAyLS4wNC4wNi0uMDhsNTcuNy01Ny42OWMuMDMtLjA0LjA1LS4wNS4wNy0uMDZhLjEyLjEyIDAgMDEuMDcgMGMuMDMgMCAuMDUuMDIuMDkuMDZMNTEyIDQ1NC4wN2wyODcuNy0yODcuN2MuMDQtLjA0LjA2LS4wNS4wOS0uMDZhLjEyLjEyIDAgMDEuMDcgMHoiIC8+PC9zdmc+) */
+var CloseOutlined_RefIcon = /*#__PURE__*/react.forwardRef(CloseOutlined_CloseOutlined);
+if (false) {}
+/* harmony default export */ const icons_CloseOutlined = (CloseOutlined_RefIcon);
+;// CONCATENATED MODULE: ./node_modules/@ant-design/icons-svg/es/asn/PlusOutlined.js
+// This icon file is generated automatically.
+var PlusOutlined = { "icon": { "tag": "svg", "attrs": { "viewBox": "64 64 896 896", "focusable": "false" }, "children": [{ "tag": "path", "attrs": { "d": "M482 152h60q8 0 8 8v704q0 8-8 8h-60q-8 0-8-8V160q0-8 8-8z" } }, { "tag": "path", "attrs": { "d": "M192 474h672q8 0 8 8v60q0 8-8 8H160q-8 0-8-8v-60q0-8 8-8z" } }] }, "name": "plus", "theme": "outlined" };
+/* harmony default export */ const asn_PlusOutlined = (PlusOutlined);
+
+;// CONCATENATED MODULE: ./node_modules/@ant-design/icons/es/icons/PlusOutlined.js
+
+// GENERATE BY ./scripts/generate.ts
+// DON NOT EDIT IT MANUALLY
+
+
+
+
+var PlusOutlined_PlusOutlined = function PlusOutlined(props, ref) {
+  return /*#__PURE__*/react.createElement(AntdIcon, _extends({}, props, {
+    ref: ref,
+    icon: asn_PlusOutlined
+  }));
+};
+
+/**![plus](data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNTAiIGhlaWdodD0iNTAiIGZpbGw9IiNjYWNhY2EiIHZpZXdCb3g9IjY0IDY0IDg5NiA4OTYiIGZvY3VzYWJsZT0iZmFsc2UiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PHBhdGggZD0iTTQ4MiAxNTJoNjBxOCAwIDggOHY3MDRxMCA4LTggOGgtNjBxLTggMC04LThWMTYwcTAtOCA4LTh6IiAvPjxwYXRoIGQ9Ik0xOTIgNDc0aDY3MnE4IDAgOCA4djYwcTAgOC04IDhIMTYwcS04IDAtOC04di02MHEwLTggOC04eiIgLz48L3N2Zz4=) */
+var PlusOutlined_RefIcon = /*#__PURE__*/react.forwardRef(PlusOutlined_PlusOutlined);
+if (false) {}
+/* harmony default export */ const icons_PlusOutlined = (PlusOutlined_RefIcon);
+;// CONCATENATED MODULE: ./node_modules/rc-tabs/es/TabContext.js
+
+/* harmony default export */ const TabContext = (/*#__PURE__*/(0,react.createContext)(null));
+;// CONCATENATED MODULE: ./node_modules/rc-tabs/es/hooks/useIndicator.js
+
+
+
+var useIndicator = function useIndicator(options) {
+  var activeTabOffset = options.activeTabOffset,
+    horizontal = options.horizontal,
+    rtl = options.rtl,
+    _options$indicator = options.indicator,
+    indicator = _options$indicator === void 0 ? {} : _options$indicator;
+  var size = indicator.size,
+    _indicator$align = indicator.align,
+    align = _indicator$align === void 0 ? 'center' : _indicator$align;
+  var _useState = (0,react.useState)(),
+    _useState2 = slicedToArray_slicedToArray(_useState, 2),
+    inkStyle = _useState2[0],
+    setInkStyle = _useState2[1];
+  var inkBarRafRef = (0,react.useRef)();
+  var getLength = react.useCallback(function (origin) {
+    if (typeof size === 'function') {
+      return size(origin);
+    }
+    if (typeof size === 'number') {
+      return size;
+    }
+    return origin;
+  }, [size]);
+
+  // Delay set ink style to avoid remove tab blink
+  function cleanInkBarRaf() {
+    es_raf.cancel(inkBarRafRef.current);
+  }
+  (0,react.useEffect)(function () {
+    var newInkStyle = {};
+    if (activeTabOffset) {
+      if (horizontal) {
+        newInkStyle.width = getLength(activeTabOffset.width);
+        var key = rtl ? 'right' : 'left';
+        if (align === 'start') {
+          newInkStyle[key] = activeTabOffset[key];
+        }
+        if (align === 'center') {
+          newInkStyle[key] = activeTabOffset[key] + activeTabOffset.width / 2;
+          newInkStyle.transform = rtl ? 'translateX(50%)' : 'translateX(-50%)';
+        }
+        if (align === 'end') {
+          newInkStyle[key] = activeTabOffset[key] + activeTabOffset.width;
+          newInkStyle.transform = 'translateX(-100%)';
+        }
+      } else {
+        newInkStyle.height = getLength(activeTabOffset.height);
+        if (align === 'start') {
+          newInkStyle.top = activeTabOffset.top;
+        }
+        if (align === 'center') {
+          newInkStyle.top = activeTabOffset.top + activeTabOffset.height / 2;
+          newInkStyle.transform = 'translateY(-50%)';
+        }
+        if (align === 'end') {
+          newInkStyle.top = activeTabOffset.top + activeTabOffset.height;
+          newInkStyle.transform = 'translateY(-100%)';
+        }
+      }
+    }
+    cleanInkBarRaf();
+    inkBarRafRef.current = es_raf(function () {
+      setInkStyle(newInkStyle);
+    });
+    return cleanInkBarRaf;
+  }, [activeTabOffset, horizontal, rtl, align, getLength]);
+  return {
+    style: inkStyle
+  };
+};
+/* harmony default export */ const hooks_useIndicator = (useIndicator);
+;// CONCATENATED MODULE: ./node_modules/rc-tabs/es/hooks/useOffsets.js
+
+
+var DEFAULT_SIZE = {
+  width: 0,
+  height: 0,
+  left: 0,
+  top: 0
+};
+function useOffsets(tabs, tabSizes, holderScrollWidth) {
+  return (0,react.useMemo)(function () {
+    var _tabs$;
+    var map = new Map();
+    var lastOffset = tabSizes.get((_tabs$ = tabs[0]) === null || _tabs$ === void 0 ? void 0 : _tabs$.key) || DEFAULT_SIZE;
+    var rightOffset = lastOffset.left + lastOffset.width;
+    for (var i = 0; i < tabs.length; i += 1) {
+      var key = tabs[i].key;
+      var data = tabSizes.get(key);
+
+      // Reuse last one when not exist yet
+      if (!data) {
+        var _tabs;
+        data = tabSizes.get((_tabs = tabs[i - 1]) === null || _tabs === void 0 ? void 0 : _tabs.key) || DEFAULT_SIZE;
+      }
+      var entity = map.get(key) || objectSpread2_objectSpread2({}, data);
+
+      // Right
+      entity.right = rightOffset - entity.left - entity.width;
+
+      // Update entity
+      map.set(key, entity);
+    }
+    return map;
+  }, [tabs.map(function (tab) {
+    return tab.key;
+  }).join('_'), tabSizes, holderScrollWidth]);
+}
+;// CONCATENATED MODULE: ./node_modules/rc-tabs/es/hooks/useSyncState.js
+
+
+function useSyncState(defaultState, onChange) {
+  var stateRef = react.useRef(defaultState);
+  var _React$useState = react.useState({}),
+    _React$useState2 = slicedToArray_slicedToArray(_React$useState, 2),
+    forceUpdate = _React$useState2[1];
+  function setState(updater) {
+    var newValue = typeof updater === 'function' ? updater(stateRef.current) : updater;
+    if (newValue !== stateRef.current) {
+      onChange(newValue, stateRef.current);
+    }
+    stateRef.current = newValue;
+    forceUpdate({});
+  }
+  return [stateRef.current, setState];
+}
+;// CONCATENATED MODULE: ./node_modules/rc-tabs/es/hooks/useTouchMove.js
+
+
+
+var MIN_SWIPE_DISTANCE = 0.1;
+var STOP_SWIPE_DISTANCE = 0.01;
+var REFRESH_INTERVAL = 20;
+var SPEED_OFF_MULTIPLE = Math.pow(0.995, REFRESH_INTERVAL);
+
+// ================================= Hook =================================
+function useTouchMove(ref, onOffset) {
+  var _useState = (0,react.useState)(),
+    _useState2 = slicedToArray_slicedToArray(_useState, 2),
+    touchPosition = _useState2[0],
+    setTouchPosition = _useState2[1];
+  var _useState3 = (0,react.useState)(0),
+    _useState4 = slicedToArray_slicedToArray(_useState3, 2),
+    lastTimestamp = _useState4[0],
+    setLastTimestamp = _useState4[1];
+  var _useState5 = (0,react.useState)(0),
+    _useState6 = slicedToArray_slicedToArray(_useState5, 2),
+    lastTimeDiff = _useState6[0],
+    setLastTimeDiff = _useState6[1];
+  var _useState7 = (0,react.useState)(),
+    _useState8 = slicedToArray_slicedToArray(_useState7, 2),
+    lastOffset = _useState8[0],
+    setLastOffset = _useState8[1];
+  var motionRef = (0,react.useRef)();
+
+  // ========================= Events =========================
+  // >>> Touch events
+  function onTouchStart(e) {
+    var _e$touches$ = e.touches[0],
+      screenX = _e$touches$.screenX,
+      screenY = _e$touches$.screenY;
+    setTouchPosition({
+      x: screenX,
+      y: screenY
+    });
+    window.clearInterval(motionRef.current);
+  }
+  function onTouchMove(e) {
+    if (!touchPosition) return;
+    e.preventDefault();
+    var _e$touches$2 = e.touches[0],
+      screenX = _e$touches$2.screenX,
+      screenY = _e$touches$2.screenY;
+    setTouchPosition({
+      x: screenX,
+      y: screenY
+    });
+    var offsetX = screenX - touchPosition.x;
+    var offsetY = screenY - touchPosition.y;
+    onOffset(offsetX, offsetY);
+    var now = Date.now();
+    setLastTimestamp(now);
+    setLastTimeDiff(now - lastTimestamp);
+    setLastOffset({
+      x: offsetX,
+      y: offsetY
+    });
+  }
+  function onTouchEnd() {
+    if (!touchPosition) return;
+    setTouchPosition(null);
+    setLastOffset(null);
+
+    // Swipe if needed
+    if (lastOffset) {
+      var distanceX = lastOffset.x / lastTimeDiff;
+      var distanceY = lastOffset.y / lastTimeDiff;
+      var absX = Math.abs(distanceX);
+      var absY = Math.abs(distanceY);
+
+      // Skip swipe if low distance
+      if (Math.max(absX, absY) < MIN_SWIPE_DISTANCE) return;
+      var currentX = distanceX;
+      var currentY = distanceY;
+      motionRef.current = window.setInterval(function () {
+        if (Math.abs(currentX) < STOP_SWIPE_DISTANCE && Math.abs(currentY) < STOP_SWIPE_DISTANCE) {
+          window.clearInterval(motionRef.current);
+          return;
+        }
+        currentX *= SPEED_OFF_MULTIPLE;
+        currentY *= SPEED_OFF_MULTIPLE;
+        onOffset(currentX * REFRESH_INTERVAL, currentY * REFRESH_INTERVAL);
+      }, REFRESH_INTERVAL);
+    }
+  }
+
+  // >>> Wheel event
+  var lastWheelDirectionRef = (0,react.useRef)();
+  function onWheel(e) {
+    var deltaX = e.deltaX,
+      deltaY = e.deltaY;
+
+    // Convert both to x & y since wheel only happened on PC
+    var mixed = 0;
+    var absX = Math.abs(deltaX);
+    var absY = Math.abs(deltaY);
+    if (absX === absY) {
+      mixed = lastWheelDirectionRef.current === 'x' ? deltaX : deltaY;
+    } else if (absX > absY) {
+      mixed = deltaX;
+      lastWheelDirectionRef.current = 'x';
+    } else {
+      mixed = deltaY;
+      lastWheelDirectionRef.current = 'y';
+    }
+    if (onOffset(-mixed, -mixed)) {
+      e.preventDefault();
+    }
+  }
+
+  // ========================= Effect =========================
+  var touchEventsRef = (0,react.useRef)(null);
+  touchEventsRef.current = {
+    onTouchStart: onTouchStart,
+    onTouchMove: onTouchMove,
+    onTouchEnd: onTouchEnd,
+    onWheel: onWheel
+  };
+  react.useEffect(function () {
+    function onProxyTouchStart(e) {
+      touchEventsRef.current.onTouchStart(e);
+    }
+    function onProxyTouchMove(e) {
+      touchEventsRef.current.onTouchMove(e);
+    }
+    function onProxyTouchEnd(e) {
+      touchEventsRef.current.onTouchEnd(e);
+    }
+    function onProxyWheel(e) {
+      touchEventsRef.current.onWheel(e);
+    }
+    document.addEventListener('touchmove', onProxyTouchMove, {
+      passive: false
+    });
+    document.addEventListener('touchend', onProxyTouchEnd, {
+      passive: false
+    });
+
+    // No need to clean up since element removed
+    ref.current.addEventListener('touchstart', onProxyTouchStart, {
+      passive: false
+    });
+    ref.current.addEventListener('wheel', onProxyWheel);
+    return function () {
+      document.removeEventListener('touchmove', onProxyTouchMove);
+      document.removeEventListener('touchend', onProxyTouchEnd);
+    };
+  }, []);
+}
+;// CONCATENATED MODULE: ./node_modules/rc-tabs/es/hooks/useUpdate.js
+
+
+
+
+/**
+ * Help to merge callback with `useLayoutEffect`.
+ * One time will only trigger once.
+ */
+function useUpdate(callback) {
+  var _useState = (0,react.useState)(0),
+    _useState2 = slicedToArray_slicedToArray(_useState, 2),
+    count = _useState2[0],
+    setCount = _useState2[1];
+  var effectRef = (0,react.useRef)(0);
+  var callbackRef = (0,react.useRef)();
+  callbackRef.current = callback;
+
+  // Trigger on `useLayoutEffect`
+  useLayoutUpdateEffect(function () {
+    var _callbackRef$current;
+    (_callbackRef$current = callbackRef.current) === null || _callbackRef$current === void 0 || _callbackRef$current.call(callbackRef);
+  }, [count]);
+
+  // Trigger to update count
+  return function () {
+    if (effectRef.current !== count) {
+      return;
+    }
+    effectRef.current += 1;
+    setCount(effectRef.current);
+  };
+}
+function useUpdateState(defaultState) {
+  var batchRef = (0,react.useRef)([]);
+  var _useState3 = (0,react.useState)({}),
+    _useState4 = slicedToArray_slicedToArray(_useState3, 2),
+    forceUpdate = _useState4[1];
+  var state = (0,react.useRef)(typeof defaultState === 'function' ? defaultState() : defaultState);
+  var flushUpdate = useUpdate(function () {
+    var current = state.current;
+    batchRef.current.forEach(function (callback) {
+      current = callback(current);
+    });
+    batchRef.current = [];
+    state.current = current;
+    forceUpdate({});
+  });
+  function updater(callback) {
+    batchRef.current.push(callback);
+    flushUpdate();
+  }
+  return [state.current, updater];
+}
+;// CONCATENATED MODULE: ./node_modules/rc-tabs/es/hooks/useVisibleRange.js
+
+var useVisibleRange_DEFAULT_SIZE = {
+  width: 0,
+  height: 0,
+  left: 0,
+  top: 0,
+  right: 0
+};
+function useVisibleRange(tabOffsets, visibleTabContentValue, transform, tabContentSizeValue, addNodeSizeValue, operationNodeSizeValue, _ref) {
+  var tabs = _ref.tabs,
+    tabPosition = _ref.tabPosition,
+    rtl = _ref.rtl;
+  var charUnit;
+  var position;
+  var transformSize;
+  if (['top', 'bottom'].includes(tabPosition)) {
+    charUnit = 'width';
+    position = rtl ? 'right' : 'left';
+    transformSize = Math.abs(transform);
+  } else {
+    charUnit = 'height';
+    position = 'top';
+    transformSize = -transform;
+  }
+  return (0,react.useMemo)(function () {
+    if (!tabs.length) {
+      return [0, 0];
+    }
+    var len = tabs.length;
+    var endIndex = len;
+    for (var i = 0; i < len; i += 1) {
+      var offset = tabOffsets.get(tabs[i].key) || useVisibleRange_DEFAULT_SIZE;
+      if (offset[position] + offset[charUnit] > transformSize + visibleTabContentValue) {
+        endIndex = i - 1;
+        break;
+      }
+    }
+    var startIndex = 0;
+    for (var _i = len - 1; _i >= 0; _i -= 1) {
+      var _offset = tabOffsets.get(tabs[_i].key) || useVisibleRange_DEFAULT_SIZE;
+      if (_offset[position] < transformSize) {
+        startIndex = _i + 1;
+        break;
+      }
+    }
+    return startIndex >= endIndex ? [0, 0] : [startIndex, endIndex];
+  }, [tabOffsets, visibleTabContentValue, tabContentSizeValue, addNodeSizeValue, operationNodeSizeValue, transformSize, tabPosition, tabs.map(function (tab) {
+    return tab.key;
+  }).join('_'), rtl]);
+}
+;// CONCATENATED MODULE: ./node_modules/rc-tabs/es/util.js
+/**
+ * We trade Map as deps which may change with same value but different ref object.
+ * We should make it as hash for deps
+ * */
+function util_stringify(obj) {
+  var tgt;
+  if (obj instanceof Map) {
+    tgt = {};
+    obj.forEach(function (v, k) {
+      tgt[k] = v;
+    });
+  } else {
+    tgt = obj;
+  }
+  return JSON.stringify(tgt);
+}
+var RC_TABS_DOUBLE_QUOTE = 'TABS_DQ';
+function genDataNodeKey(key) {
+  return String(key).replace(/"/g, RC_TABS_DOUBLE_QUOTE);
+}
+function getRemovable(closable, closeIcon, editable, disabled) {
+  if (
+  // Only editable tabs can be removed
+  !editable ||
+  // Tabs cannot be removed when disabled
+  disabled ||
+  // closable is false
+  closable === false ||
+  // If closable is undefined, the remove button should be hidden when closeIcon is null or false
+  closable === undefined && (closeIcon === false || closeIcon === null)) {
+    return false;
+  }
+  return true;
+}
+;// CONCATENATED MODULE: ./node_modules/rc-tabs/es/TabNavList/AddButton.js
+
+var AddButton = /*#__PURE__*/react.forwardRef(function (props, ref) {
+  var prefixCls = props.prefixCls,
+    editable = props.editable,
+    locale = props.locale,
+    style = props.style;
+  if (!editable || editable.showAdd === false) {
+    return null;
+  }
+  return /*#__PURE__*/react.createElement("button", {
+    ref: ref,
+    type: "button",
+    className: "".concat(prefixCls, "-nav-add"),
+    style: style,
+    "aria-label": (locale === null || locale === void 0 ? void 0 : locale.addAriaLabel) || 'Add tab',
+    onClick: function onClick(event) {
+      editable.onEdit('add', {
+        event: event
+      });
+    }
+  }, editable.addIcon || '+');
+});
+/* harmony default export */ const TabNavList_AddButton = (AddButton);
+;// CONCATENATED MODULE: ./node_modules/rc-tabs/es/TabNavList/ExtraContent.js
+
+
+var ExtraContent = /*#__PURE__*/react.forwardRef(function (props, ref) {
+  var position = props.position,
+    prefixCls = props.prefixCls,
+    extra = props.extra;
+  if (!extra) {
+    return null;
+  }
+  var content;
+
+  // Parse extra
+  var assertExtra = {};
+  if (_typeof(extra) === 'object' && ! /*#__PURE__*/react.isValidElement(extra)) {
+    assertExtra = extra;
+  } else {
+    assertExtra.right = extra;
+  }
+  if (position === 'right') {
+    content = assertExtra.right;
+  }
+  if (position === 'left') {
+    content = assertExtra.left;
+  }
+  return content ? /*#__PURE__*/react.createElement("div", {
+    className: "".concat(prefixCls, "-extra-content"),
+    ref: ref
+  }, content) : null;
+});
+if (false) {}
+/* harmony default export */ const TabNavList_ExtraContent = (ExtraContent);
+;// CONCATENATED MODULE: ./node_modules/rc-dropdown/es/hooks/useAccessibility.js
+
+
+
+var useAccessibility_ESC = es_KeyCode.ESC,
+  TAB = es_KeyCode.TAB;
+function useAccessibility_useAccessibility(_ref) {
+  var visible = _ref.visible,
+    triggerRef = _ref.triggerRef,
+    onVisibleChange = _ref.onVisibleChange,
+    autoFocus = _ref.autoFocus,
+    overlayRef = _ref.overlayRef;
+  var focusMenuRef = react.useRef(false);
+  var handleCloseMenuAndReturnFocus = function handleCloseMenuAndReturnFocus() {
+    if (visible) {
+      var _triggerRef$current, _triggerRef$current$f;
+      (_triggerRef$current = triggerRef.current) === null || _triggerRef$current === void 0 || (_triggerRef$current$f = _triggerRef$current.focus) === null || _triggerRef$current$f === void 0 || _triggerRef$current$f.call(_triggerRef$current);
+      onVisibleChange === null || onVisibleChange === void 0 || onVisibleChange(false);
+    }
+  };
+  var focusMenu = function focusMenu() {
+    var _overlayRef$current;
+    if ((_overlayRef$current = overlayRef.current) !== null && _overlayRef$current !== void 0 && _overlayRef$current.focus) {
+      overlayRef.current.focus();
+      focusMenuRef.current = true;
+      return true;
+    }
+    return false;
+  };
+  var handleKeyDown = function handleKeyDown(event) {
+    switch (event.keyCode) {
+      case useAccessibility_ESC:
+        handleCloseMenuAndReturnFocus();
+        break;
+      case TAB:
+        {
+          var focusResult = false;
+          if (!focusMenuRef.current) {
+            focusResult = focusMenu();
+          }
+          if (focusResult) {
+            event.preventDefault();
+          } else {
+            handleCloseMenuAndReturnFocus();
+          }
+          break;
+        }
+    }
+  };
+  react.useEffect(function () {
+    if (visible) {
+      window.addEventListener("keydown", handleKeyDown);
+      if (autoFocus) {
+        // FIXME: hack with raf
+        es_raf(focusMenu, 3);
+      }
+      return function () {
+        window.removeEventListener("keydown", handleKeyDown);
+        focusMenuRef.current = false;
+      };
+    }
+    return function () {
+      focusMenuRef.current = false;
+    };
+  }, [visible]); // eslint-disable-line react-hooks/exhaustive-deps
+}
+;// CONCATENATED MODULE: ./node_modules/rc-dropdown/es/Overlay.js
+
+
+var Overlay = /*#__PURE__*/(0,react.forwardRef)(function (props, ref) {
+  var overlay = props.overlay,
+    arrow = props.arrow,
+    prefixCls = props.prefixCls;
+  var overlayNode = (0,react.useMemo)(function () {
+    var overlayElement;
+    if (typeof overlay === 'function') {
+      overlayElement = overlay();
+    } else {
+      overlayElement = overlay;
+    }
+    return overlayElement;
+  }, [overlay]);
+  var composedRef = composeRef(ref, overlayNode === null || overlayNode === void 0 ? void 0 : overlayNode.ref);
+  return /*#__PURE__*/react.createElement(react.Fragment, null, arrow && /*#__PURE__*/react.createElement("div", {
+    className: "".concat(prefixCls, "-arrow")
+  }), /*#__PURE__*/react.cloneElement(overlayNode, {
+    ref: supportRef(overlayNode) ? composedRef : undefined
+  }));
+});
+/* harmony default export */ const es_Overlay = (Overlay);
+;// CONCATENATED MODULE: ./node_modules/rc-dropdown/es/placements.js
+var placements_autoAdjustOverflow = {
+  adjustX: 1,
+  adjustY: 1
+};
+var placements_targetOffset = [0, 0];
+var es_placements_placements = {
+  topLeft: {
+    points: ['bl', 'tl'],
+    overflow: placements_autoAdjustOverflow,
+    offset: [0, -4],
+    targetOffset: placements_targetOffset
+  },
+  top: {
+    points: ['bc', 'tc'],
+    overflow: placements_autoAdjustOverflow,
+    offset: [0, -4],
+    targetOffset: placements_targetOffset
+  },
+  topRight: {
+    points: ['br', 'tr'],
+    overflow: placements_autoAdjustOverflow,
+    offset: [0, -4],
+    targetOffset: placements_targetOffset
+  },
+  bottomLeft: {
+    points: ['tl', 'bl'],
+    overflow: placements_autoAdjustOverflow,
+    offset: [0, 4],
+    targetOffset: placements_targetOffset
+  },
+  bottom: {
+    points: ['tc', 'bc'],
+    overflow: placements_autoAdjustOverflow,
+    offset: [0, 4],
+    targetOffset: placements_targetOffset
+  },
+  bottomRight: {
+    points: ['tr', 'br'],
+    overflow: placements_autoAdjustOverflow,
+    offset: [0, 4],
+    targetOffset: placements_targetOffset
+  }
+};
+/* harmony default export */ const rc_dropdown_es_placements = (es_placements_placements);
+;// CONCATENATED MODULE: ./node_modules/rc-dropdown/es/Dropdown.js
+
+
+
+
+var Dropdown_excluded = ["arrow", "prefixCls", "transitionName", "animation", "align", "placement", "placements", "getPopupContainer", "showAction", "hideAction", "overlayClassName", "overlayStyle", "visible", "trigger", "autoFocus", "overlay", "children", "onVisibleChange"];
+
+
+
+
+
+
+
+function Dropdown(props, ref) {
+  var _children$props;
+  var _props$arrow = props.arrow,
+    arrow = _props$arrow === void 0 ? false : _props$arrow,
+    _props$prefixCls = props.prefixCls,
+    prefixCls = _props$prefixCls === void 0 ? 'rc-dropdown' : _props$prefixCls,
+    transitionName = props.transitionName,
+    animation = props.animation,
+    align = props.align,
+    _props$placement = props.placement,
+    placement = _props$placement === void 0 ? 'bottomLeft' : _props$placement,
+    _props$placements = props.placements,
+    placements = _props$placements === void 0 ? rc_dropdown_es_placements : _props$placements,
+    getPopupContainer = props.getPopupContainer,
+    showAction = props.showAction,
+    hideAction = props.hideAction,
+    overlayClassName = props.overlayClassName,
+    overlayStyle = props.overlayStyle,
+    visible = props.visible,
+    _props$trigger = props.trigger,
+    trigger = _props$trigger === void 0 ? ['hover'] : _props$trigger,
+    autoFocus = props.autoFocus,
+    overlay = props.overlay,
+    children = props.children,
+    onVisibleChange = props.onVisibleChange,
+    otherProps = objectWithoutProperties_objectWithoutProperties(props, Dropdown_excluded);
+  var _React$useState = react.useState(),
+    _React$useState2 = slicedToArray_slicedToArray(_React$useState, 2),
+    triggerVisible = _React$useState2[0],
+    setTriggerVisible = _React$useState2[1];
+  var mergedVisible = 'visible' in props ? visible : triggerVisible;
+  var triggerRef = react.useRef(null);
+  var overlayRef = react.useRef(null);
+  var childRef = react.useRef(null);
+  react.useImperativeHandle(ref, function () {
+    return triggerRef.current;
+  });
+  var handleVisibleChange = function handleVisibleChange(newVisible) {
+    setTriggerVisible(newVisible);
+    onVisibleChange === null || onVisibleChange === void 0 || onVisibleChange(newVisible);
+  };
+  useAccessibility_useAccessibility({
+    visible: mergedVisible,
+    triggerRef: childRef,
+    onVisibleChange: handleVisibleChange,
+    autoFocus: autoFocus,
+    overlayRef: overlayRef
+  });
+  var onClick = function onClick(e) {
+    var onOverlayClick = props.onOverlayClick;
+    setTriggerVisible(false);
+    if (onOverlayClick) {
+      onOverlayClick(e);
+    }
+  };
+  var getMenuElement = function getMenuElement() {
+    return /*#__PURE__*/react.createElement(es_Overlay, {
+      ref: overlayRef,
+      overlay: overlay,
+      prefixCls: prefixCls,
+      arrow: arrow
+    });
+  };
+  var getMenuElementOrLambda = function getMenuElementOrLambda() {
+    if (typeof overlay === 'function') {
+      return getMenuElement;
+    }
+    return getMenuElement();
+  };
+  var getMinOverlayWidthMatchTrigger = function getMinOverlayWidthMatchTrigger() {
+    var minOverlayWidthMatchTrigger = props.minOverlayWidthMatchTrigger,
+      alignPoint = props.alignPoint;
+    if ('minOverlayWidthMatchTrigger' in props) {
+      return minOverlayWidthMatchTrigger;
+    }
+    return !alignPoint;
+  };
+  var getOpenClassName = function getOpenClassName() {
+    var openClassName = props.openClassName;
+    if (openClassName !== undefined) {
+      return openClassName;
+    }
+    return "".concat(prefixCls, "-open");
+  };
+  var childrenNode = /*#__PURE__*/react.cloneElement(children, {
+    className: classnames_default()((_children$props = children.props) === null || _children$props === void 0 ? void 0 : _children$props.className, mergedVisible && getOpenClassName()),
+    ref: supportRef(children) ? composeRef(childRef, children.ref) : undefined
+  });
+  var triggerHideAction = hideAction;
+  if (!triggerHideAction && trigger.indexOf('contextMenu') !== -1) {
+    triggerHideAction = ['click'];
+  }
+  return /*#__PURE__*/react.createElement(trigger_es, _extends({
+    builtinPlacements: placements
+  }, otherProps, {
+    prefixCls: prefixCls,
+    ref: triggerRef,
+    popupClassName: classnames_default()(overlayClassName, defineProperty_defineProperty({}, "".concat(prefixCls, "-show-arrow"), arrow)),
+    popupStyle: overlayStyle,
+    action: trigger,
+    showAction: showAction,
+    hideAction: triggerHideAction,
+    popupPlacement: placement,
+    popupAlign: align,
+    popupTransitionName: transitionName,
+    popupAnimation: animation,
+    popupVisible: mergedVisible,
+    stretch: getMinOverlayWidthMatchTrigger() ? 'minWidth' : '',
+    popup: getMenuElementOrLambda(),
+    onPopupVisibleChange: handleVisibleChange,
+    onPopupClick: onClick,
+    getPopupContainer: getPopupContainer
+  }), childrenNode);
+}
+/* harmony default export */ const es_Dropdown = (/*#__PURE__*/react.forwardRef(Dropdown));
+;// CONCATENATED MODULE: ./node_modules/rc-dropdown/es/index.js
+
+/* harmony default export */ const rc_dropdown_es = (es_Dropdown);
+;// CONCATENATED MODULE: ./node_modules/rc-tabs/es/TabNavList/OperationNode.js
+
+
+
+
+
+
+
+
+
+
+var OperationNode = /*#__PURE__*/react.forwardRef(function (props, ref) {
+  var prefixCls = props.prefixCls,
+    id = props.id,
+    tabs = props.tabs,
+    locale = props.locale,
+    mobile = props.mobile,
+    _props$moreIcon = props.moreIcon,
+    moreIcon = _props$moreIcon === void 0 ? 'More' : _props$moreIcon,
+    moreTransitionName = props.moreTransitionName,
+    style = props.style,
+    className = props.className,
+    editable = props.editable,
+    tabBarGutter = props.tabBarGutter,
+    rtl = props.rtl,
+    removeAriaLabel = props.removeAriaLabel,
+    onTabClick = props.onTabClick,
+    getPopupContainer = props.getPopupContainer,
+    popupClassName = props.popupClassName;
+  // ======================== Dropdown ========================
+  var _useState = (0,react.useState)(false),
+    _useState2 = slicedToArray_slicedToArray(_useState, 2),
+    open = _useState2[0],
+    setOpen = _useState2[1];
+  var _useState3 = (0,react.useState)(null),
+    _useState4 = slicedToArray_slicedToArray(_useState3, 2),
+    selectedKey = _useState4[0],
+    setSelectedKey = _useState4[1];
+  var popupId = "".concat(id, "-more-popup");
+  var dropdownPrefix = "".concat(prefixCls, "-dropdown");
+  var selectedItemId = selectedKey !== null ? "".concat(popupId, "-").concat(selectedKey) : null;
+  var dropdownAriaLabel = locale === null || locale === void 0 ? void 0 : locale.dropdownAriaLabel;
+  function onRemoveTab(event, key) {
+    event.preventDefault();
+    event.stopPropagation();
+    editable.onEdit('remove', {
+      key: key,
+      event: event
+    });
+  }
+  var menu = /*#__PURE__*/react.createElement(rc_menu_es, {
+    onClick: function onClick(_ref) {
+      var key = _ref.key,
+        domEvent = _ref.domEvent;
+      onTabClick(key, domEvent);
+      setOpen(false);
+    },
+    prefixCls: "".concat(dropdownPrefix, "-menu"),
+    id: popupId,
+    tabIndex: -1,
+    role: "listbox",
+    "aria-activedescendant": selectedItemId,
+    selectedKeys: [selectedKey],
+    "aria-label": dropdownAriaLabel !== undefined ? dropdownAriaLabel : 'expanded dropdown'
+  }, tabs.map(function (tab) {
+    var closable = tab.closable,
+      disabled = tab.disabled,
+      closeIcon = tab.closeIcon,
+      key = tab.key,
+      label = tab.label;
+    var removable = getRemovable(closable, closeIcon, editable, disabled);
+    return /*#__PURE__*/react.createElement(es_MenuItem, {
+      key: key,
+      id: "".concat(popupId, "-").concat(key),
+      role: "option",
+      "aria-controls": id && "".concat(id, "-panel-").concat(key),
+      disabled: disabled
+    }, /*#__PURE__*/react.createElement("span", null, label), removable && /*#__PURE__*/react.createElement("button", {
+      type: "button",
+      "aria-label": removeAriaLabel || 'remove',
+      tabIndex: 0,
+      className: "".concat(dropdownPrefix, "-menu-item-remove"),
+      onClick: function onClick(e) {
+        e.stopPropagation();
+        onRemoveTab(e, key);
+      }
+    }, closeIcon || editable.removeIcon || '×'));
+  }));
+  function selectOffset(offset) {
+    var enabledTabs = tabs.filter(function (tab) {
+      return !tab.disabled;
+    });
+    var selectedIndex = enabledTabs.findIndex(function (tab) {
+      return tab.key === selectedKey;
+    }) || 0;
+    var len = enabledTabs.length;
+    for (var i = 0; i < len; i += 1) {
+      selectedIndex = (selectedIndex + offset + len) % len;
+      var tab = enabledTabs[selectedIndex];
+      if (!tab.disabled) {
+        setSelectedKey(tab.key);
+        return;
+      }
+    }
+  }
+  function onKeyDown(e) {
+    var which = e.which;
+    if (!open) {
+      if ([es_KeyCode.DOWN, es_KeyCode.SPACE, es_KeyCode.ENTER].includes(which)) {
+        setOpen(true);
+        e.preventDefault();
+      }
+      return;
+    }
+    switch (which) {
+      case es_KeyCode.UP:
+        selectOffset(-1);
+        e.preventDefault();
+        break;
+      case es_KeyCode.DOWN:
+        selectOffset(1);
+        e.preventDefault();
+        break;
+      case es_KeyCode.ESC:
+        setOpen(false);
+        break;
+      case es_KeyCode.SPACE:
+      case es_KeyCode.ENTER:
+        if (selectedKey !== null) {
+          onTabClick(selectedKey, e);
+        }
+        break;
+    }
+  }
+
+  // ========================= Effect =========================
+  (0,react.useEffect)(function () {
+    // We use query element here to avoid React strict warning
+    var ele = document.getElementById(selectedItemId);
+    if (ele && ele.scrollIntoView) {
+      ele.scrollIntoView(false);
+    }
+  }, [selectedKey]);
+  (0,react.useEffect)(function () {
+    if (!open) {
+      setSelectedKey(null);
+    }
+  }, [open]);
+
+  // ========================= Render =========================
+  var moreStyle = defineProperty_defineProperty({}, rtl ? 'marginRight' : 'marginLeft', tabBarGutter);
+  if (!tabs.length) {
+    moreStyle.visibility = 'hidden';
+    moreStyle.order = 1;
+  }
+  var overlayClassName = classnames_default()(defineProperty_defineProperty({}, "".concat(dropdownPrefix, "-rtl"), rtl));
+  var moreNode = mobile ? null : /*#__PURE__*/react.createElement(rc_dropdown_es, {
+    prefixCls: dropdownPrefix,
+    overlay: menu,
+    trigger: ['hover'],
+    visible: tabs.length ? open : false,
+    transitionName: moreTransitionName,
+    onVisibleChange: setOpen,
+    overlayClassName: classnames_default()(overlayClassName, popupClassName),
+    mouseEnterDelay: 0.1,
+    mouseLeaveDelay: 0.1,
+    getPopupContainer: getPopupContainer
+  }, /*#__PURE__*/react.createElement("button", {
+    type: "button",
+    className: "".concat(prefixCls, "-nav-more"),
+    style: moreStyle,
+    tabIndex: -1,
+    "aria-hidden": "true",
+    "aria-haspopup": "listbox",
+    "aria-controls": popupId,
+    id: "".concat(id, "-more"),
+    "aria-expanded": open,
+    onKeyDown: onKeyDown
+  }, moreIcon));
+  return /*#__PURE__*/react.createElement("div", {
+    className: classnames_default()("".concat(prefixCls, "-nav-operations"), className),
+    style: style,
+    ref: ref
+  }, moreNode, /*#__PURE__*/react.createElement(TabNavList_AddButton, {
+    prefixCls: prefixCls,
+    locale: locale,
+    editable: editable
+  }));
+});
+/* harmony default export */ const TabNavList_OperationNode = (/*#__PURE__*/react.memo(OperationNode, function (_, next) {
+  return (
+    // https://github.com/ant-design/ant-design/issues/32544
+    // We'd better remove syntactic sugar in `rc-menu` since this has perf issue
+    next.tabMoving
+  );
+}));
+;// CONCATENATED MODULE: ./node_modules/rc-tabs/es/TabNavList/TabNode.js
+
+
+
+
+
+var TabNode = function TabNode(props) {
+  var prefixCls = props.prefixCls,
+    id = props.id,
+    active = props.active,
+    _props$tab = props.tab,
+    key = _props$tab.key,
+    label = _props$tab.label,
+    disabled = _props$tab.disabled,
+    closeIcon = _props$tab.closeIcon,
+    icon = _props$tab.icon,
+    closable = props.closable,
+    renderWrapper = props.renderWrapper,
+    removeAriaLabel = props.removeAriaLabel,
+    editable = props.editable,
+    onClick = props.onClick,
+    onFocus = props.onFocus,
+    style = props.style;
+  var tabPrefix = "".concat(prefixCls, "-tab");
+  var removable = getRemovable(closable, closeIcon, editable, disabled);
+  function onInternalClick(e) {
+    if (disabled) {
+      return;
+    }
+    onClick(e);
+  }
+  function onRemoveTab(event) {
+    event.preventDefault();
+    event.stopPropagation();
+    editable.onEdit('remove', {
+      key: key,
+      event: event
+    });
+  }
+  var labelNode = react.useMemo(function () {
+    return icon && typeof label === 'string' ? /*#__PURE__*/react.createElement("span", null, label) : label;
+  }, [label, icon]);
+  var node = /*#__PURE__*/react.createElement("div", {
+    key: key
+    // ref={ref}
+    ,
+    "data-node-key": genDataNodeKey(key),
+    className: classnames_default()(tabPrefix, defineProperty_defineProperty(defineProperty_defineProperty(defineProperty_defineProperty({}, "".concat(tabPrefix, "-with-remove"), removable), "".concat(tabPrefix, "-active"), active), "".concat(tabPrefix, "-disabled"), disabled)),
+    style: style,
+    onClick: onInternalClick
+  }, /*#__PURE__*/react.createElement("div", {
+    role: "tab",
+    "aria-selected": active,
+    id: id && "".concat(id, "-tab-").concat(key),
+    className: "".concat(tabPrefix, "-btn"),
+    "aria-controls": id && "".concat(id, "-panel-").concat(key),
+    "aria-disabled": disabled,
+    tabIndex: disabled ? null : 0,
+    onClick: function onClick(e) {
+      e.stopPropagation();
+      onInternalClick(e);
+    },
+    onKeyDown: function onKeyDown(e) {
+      if ([es_KeyCode.SPACE, es_KeyCode.ENTER].includes(e.which)) {
+        e.preventDefault();
+        onInternalClick(e);
+      }
+    },
+    onFocus: onFocus
+  }, icon && /*#__PURE__*/react.createElement("span", {
+    className: "".concat(tabPrefix, "-icon")
+  }, icon), label && labelNode), removable && /*#__PURE__*/react.createElement("button", {
+    type: "button",
+    "aria-label": removeAriaLabel || 'remove',
+    tabIndex: 0,
+    className: "".concat(tabPrefix, "-remove"),
+    onClick: function onClick(e) {
+      e.stopPropagation();
+      onRemoveTab(e);
+    }
+  }, closeIcon || editable.removeIcon || '×'));
+  return renderWrapper ? renderWrapper(node) : node;
+};
+/* harmony default export */ const TabNavList_TabNode = (TabNode);
+;// CONCATENATED MODULE: ./node_modules/rc-tabs/es/TabNavList/index.js
+
+
+
+
+
+/* eslint-disable react-hooks/exhaustive-deps */
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+var getTabSize = function getTabSize(tab, containerRect) {
+  // tabListRef
+  var offsetWidth = tab.offsetWidth,
+    offsetHeight = tab.offsetHeight,
+    offsetTop = tab.offsetTop,
+    offsetLeft = tab.offsetLeft;
+  var _tab$getBoundingClien = tab.getBoundingClientRect(),
+    width = _tab$getBoundingClien.width,
+    height = _tab$getBoundingClien.height,
+    x = _tab$getBoundingClien.x,
+    y = _tab$getBoundingClien.y;
+
+  // Use getBoundingClientRect to avoid decimal inaccuracy
+  if (Math.abs(width - offsetWidth) < 1) {
+    return [width, height, x - containerRect.x, y - containerRect.y];
+  }
+  return [offsetWidth, offsetHeight, offsetLeft, offsetTop];
+};
+var getSize = function getSize(refObj) {
+  var _ref = refObj.current || {},
+    _ref$offsetWidth = _ref.offsetWidth,
+    offsetWidth = _ref$offsetWidth === void 0 ? 0 : _ref$offsetWidth,
+    _ref$offsetHeight = _ref.offsetHeight,
+    offsetHeight = _ref$offsetHeight === void 0 ? 0 : _ref$offsetHeight;
+
+  // Use getBoundingClientRect to avoid decimal inaccuracy
+  if (refObj.current) {
+    var _refObj$current$getBo = refObj.current.getBoundingClientRect(),
+      width = _refObj$current$getBo.width,
+      height = _refObj$current$getBo.height;
+    if (Math.abs(width - offsetWidth) < 1) {
+      return [width, height];
+    }
+  }
+  return [offsetWidth, offsetHeight];
+};
+
+/**
+ * Convert `SizeInfo` to unit value. Such as [123, 456] with `top` position get `123`
+ */
+var getUnitValue = function getUnitValue(size, tabPositionTopOrBottom) {
+  return size[tabPositionTopOrBottom ? 0 : 1];
+};
+var TabNavList = /*#__PURE__*/react.forwardRef(function (props, ref) {
+  var className = props.className,
+    style = props.style,
+    id = props.id,
+    animated = props.animated,
+    activeKey = props.activeKey,
+    rtl = props.rtl,
+    extra = props.extra,
+    editable = props.editable,
+    locale = props.locale,
+    tabPosition = props.tabPosition,
+    tabBarGutter = props.tabBarGutter,
+    children = props.children,
+    onTabClick = props.onTabClick,
+    onTabScroll = props.onTabScroll,
+    indicator = props.indicator;
+  var _React$useContext = react.useContext(TabContext),
+    prefixCls = _React$useContext.prefixCls,
+    tabs = _React$useContext.tabs;
+  var containerRef = (0,react.useRef)(null);
+  var extraLeftRef = (0,react.useRef)(null);
+  var extraRightRef = (0,react.useRef)(null);
+  var tabsWrapperRef = (0,react.useRef)(null);
+  var tabListRef = (0,react.useRef)(null);
+  var operationsRef = (0,react.useRef)(null);
+  var innerAddButtonRef = (0,react.useRef)(null);
+  var tabPositionTopOrBottom = tabPosition === 'top' || tabPosition === 'bottom';
+  var _useSyncState = useSyncState(0, function (next, prev) {
+      if (tabPositionTopOrBottom && onTabScroll) {
+        onTabScroll({
+          direction: next > prev ? 'left' : 'right'
+        });
+      }
+    }),
+    _useSyncState2 = slicedToArray_slicedToArray(_useSyncState, 2),
+    transformLeft = _useSyncState2[0],
+    setTransformLeft = _useSyncState2[1];
+  var _useSyncState3 = useSyncState(0, function (next, prev) {
+      if (!tabPositionTopOrBottom && onTabScroll) {
+        onTabScroll({
+          direction: next > prev ? 'top' : 'bottom'
+        });
+      }
+    }),
+    _useSyncState4 = slicedToArray_slicedToArray(_useSyncState3, 2),
+    transformTop = _useSyncState4[0],
+    setTransformTop = _useSyncState4[1];
+  var _useState = (0,react.useState)([0, 0]),
+    _useState2 = slicedToArray_slicedToArray(_useState, 2),
+    containerExcludeExtraSize = _useState2[0],
+    setContainerExcludeExtraSize = _useState2[1];
+  var _useState3 = (0,react.useState)([0, 0]),
+    _useState4 = slicedToArray_slicedToArray(_useState3, 2),
+    tabContentSize = _useState4[0],
+    setTabContentSize = _useState4[1];
+  var _useState5 = (0,react.useState)([0, 0]),
+    _useState6 = slicedToArray_slicedToArray(_useState5, 2),
+    addSize = _useState6[0],
+    setAddSize = _useState6[1];
+  var _useState7 = (0,react.useState)([0, 0]),
+    _useState8 = slicedToArray_slicedToArray(_useState7, 2),
+    operationSize = _useState8[0],
+    setOperationSize = _useState8[1];
+  var _useUpdateState = useUpdateState(new Map()),
+    _useUpdateState2 = slicedToArray_slicedToArray(_useUpdateState, 2),
+    tabSizes = _useUpdateState2[0],
+    setTabSizes = _useUpdateState2[1];
+  var tabOffsets = useOffsets(tabs, tabSizes, tabContentSize[0]);
+
+  // ========================== Unit =========================
+  var containerExcludeExtraSizeValue = getUnitValue(containerExcludeExtraSize, tabPositionTopOrBottom);
+  var tabContentSizeValue = getUnitValue(tabContentSize, tabPositionTopOrBottom);
+  var addSizeValue = getUnitValue(addSize, tabPositionTopOrBottom);
+  var operationSizeValue = getUnitValue(operationSize, tabPositionTopOrBottom);
+  var needScroll = containerExcludeExtraSizeValue < tabContentSizeValue + addSizeValue;
+  var visibleTabContentValue = needScroll ? containerExcludeExtraSizeValue - operationSizeValue : containerExcludeExtraSizeValue - addSizeValue;
+
+  // ========================== Util =========================
+  var operationsHiddenClassName = "".concat(prefixCls, "-nav-operations-hidden");
+  var transformMin = 0;
+  var transformMax = 0;
+  if (!tabPositionTopOrBottom) {
+    transformMin = Math.min(0, visibleTabContentValue - tabContentSizeValue);
+    transformMax = 0;
+  } else if (rtl) {
+    transformMin = 0;
+    transformMax = Math.max(0, tabContentSizeValue - visibleTabContentValue);
+  } else {
+    transformMin = Math.min(0, visibleTabContentValue - tabContentSizeValue);
+    transformMax = 0;
+  }
+  function alignInRange(value) {
+    if (value < transformMin) {
+      return transformMin;
+    }
+    if (value > transformMax) {
+      return transformMax;
+    }
+    return value;
+  }
+
+  // ========================= Mobile ========================
+  var touchMovingRef = (0,react.useRef)(null);
+  var _useState9 = (0,react.useState)(),
+    _useState10 = slicedToArray_slicedToArray(_useState9, 2),
+    lockAnimation = _useState10[0],
+    setLockAnimation = _useState10[1];
+  function doLockAnimation() {
+    setLockAnimation(Date.now());
+  }
+  function clearTouchMoving() {
+    if (touchMovingRef.current) {
+      clearTimeout(touchMovingRef.current);
+    }
+  }
+  useTouchMove(tabsWrapperRef, function (offsetX, offsetY) {
+    function doMove(setState, offset) {
+      setState(function (value) {
+        var newValue = alignInRange(value + offset);
+        return newValue;
+      });
+    }
+
+    // Skip scroll if place is enough
+    if (!needScroll) {
+      return false;
+    }
+    if (tabPositionTopOrBottom) {
+      doMove(setTransformLeft, offsetX);
+    } else {
+      doMove(setTransformTop, offsetY);
+    }
+    clearTouchMoving();
+    doLockAnimation();
+    return true;
+  });
+  (0,react.useEffect)(function () {
+    clearTouchMoving();
+    if (lockAnimation) {
+      touchMovingRef.current = setTimeout(function () {
+        setLockAnimation(0);
+      }, 100);
+    }
+    return clearTouchMoving;
+  }, [lockAnimation]);
+
+  // ===================== Visible Range =====================
+  // Render tab node & collect tab offset
+  var _useVisibleRange = useVisibleRange(tabOffsets,
+    // Container
+    visibleTabContentValue,
+    // Transform
+    tabPositionTopOrBottom ? transformLeft : transformTop,
+    // Tabs
+    tabContentSizeValue,
+    // Add
+    addSizeValue,
+    // Operation
+    operationSizeValue, objectSpread2_objectSpread2(objectSpread2_objectSpread2({}, props), {}, {
+      tabs: tabs
+    })),
+    _useVisibleRange2 = slicedToArray_slicedToArray(_useVisibleRange, 2),
+    visibleStart = _useVisibleRange2[0],
+    visibleEnd = _useVisibleRange2[1];
+
+  // ========================= Scroll ========================
+  var scrollToTab = useEvent(function () {
+    var key = arguments.length > 0 && arguments[0] !== undefined ? arguments[0] : activeKey;
+    var tabOffset = tabOffsets.get(key) || {
+      width: 0,
+      height: 0,
+      left: 0,
+      right: 0,
+      top: 0
+    };
+    if (tabPositionTopOrBottom) {
+      // ============ Align with top & bottom ============
+      var newTransform = transformLeft;
+
+      // RTL
+      if (rtl) {
+        if (tabOffset.right < transformLeft) {
+          newTransform = tabOffset.right;
+        } else if (tabOffset.right + tabOffset.width > transformLeft + visibleTabContentValue) {
+          newTransform = tabOffset.right + tabOffset.width - visibleTabContentValue;
+        }
+      }
+      // LTR
+      else if (tabOffset.left < -transformLeft) {
+        newTransform = -tabOffset.left;
+      } else if (tabOffset.left + tabOffset.width > -transformLeft + visibleTabContentValue) {
+        newTransform = -(tabOffset.left + tabOffset.width - visibleTabContentValue);
+      }
+      setTransformTop(0);
+      setTransformLeft(alignInRange(newTransform));
+    } else {
+      // ============ Align with left & right ============
+      var _newTransform = transformTop;
+      if (tabOffset.top < -transformTop) {
+        _newTransform = -tabOffset.top;
+      } else if (tabOffset.top + tabOffset.height > -transformTop + visibleTabContentValue) {
+        _newTransform = -(tabOffset.top + tabOffset.height - visibleTabContentValue);
+      }
+      setTransformLeft(0);
+      setTransformTop(alignInRange(_newTransform));
+    }
+  });
+
+  // ========================== Tab ==========================
+  var tabNodeStyle = {};
+  if (tabPosition === 'top' || tabPosition === 'bottom') {
+    tabNodeStyle[rtl ? 'marginRight' : 'marginLeft'] = tabBarGutter;
+  } else {
+    tabNodeStyle.marginTop = tabBarGutter;
+  }
+  var tabNodes = tabs.map(function (tab, i) {
+    var key = tab.key;
+    return /*#__PURE__*/react.createElement(TabNavList_TabNode, {
+      id: id,
+      prefixCls: prefixCls,
+      key: key,
+      tab: tab
+      /* first node should not have margin left */,
+      style: i === 0 ? undefined : tabNodeStyle,
+      closable: tab.closable,
+      editable: editable,
+      active: key === activeKey,
+      renderWrapper: children,
+      removeAriaLabel: locale === null || locale === void 0 ? void 0 : locale.removeAriaLabel,
+      onClick: function onClick(e) {
+        onTabClick(key, e);
+      },
+      onFocus: function onFocus() {
+        scrollToTab(key);
+        doLockAnimation();
+        if (!tabsWrapperRef.current) {
+          return;
+        }
+        // Focus element will make scrollLeft change which we should reset back
+        if (!rtl) {
+          tabsWrapperRef.current.scrollLeft = 0;
+        }
+        tabsWrapperRef.current.scrollTop = 0;
+      }
+    });
+  });
+
+  // Update buttons records
+  var updateTabSizes = function updateTabSizes() {
+    return setTabSizes(function () {
+      var _tabListRef$current;
+      var newSizes = new Map();
+      var listRect = (_tabListRef$current = tabListRef.current) === null || _tabListRef$current === void 0 ? void 0 : _tabListRef$current.getBoundingClientRect();
+      tabs.forEach(function (_ref2) {
+        var _tabListRef$current2;
+        var key = _ref2.key;
+        var btnNode = (_tabListRef$current2 = tabListRef.current) === null || _tabListRef$current2 === void 0 ? void 0 : _tabListRef$current2.querySelector("[data-node-key=\"".concat(genDataNodeKey(key), "\"]"));
+        if (btnNode) {
+          var _getTabSize = getTabSize(btnNode, listRect),
+            _getTabSize2 = slicedToArray_slicedToArray(_getTabSize, 4),
+            width = _getTabSize2[0],
+            height = _getTabSize2[1],
+            left = _getTabSize2[2],
+            top = _getTabSize2[3];
+          newSizes.set(key, {
+            width: width,
+            height: height,
+            left: left,
+            top: top
+          });
+        }
+      });
+      return newSizes;
+    });
+  };
+  (0,react.useEffect)(function () {
+    updateTabSizes();
+  }, [tabs.map(function (tab) {
+    return tab.key;
+  }).join('_')]);
+  var onListHolderResize = useUpdate(function () {
+    // Update wrapper records
+    var containerSize = getSize(containerRef);
+    var extraLeftSize = getSize(extraLeftRef);
+    var extraRightSize = getSize(extraRightRef);
+    setContainerExcludeExtraSize([containerSize[0] - extraLeftSize[0] - extraRightSize[0], containerSize[1] - extraLeftSize[1] - extraRightSize[1]]);
+    var newAddSize = getSize(innerAddButtonRef);
+    setAddSize(newAddSize);
+    var newOperationSize = getSize(operationsRef);
+    setOperationSize(newOperationSize);
+
+    // Which includes add button size
+    var tabContentFullSize = getSize(tabListRef);
+    setTabContentSize([tabContentFullSize[0] - newAddSize[0], tabContentFullSize[1] - newAddSize[1]]);
+
+    // Update buttons records
+    updateTabSizes();
+  });
+
+  // ======================== Dropdown =======================
+  var startHiddenTabs = tabs.slice(0, visibleStart);
+  var endHiddenTabs = tabs.slice(visibleEnd + 1);
+  var hiddenTabs = [].concat(_toConsumableArray(startHiddenTabs), _toConsumableArray(endHiddenTabs));
+
+  // =================== Link & Operations ===================
+  var activeTabOffset = tabOffsets.get(activeKey);
+  var _useIndicator = hooks_useIndicator({
+      activeTabOffset: activeTabOffset,
+      horizontal: tabPositionTopOrBottom,
+      indicator: indicator,
+      rtl: rtl
+    }),
+    indicatorStyle = _useIndicator.style;
+
+  // ========================= Effect ========================
+  (0,react.useEffect)(function () {
+    scrollToTab();
+  }, [activeKey, transformMin, transformMax, util_stringify(activeTabOffset), util_stringify(tabOffsets), tabPositionTopOrBottom]);
+
+  // Should recalculate when rtl changed
+  (0,react.useEffect)(function () {
+    onListHolderResize();
+    // eslint-disable-next-line
+  }, [rtl]);
+
+  // ========================= Render ========================
+  var hasDropdown = !!hiddenTabs.length;
+  var wrapPrefix = "".concat(prefixCls, "-nav-wrap");
+  var pingLeft;
+  var pingRight;
+  var pingTop;
+  var pingBottom;
+  if (tabPositionTopOrBottom) {
+    if (rtl) {
+      pingRight = transformLeft > 0;
+      pingLeft = transformLeft !== transformMax;
+    } else {
+      pingLeft = transformLeft < 0;
+      pingRight = transformLeft !== transformMin;
+    }
+  } else {
+    pingTop = transformTop < 0;
+    pingBottom = transformTop !== transformMin;
+  }
+  return /*#__PURE__*/react.createElement(es, {
+    onResize: onListHolderResize
+  }, /*#__PURE__*/react.createElement("div", {
+    ref: ref_useComposeRef(ref, containerRef),
+    role: "tablist",
+    className: classnames_default()("".concat(prefixCls, "-nav"), className),
+    style: style,
+    onKeyDown: function onKeyDown() {
+      // No need animation when use keyboard
+      doLockAnimation();
+    }
+  }, /*#__PURE__*/react.createElement(TabNavList_ExtraContent, {
+    ref: extraLeftRef,
+    position: "left",
+    extra: extra,
+    prefixCls: prefixCls
+  }), /*#__PURE__*/react.createElement(es, {
+    onResize: onListHolderResize
+  }, /*#__PURE__*/react.createElement("div", {
+    className: classnames_default()(wrapPrefix, defineProperty_defineProperty(defineProperty_defineProperty(defineProperty_defineProperty(defineProperty_defineProperty({}, "".concat(wrapPrefix, "-ping-left"), pingLeft), "".concat(wrapPrefix, "-ping-right"), pingRight), "".concat(wrapPrefix, "-ping-top"), pingTop), "".concat(wrapPrefix, "-ping-bottom"), pingBottom)),
+    ref: tabsWrapperRef
+  }, /*#__PURE__*/react.createElement(es, {
+    onResize: onListHolderResize
+  }, /*#__PURE__*/react.createElement("div", {
+    ref: tabListRef,
+    className: "".concat(prefixCls, "-nav-list"),
+    style: {
+      transform: "translate(".concat(transformLeft, "px, ").concat(transformTop, "px)"),
+      transition: lockAnimation ? 'none' : undefined
+    }
+  }, tabNodes, /*#__PURE__*/react.createElement(TabNavList_AddButton, {
+    ref: innerAddButtonRef,
+    prefixCls: prefixCls,
+    locale: locale,
+    editable: editable,
+    style: objectSpread2_objectSpread2(objectSpread2_objectSpread2({}, tabNodes.length === 0 ? undefined : tabNodeStyle), {}, {
+      visibility: hasDropdown ? 'hidden' : null
+    })
+  }), /*#__PURE__*/react.createElement("div", {
+    className: classnames_default()("".concat(prefixCls, "-ink-bar"), defineProperty_defineProperty({}, "".concat(prefixCls, "-ink-bar-animated"), animated.inkBar)),
+    style: indicatorStyle
+  }))))), /*#__PURE__*/react.createElement(TabNavList_OperationNode, _extends({}, props, {
+    removeAriaLabel: locale === null || locale === void 0 ? void 0 : locale.removeAriaLabel,
+    ref: operationsRef,
+    prefixCls: prefixCls,
+    tabs: hiddenTabs,
+    className: !hasDropdown && operationsHiddenClassName,
+    tabMoving: !!lockAnimation
+  })), /*#__PURE__*/react.createElement(TabNavList_ExtraContent, {
+    ref: extraRightRef,
+    position: "right",
+    extra: extra,
+    prefixCls: prefixCls
+  })));
+  /* eslint-enable */
+});
+/* harmony default export */ const es_TabNavList = (TabNavList);
+;// CONCATENATED MODULE: ./node_modules/rc-tabs/es/TabPanelList/TabPane.js
+
+
+var TabPane = /*#__PURE__*/react.forwardRef(function (props, ref) {
+  var prefixCls = props.prefixCls,
+    className = props.className,
+    style = props.style,
+    id = props.id,
+    active = props.active,
+    tabKey = props.tabKey,
+    children = props.children;
+  return /*#__PURE__*/react.createElement("div", {
+    id: id && "".concat(id, "-panel-").concat(tabKey),
+    role: "tabpanel",
+    tabIndex: active ? 0 : -1,
+    "aria-labelledby": id && "".concat(id, "-tab-").concat(tabKey),
+    "aria-hidden": !active,
+    style: style,
+    className: classnames_default()(prefixCls, active && "".concat(prefixCls, "-active"), className),
+    ref: ref
+  }, children);
+});
+if (false) {}
+/* harmony default export */ const TabPanelList_TabPane = (TabPane);
+;// CONCATENATED MODULE: ./node_modules/rc-tabs/es/TabNavList/Wrapper.js
+
+
+
+var Wrapper_excluded = ["renderTabBar"],
+  Wrapper_excluded2 = ["label", "key"];
+// zombieJ: To compatible with `renderTabBar` usage.
+
+
+
+
+
+// We have to create a TabNavList components.
+var TabNavListWrapper = function TabNavListWrapper(_ref) {
+  var renderTabBar = _ref.renderTabBar,
+    restProps = objectWithoutProperties_objectWithoutProperties(_ref, Wrapper_excluded);
+  var _React$useContext = react.useContext(TabContext),
+    tabs = _React$useContext.tabs;
+  if (renderTabBar) {
+    var tabNavBarProps = objectSpread2_objectSpread2(objectSpread2_objectSpread2({}, restProps), {}, {
+      // Legacy support. We do not use this actually
+      panes: tabs.map(function (_ref2) {
+        var label = _ref2.label,
+          key = _ref2.key,
+          restTabProps = objectWithoutProperties_objectWithoutProperties(_ref2, Wrapper_excluded2);
+        return /*#__PURE__*/react.createElement(TabPanelList_TabPane, _extends({
+          tab: label,
+          key: key,
+          tabKey: key
+        }, restTabProps));
+      })
+    });
+    return renderTabBar(tabNavBarProps, es_TabNavList);
+  }
+  return /*#__PURE__*/react.createElement(es_TabNavList, restProps);
+};
+if (false) {}
+/* harmony default export */ const Wrapper = (TabNavListWrapper);
+;// CONCATENATED MODULE: ./node_modules/rc-tabs/es/TabPanelList/index.js
+
+
+
+
+var TabPanelList_excluded = ["key", "forceRender", "style", "className", "destroyInactiveTabPane"];
+
+
+
+
+
+var TabPanelList = function TabPanelList(props) {
+  var id = props.id,
+    activeKey = props.activeKey,
+    animated = props.animated,
+    tabPosition = props.tabPosition,
+    destroyInactiveTabPane = props.destroyInactiveTabPane;
+  var _React$useContext = react.useContext(TabContext),
+    prefixCls = _React$useContext.prefixCls,
+    tabs = _React$useContext.tabs;
+  var tabPaneAnimated = animated.tabPane;
+  var tabPanePrefixCls = "".concat(prefixCls, "-tabpane");
+  return /*#__PURE__*/react.createElement("div", {
+    className: classnames_default()("".concat(prefixCls, "-content-holder"))
+  }, /*#__PURE__*/react.createElement("div", {
+    className: classnames_default()("".concat(prefixCls, "-content"), "".concat(prefixCls, "-content-").concat(tabPosition), defineProperty_defineProperty({}, "".concat(prefixCls, "-content-animated"), tabPaneAnimated))
+  }, tabs.map(function (item) {
+    var key = item.key,
+      forceRender = item.forceRender,
+      paneStyle = item.style,
+      paneClassName = item.className,
+      itemDestroyInactiveTabPane = item.destroyInactiveTabPane,
+      restTabProps = objectWithoutProperties_objectWithoutProperties(item, TabPanelList_excluded);
+    var active = key === activeKey;
+    return /*#__PURE__*/react.createElement(rc_motion_es, _extends({
+      key: key,
+      visible: active,
+      forceRender: forceRender,
+      removeOnLeave: !!(destroyInactiveTabPane || itemDestroyInactiveTabPane),
+      leavedClassName: "".concat(tabPanePrefixCls, "-hidden")
+    }, animated.tabPaneMotion), function (_ref, ref) {
+      var motionStyle = _ref.style,
+        motionClassName = _ref.className;
+      return /*#__PURE__*/react.createElement(TabPanelList_TabPane, _extends({}, restTabProps, {
+        prefixCls: tabPanePrefixCls,
+        id: id,
+        tabKey: key,
+        animated: tabPaneAnimated,
+        active: active,
+        style: objectSpread2_objectSpread2(objectSpread2_objectSpread2({}, paneStyle), motionStyle),
+        className: classnames_default()(paneClassName, motionClassName),
+        ref: ref
+      }));
+    });
+  })));
+};
+/* harmony default export */ const es_TabPanelList = (TabPanelList);
+;// CONCATENATED MODULE: ./node_modules/rc-tabs/es/hooks/useAnimateConfig.js
+
+
+
+function useAnimateConfig() {
+  var animated = arguments.length > 0 && arguments[0] !== undefined ? arguments[0] : {
+    inkBar: true,
+    tabPane: false
+  };
+  var mergedAnimated;
+  if (animated === false) {
+    mergedAnimated = {
+      inkBar: false,
+      tabPane: false
+    };
+  } else if (animated === true) {
+    mergedAnimated = {
+      inkBar: true,
+      tabPane: false
+    };
+  } else {
+    mergedAnimated = objectSpread2_objectSpread2({
+      inkBar: true
+    }, _typeof(animated) === 'object' ? animated : {});
+  }
+
+  // Enable tabPane animation if provide motion
+  if (mergedAnimated.tabPaneMotion && mergedAnimated.tabPane === undefined) {
+    mergedAnimated.tabPane = true;
+  }
+  if (!mergedAnimated.tabPaneMotion && mergedAnimated.tabPane) {
+    if (false) {}
+    mergedAnimated.tabPane = false;
+  }
+  return mergedAnimated;
+}
+;// CONCATENATED MODULE: ./node_modules/rc-tabs/es/Tabs.js
+
+
+
+
+
+
+var Tabs_excluded = ["id", "prefixCls", "className", "items", "direction", "activeKey", "defaultActiveKey", "editable", "animated", "tabPosition", "tabBarGutter", "tabBarStyle", "tabBarExtraContent", "locale", "moreIcon", "moreTransitionName", "destroyInactiveTabPane", "renderTabBar", "onChange", "onTabClick", "onTabScroll", "getPopupContainer", "popupClassName", "indicator"];
+// Accessibility https://developer.mozilla.org/en-US/docs/Web/Accessibility/ARIA/Roles/Tab_Role
+
+
+
+
+
+
+
+
+
+/**
+ * Should added antd:
+ * - type
+ *
+ * Removed:
+ * - onNextClick
+ * - onPrevClick
+ * - keyboard
+ */
+
+// Used for accessibility
+var Tabs_uuid = 0;
+var Tabs = /*#__PURE__*/react.forwardRef(function (props, ref) {
+  var id = props.id,
+    _props$prefixCls = props.prefixCls,
+    prefixCls = _props$prefixCls === void 0 ? 'rc-tabs' : _props$prefixCls,
+    className = props.className,
+    items = props.items,
+    direction = props.direction,
+    activeKey = props.activeKey,
+    defaultActiveKey = props.defaultActiveKey,
+    editable = props.editable,
+    animated = props.animated,
+    _props$tabPosition = props.tabPosition,
+    tabPosition = _props$tabPosition === void 0 ? 'top' : _props$tabPosition,
+    tabBarGutter = props.tabBarGutter,
+    tabBarStyle = props.tabBarStyle,
+    tabBarExtraContent = props.tabBarExtraContent,
+    locale = props.locale,
+    moreIcon = props.moreIcon,
+    moreTransitionName = props.moreTransitionName,
+    destroyInactiveTabPane = props.destroyInactiveTabPane,
+    renderTabBar = props.renderTabBar,
+    onChange = props.onChange,
+    onTabClick = props.onTabClick,
+    onTabScroll = props.onTabScroll,
+    getPopupContainer = props.getPopupContainer,
+    popupClassName = props.popupClassName,
+    indicator = props.indicator,
+    restProps = objectWithoutProperties_objectWithoutProperties(props, Tabs_excluded);
+  var tabs = react.useMemo(function () {
+    return (items || []).filter(function (item) {
+      return item && _typeof(item) === 'object' && 'key' in item;
+    });
+  }, [items]);
+  var rtl = direction === 'rtl';
+  var mergedAnimated = useAnimateConfig(animated);
+
+  // ======================== Mobile ========================
+  var _useState = (0,react.useState)(false),
+    _useState2 = slicedToArray_slicedToArray(_useState, 2),
+    mobile = _useState2[0],
+    setMobile = _useState2[1];
+  (0,react.useEffect)(function () {
+    // Only update on the client side
+    setMobile(isMobile());
+  }, []);
+
+  // ====================== Active Key ======================
+  var _useMergedState = useMergedState(function () {
+      var _tabs$;
+      return (_tabs$ = tabs[0]) === null || _tabs$ === void 0 ? void 0 : _tabs$.key;
+    }, {
+      value: activeKey,
+      defaultValue: defaultActiveKey
+    }),
+    _useMergedState2 = slicedToArray_slicedToArray(_useMergedState, 2),
+    mergedActiveKey = _useMergedState2[0],
+    setMergedActiveKey = _useMergedState2[1];
+  var _useState3 = (0,react.useState)(function () {
+      return tabs.findIndex(function (tab) {
+        return tab.key === mergedActiveKey;
+      });
+    }),
+    _useState4 = slicedToArray_slicedToArray(_useState3, 2),
+    activeIndex = _useState4[0],
+    setActiveIndex = _useState4[1];
+
+  // Reset active key if not exist anymore
+  (0,react.useEffect)(function () {
+    var newActiveIndex = tabs.findIndex(function (tab) {
+      return tab.key === mergedActiveKey;
+    });
+    if (newActiveIndex === -1) {
+      var _tabs$newActiveIndex;
+      newActiveIndex = Math.max(0, Math.min(activeIndex, tabs.length - 1));
+      setMergedActiveKey((_tabs$newActiveIndex = tabs[newActiveIndex]) === null || _tabs$newActiveIndex === void 0 ? void 0 : _tabs$newActiveIndex.key);
+    }
+    setActiveIndex(newActiveIndex);
+  }, [tabs.map(function (tab) {
+    return tab.key;
+  }).join('_'), mergedActiveKey, activeIndex]);
+
+  // ===================== Accessibility ====================
+  var _useMergedState3 = useMergedState(null, {
+      value: id
+    }),
+    _useMergedState4 = slicedToArray_slicedToArray(_useMergedState3, 2),
+    mergedId = _useMergedState4[0],
+    setMergedId = _useMergedState4[1];
+
+  // Async generate id to avoid ssr mapping failed
+  (0,react.useEffect)(function () {
+    if (!id) {
+      setMergedId("rc-tabs-".concat( false ? 0 : Tabs_uuid));
+      Tabs_uuid += 1;
+    }
+  }, []);
+
+  // ======================== Events ========================
+  function onInternalTabClick(key, e) {
+    onTabClick === null || onTabClick === void 0 || onTabClick(key, e);
+    var isActiveChanged = key !== mergedActiveKey;
+    setMergedActiveKey(key);
+    if (isActiveChanged) {
+      onChange === null || onChange === void 0 || onChange(key);
+    }
+  }
+
+  // ======================== Render ========================
+  var sharedProps = {
+    id: mergedId,
+    activeKey: mergedActiveKey,
+    animated: mergedAnimated,
+    tabPosition: tabPosition,
+    rtl: rtl,
+    mobile: mobile
+  };
+  var tabNavBarProps = objectSpread2_objectSpread2(objectSpread2_objectSpread2({}, sharedProps), {}, {
+    editable: editable,
+    locale: locale,
+    moreIcon: moreIcon,
+    moreTransitionName: moreTransitionName,
+    tabBarGutter: tabBarGutter,
+    onTabClick: onInternalTabClick,
+    onTabScroll: onTabScroll,
+    extra: tabBarExtraContent,
+    style: tabBarStyle,
+    panes: null,
+    getPopupContainer: getPopupContainer,
+    popupClassName: popupClassName,
+    indicator: indicator
+  });
+  return /*#__PURE__*/react.createElement(TabContext.Provider, {
+    value: {
+      tabs: tabs,
+      prefixCls: prefixCls
+    }
+  }, /*#__PURE__*/react.createElement("div", _extends({
+    ref: ref,
+    id: id,
+    className: classnames_default()(prefixCls, "".concat(prefixCls, "-").concat(tabPosition), defineProperty_defineProperty(defineProperty_defineProperty(defineProperty_defineProperty({}, "".concat(prefixCls, "-mobile"), mobile), "".concat(prefixCls, "-editable"), editable), "".concat(prefixCls, "-rtl"), rtl), className)
+  }, restProps), /*#__PURE__*/react.createElement(Wrapper, _extends({}, tabNavBarProps, {
+    renderTabBar: renderTabBar
+  })), /*#__PURE__*/react.createElement(es_TabPanelList, _extends({
+    destroyInactiveTabPane: destroyInactiveTabPane
+  }, sharedProps, {
+    animated: mergedAnimated
+  }))));
+});
+if (false) {}
+/* harmony default export */ const es_Tabs = (Tabs);
+;// CONCATENATED MODULE: ./node_modules/rc-tabs/es/index.js
+
+/* harmony default export */ const rc_tabs_es = (es_Tabs);
+;// CONCATENATED MODULE: ./node_modules/antd/es/tabs/hooks/useAnimateConfig.js
+
+const useAnimateConfig_motion = {
+  motionAppear: false,
+  motionEnter: true,
+  motionLeave: true
+};
+function useAnimateConfig_useAnimateConfig(prefixCls) {
+  let animated = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : {
+    inkBar: true,
+    tabPane: false
+  };
+  let mergedAnimated;
+  if (animated === false) {
+    mergedAnimated = {
+      inkBar: false,
+      tabPane: false
+    };
+  } else if (animated === true) {
+    mergedAnimated = {
+      inkBar: true,
+      tabPane: true
+    };
+  } else {
+    mergedAnimated = Object.assign({
+      inkBar: true
+    }, typeof animated === 'object' ? animated : {});
+  }
+  if (mergedAnimated.tabPane) {
+    mergedAnimated.tabPaneMotion = Object.assign(Object.assign({}, useAnimateConfig_motion), {
+      motionName: motion_getTransitionName(prefixCls, 'switch')
+    });
+  }
+  return mergedAnimated;
+}
+;// CONCATENATED MODULE: ./node_modules/antd/es/tabs/hooks/useLegacyItems.js
+var useLegacyItems_rest = undefined && undefined.__rest || function (s, e) {
+  var t = {};
+  for (var p in s) if (Object.prototype.hasOwnProperty.call(s, p) && e.indexOf(p) < 0) t[p] = s[p];
+  if (s != null && typeof Object.getOwnPropertySymbols === "function") for (var i = 0, p = Object.getOwnPropertySymbols(s); i < p.length; i++) {
+    if (e.indexOf(p[i]) < 0 && Object.prototype.propertyIsEnumerable.call(s, p[i])) t[p[i]] = s[p[i]];
+  }
+  return t;
+};
+
+
+
+function useLegacyItems_filter(items) {
+  return items.filter(item => item);
+}
+function useLegacyItems(items, children) {
+  if (false) {}
+  if (items) {
+    return items;
+  }
+  const childrenItems = toArray_toArray(children).map(node => {
+    if ( /*#__PURE__*/react.isValidElement(node)) {
+      const {
+        key,
+        props
+      } = node;
+      const _a = props || {},
+        {
+          tab
+        } = _a,
+        restProps = useLegacyItems_rest(_a, ["tab"]);
+      const item = Object.assign(Object.assign({
+        key: String(key)
+      }, restProps), {
+        label: tab
+      });
+      return item;
+    }
+    return null;
+  });
+  return useLegacyItems_filter(childrenItems);
+}
+;// CONCATENATED MODULE: ./node_modules/antd/es/tabs/style/motion.js
+
+const genMotionStyle = token => {
+  const {
+    componentCls,
+    motionDurationSlow
+  } = token;
+  return [{
+    [componentCls]: {
+      [`${componentCls}-switch`]: {
+        '&-appear, &-enter': {
+          transition: 'none',
+          '&-start': {
+            opacity: 0
+          },
+          '&-active': {
+            opacity: 1,
+            transition: `opacity ${motionDurationSlow}`
+          }
+        },
+        '&-leave': {
+          position: 'absolute',
+          transition: 'none',
+          inset: 0,
+          '&-start': {
+            opacity: 1
+          },
+          '&-active': {
+            opacity: 0,
+            transition: `opacity ${motionDurationSlow}`
+          }
+        }
+      }
+    }
+  },
+  // Follow code may reuse in other components
+  [initSlideMotion(token, 'slide-up'), initSlideMotion(token, 'slide-down')]];
+};
+/* harmony default export */ const style_motion = (genMotionStyle);
+;// CONCATENATED MODULE: ./node_modules/antd/es/tabs/style/index.js
+
+
+
+
+const genCardStyle = token => {
+  const {
+    componentCls,
+    tabsCardPadding,
+    cardBg,
+    cardGutter,
+    colorBorderSecondary,
+    itemSelectedColor
+  } = token;
+  return {
+    [`${componentCls}-card`]: {
+      [`> ${componentCls}-nav, > div > ${componentCls}-nav`]: {
+        [`${componentCls}-tab`]: {
+          margin: 0,
+          padding: tabsCardPadding,
+          background: cardBg,
+          border: `${unit(token.lineWidth)} ${token.lineType} ${colorBorderSecondary}`,
+          transition: `all ${token.motionDurationSlow} ${token.motionEaseInOut}`
+        },
+        [`${componentCls}-tab-active`]: {
+          color: itemSelectedColor,
+          background: token.colorBgContainer
+        },
+        [`${componentCls}-ink-bar`]: {
+          visibility: 'hidden'
+        }
+      },
+      // ========================== Top & Bottom ==========================
+      [`&${componentCls}-top, &${componentCls}-bottom`]: {
+        [`> ${componentCls}-nav, > div > ${componentCls}-nav`]: {
+          [`${componentCls}-tab + ${componentCls}-tab`]: {
+            marginLeft: {
+              _skip_check_: true,
+              value: unit(cardGutter)
+            }
+          }
+        }
+      },
+      [`&${componentCls}-top`]: {
+        [`> ${componentCls}-nav, > div > ${componentCls}-nav`]: {
+          [`${componentCls}-tab`]: {
+            borderRadius: `${unit(token.borderRadiusLG)} ${unit(token.borderRadiusLG)} 0 0`
+          },
+          [`${componentCls}-tab-active`]: {
+            borderBottomColor: token.colorBgContainer
+          }
+        }
+      },
+      [`&${componentCls}-bottom`]: {
+        [`> ${componentCls}-nav, > div > ${componentCls}-nav`]: {
+          [`${componentCls}-tab`]: {
+            borderRadius: `0 0 ${unit(token.borderRadiusLG)} ${unit(token.borderRadiusLG)}`
+          },
+          [`${componentCls}-tab-active`]: {
+            borderTopColor: token.colorBgContainer
+          }
+        }
+      },
+      // ========================== Left & Right ==========================
+      [`&${componentCls}-left, &${componentCls}-right`]: {
+        [`> ${componentCls}-nav, > div > ${componentCls}-nav`]: {
+          [`${componentCls}-tab + ${componentCls}-tab`]: {
+            marginTop: unit(cardGutter)
+          }
+        }
+      },
+      [`&${componentCls}-left`]: {
+        [`> ${componentCls}-nav, > div > ${componentCls}-nav`]: {
+          [`${componentCls}-tab`]: {
+            borderRadius: {
+              _skip_check_: true,
+              value: `${unit(token.borderRadiusLG)} 0 0 ${unit(token.borderRadiusLG)}`
+            }
+          },
+          [`${componentCls}-tab-active`]: {
+            borderRightColor: {
+              _skip_check_: true,
+              value: token.colorBgContainer
+            }
+          }
+        }
+      },
+      [`&${componentCls}-right`]: {
+        [`> ${componentCls}-nav, > div > ${componentCls}-nav`]: {
+          [`${componentCls}-tab`]: {
+            borderRadius: {
+              _skip_check_: true,
+              value: `0 ${unit(token.borderRadiusLG)} ${unit(token.borderRadiusLG)} 0`
+            }
+          },
+          [`${componentCls}-tab-active`]: {
+            borderLeftColor: {
+              _skip_check_: true,
+              value: token.colorBgContainer
+            }
+          }
+        }
+      }
+    }
+  };
+};
+const genDropdownStyle = token => {
+  const {
+    componentCls,
+    itemHoverColor,
+    dropdownEdgeChildVerticalPadding
+  } = token;
+  return {
+    [`${componentCls}-dropdown`]: Object.assign(Object.assign({}, resetComponent(token)), {
+      position: 'absolute',
+      top: -9999,
+      left: {
+        _skip_check_: true,
+        value: -9999
+      },
+      zIndex: token.zIndexPopup,
+      display: 'block',
+      '&-hidden': {
+        display: 'none'
+      },
+      [`${componentCls}-dropdown-menu`]: {
+        maxHeight: token.tabsDropdownHeight,
+        margin: 0,
+        padding: `${unit(dropdownEdgeChildVerticalPadding)} 0`,
+        overflowX: 'hidden',
+        overflowY: 'auto',
+        textAlign: {
+          _skip_check_: true,
+          value: 'left'
+        },
+        listStyleType: 'none',
+        backgroundColor: token.colorBgContainer,
+        backgroundClip: 'padding-box',
+        borderRadius: token.borderRadiusLG,
+        outline: 'none',
+        boxShadow: token.boxShadowSecondary,
+        '&-item': Object.assign(Object.assign({}, textEllipsis), {
+          display: 'flex',
+          alignItems: 'center',
+          minWidth: token.tabsDropdownWidth,
+          margin: 0,
+          padding: `${unit(token.paddingXXS)} ${unit(token.paddingSM)}`,
+          color: token.colorText,
+          fontWeight: 'normal',
+          fontSize: token.fontSize,
+          lineHeight: token.lineHeight,
+          cursor: 'pointer',
+          transition: `all ${token.motionDurationSlow}`,
+          '> span': {
+            flex: 1,
+            whiteSpace: 'nowrap'
+          },
+          '&-remove': {
+            flex: 'none',
+            marginLeft: {
+              _skip_check_: true,
+              value: token.marginSM
+            },
+            color: token.colorTextDescription,
+            fontSize: token.fontSizeSM,
+            background: 'transparent',
+            border: 0,
+            cursor: 'pointer',
+            '&:hover': {
+              color: itemHoverColor
+            }
+          },
+          '&:hover': {
+            background: token.controlItemBgHover
+          },
+          '&-disabled': {
+            '&, &:hover': {
+              color: token.colorTextDisabled,
+              background: 'transparent',
+              cursor: 'not-allowed'
+            }
+          }
+        })
+      }
+    })
+  };
+};
+const genPositionStyle = token => {
+  const {
+    componentCls,
+    margin,
+    colorBorderSecondary,
+    horizontalMargin,
+    verticalItemPadding,
+    verticalItemMargin,
+    calc
+  } = token;
+  return {
+    // ========================== Top & Bottom ==========================
+    [`${componentCls}-top, ${componentCls}-bottom`]: {
+      flexDirection: 'column',
+      [`> ${componentCls}-nav, > div > ${componentCls}-nav`]: {
+        margin: horizontalMargin,
+        '&::before': {
+          position: 'absolute',
+          right: {
+            _skip_check_: true,
+            value: 0
+          },
+          left: {
+            _skip_check_: true,
+            value: 0
+          },
+          borderBottom: `${unit(token.lineWidth)} ${token.lineType} ${colorBorderSecondary}`,
+          content: "''"
+        },
+        [`${componentCls}-ink-bar`]: {
+          height: token.lineWidthBold,
+          '&-animated': {
+            transition: `width ${token.motionDurationSlow}, left ${token.motionDurationSlow},
+            right ${token.motionDurationSlow}`
+          }
+        },
+        [`${componentCls}-nav-wrap`]: {
+          '&::before, &::after': {
+            top: 0,
+            bottom: 0,
+            width: token.controlHeight
+          },
+          '&::before': {
+            left: {
+              _skip_check_: true,
+              value: 0
+            },
+            boxShadow: token.boxShadowTabsOverflowLeft
+          },
+          '&::after': {
+            right: {
+              _skip_check_: true,
+              value: 0
+            },
+            boxShadow: token.boxShadowTabsOverflowRight
+          },
+          [`&${componentCls}-nav-wrap-ping-left::before`]: {
+            opacity: 1
+          },
+          [`&${componentCls}-nav-wrap-ping-right::after`]: {
+            opacity: 1
+          }
+        }
+      }
+    },
+    [`${componentCls}-top`]: {
+      [`> ${componentCls}-nav,
+        > div > ${componentCls}-nav`]: {
+        '&::before': {
+          bottom: 0
+        },
+        [`${componentCls}-ink-bar`]: {
+          bottom: 0
+        }
+      }
+    },
+    [`${componentCls}-bottom`]: {
+      [`> ${componentCls}-nav, > div > ${componentCls}-nav`]: {
+        order: 1,
+        marginTop: margin,
+        marginBottom: 0,
+        '&::before': {
+          top: 0
+        },
+        [`${componentCls}-ink-bar`]: {
+          top: 0
+        }
+      },
+      [`> ${componentCls}-content-holder, > div > ${componentCls}-content-holder`]: {
+        order: 0
+      }
+    },
+    // ========================== Left & Right ==========================
+    [`${componentCls}-left, ${componentCls}-right`]: {
+      [`> ${componentCls}-nav, > div > ${componentCls}-nav`]: {
+        flexDirection: 'column',
+        minWidth: calc(token.controlHeight).mul(1.25).equal(),
+        // >>>>>>>>>>> Tab
+        [`${componentCls}-tab`]: {
+          padding: verticalItemPadding,
+          textAlign: 'center'
+        },
+        [`${componentCls}-tab + ${componentCls}-tab`]: {
+          margin: verticalItemMargin
+        },
+        // >>>>>>>>>>> Nav
+        [`${componentCls}-nav-wrap`]: {
+          flexDirection: 'column',
+          '&::before, &::after': {
+            right: {
+              _skip_check_: true,
+              value: 0
+            },
+            left: {
+              _skip_check_: true,
+              value: 0
+            },
+            height: token.controlHeight
+          },
+          '&::before': {
+            top: 0,
+            boxShadow: token.boxShadowTabsOverflowTop
+          },
+          '&::after': {
+            bottom: 0,
+            boxShadow: token.boxShadowTabsOverflowBottom
+          },
+          [`&${componentCls}-nav-wrap-ping-top::before`]: {
+            opacity: 1
+          },
+          [`&${componentCls}-nav-wrap-ping-bottom::after`]: {
+            opacity: 1
+          }
+        },
+        // >>>>>>>>>>> Ink Bar
+        [`${componentCls}-ink-bar`]: {
+          width: token.lineWidthBold,
+          '&-animated': {
+            transition: `height ${token.motionDurationSlow}, top ${token.motionDurationSlow}`
+          }
+        },
+        [`${componentCls}-nav-list, ${componentCls}-nav-operations`]: {
+          flex: '1 0 auto',
+          // fix safari scroll problem
+          flexDirection: 'column'
+        }
+      }
+    },
+    [`${componentCls}-left`]: {
+      [`> ${componentCls}-nav, > div > ${componentCls}-nav`]: {
+        [`${componentCls}-ink-bar`]: {
+          right: {
+            _skip_check_: true,
+            value: 0
+          }
+        }
+      },
+      [`> ${componentCls}-content-holder, > div > ${componentCls}-content-holder`]: {
+        marginLeft: {
+          _skip_check_: true,
+          value: unit(calc(token.lineWidth).mul(-1).equal())
+        },
+        borderLeft: {
+          _skip_check_: true,
+          value: `${unit(token.lineWidth)} ${token.lineType} ${token.colorBorder}`
+        },
+        [`> ${componentCls}-content > ${componentCls}-tabpane`]: {
+          paddingLeft: {
+            _skip_check_: true,
+            value: token.paddingLG
+          }
+        }
+      }
+    },
+    [`${componentCls}-right`]: {
+      [`> ${componentCls}-nav, > div > ${componentCls}-nav`]: {
+        order: 1,
+        [`${componentCls}-ink-bar`]: {
+          left: {
+            _skip_check_: true,
+            value: 0
+          }
+        }
+      },
+      [`> ${componentCls}-content-holder, > div > ${componentCls}-content-holder`]: {
+        order: 0,
+        marginRight: {
+          _skip_check_: true,
+          value: calc(token.lineWidth).mul(-1).equal()
+        },
+        borderRight: {
+          _skip_check_: true,
+          value: `${unit(token.lineWidth)} ${token.lineType} ${token.colorBorder}`
+        },
+        [`> ${componentCls}-content > ${componentCls}-tabpane`]: {
+          paddingRight: {
+            _skip_check_: true,
+            value: token.paddingLG
+          }
+        }
+      }
+    }
+  };
+};
+const genSizeStyle = token => {
+  const {
+    componentCls,
+    cardPaddingSM,
+    cardPaddingLG,
+    horizontalItemPaddingSM,
+    horizontalItemPaddingLG
+  } = token;
+  return {
+    [componentCls]: {
+      '&-small': {
+        [`> ${componentCls}-nav`]: {
+          [`${componentCls}-tab`]: {
+            padding: horizontalItemPaddingSM,
+            fontSize: token.titleFontSizeSM
+          }
+        }
+      },
+      '&-large': {
+        [`> ${componentCls}-nav`]: {
+          [`${componentCls}-tab`]: {
+            padding: horizontalItemPaddingLG,
+            fontSize: token.titleFontSizeLG
+          }
+        }
+      }
+    },
+    [`${componentCls}-card`]: {
+      [`&${componentCls}-small`]: {
+        [`> ${componentCls}-nav`]: {
+          [`${componentCls}-tab`]: {
+            padding: cardPaddingSM
+          }
+        },
+        [`&${componentCls}-bottom`]: {
+          [`> ${componentCls}-nav ${componentCls}-tab`]: {
+            borderRadius: `0 0 ${unit(token.borderRadius)} ${unit(token.borderRadius)}`
+          }
+        },
+        [`&${componentCls}-top`]: {
+          [`> ${componentCls}-nav ${componentCls}-tab`]: {
+            borderRadius: `${unit(token.borderRadius)} ${unit(token.borderRadius)} 0 0`
+          }
+        },
+        [`&${componentCls}-right`]: {
+          [`> ${componentCls}-nav ${componentCls}-tab`]: {
+            borderRadius: {
+              _skip_check_: true,
+              value: `0 ${unit(token.borderRadius)} ${unit(token.borderRadius)} 0`
+            }
+          }
+        },
+        [`&${componentCls}-left`]: {
+          [`> ${componentCls}-nav ${componentCls}-tab`]: {
+            borderRadius: {
+              _skip_check_: true,
+              value: `${unit(token.borderRadius)} 0 0 ${unit(token.borderRadius)}`
+            }
+          }
+        }
+      },
+      [`&${componentCls}-large`]: {
+        [`> ${componentCls}-nav`]: {
+          [`${componentCls}-tab`]: {
+            padding: cardPaddingLG
+          }
+        }
+      }
+    }
+  };
+};
+const genTabStyle = token => {
+  const {
+    componentCls,
+    itemActiveColor,
+    itemHoverColor,
+    iconCls,
+    tabsHorizontalItemMargin,
+    horizontalItemPadding,
+    itemSelectedColor,
+    itemColor
+  } = token;
+  const tabCls = `${componentCls}-tab`;
+  return {
+    [tabCls]: {
+      position: 'relative',
+      WebkitTouchCallout: 'none',
+      WebkitTapHighlightColor: 'transparent',
+      display: 'inline-flex',
+      alignItems: 'center',
+      padding: horizontalItemPadding,
+      fontSize: token.titleFontSize,
+      background: 'transparent',
+      border: 0,
+      outline: 'none',
+      cursor: 'pointer',
+      color: itemColor,
+      '&-btn, &-remove': Object.assign({
+        '&:focus:not(:focus-visible), &:active': {
+          color: itemActiveColor
+        }
+      }, genFocusStyle(token)),
+      '&-btn': {
+        outline: 'none',
+        transition: 'all 0.3s',
+        [`${tabCls}-icon:not(:last-child)`]: {
+          marginInlineEnd: token.marginSM
+        }
+      },
+      '&-remove': {
+        flex: 'none',
+        marginRight: {
+          _skip_check_: true,
+          value: token.calc(token.marginXXS).mul(-1).equal()
+        },
+        marginLeft: {
+          _skip_check_: true,
+          value: token.marginXS
+        },
+        color: token.colorTextDescription,
+        fontSize: token.fontSizeSM,
+        background: 'transparent',
+        border: 'none',
+        outline: 'none',
+        cursor: 'pointer',
+        transition: `all ${token.motionDurationSlow}`,
+        '&:hover': {
+          color: token.colorTextHeading
+        }
+      },
+      '&:hover': {
+        color: itemHoverColor
+      },
+      [`&${tabCls}-active ${tabCls}-btn`]: {
+        color: itemSelectedColor,
+        textShadow: token.tabsActiveTextShadow
+      },
+      [`&${tabCls}-disabled`]: {
+        color: token.colorTextDisabled,
+        cursor: 'not-allowed'
+      },
+      [`&${tabCls}-disabled ${tabCls}-btn, &${tabCls}-disabled ${componentCls}-remove`]: {
+        '&:focus, &:active': {
+          color: token.colorTextDisabled
+        }
+      },
+      [`& ${tabCls}-remove ${iconCls}`]: {
+        margin: 0
+      },
+      [`${iconCls}:not(:last-child)`]: {
+        marginRight: {
+          _skip_check_: true,
+          value: token.marginSM
+        }
+      }
+    },
+    [`${tabCls} + ${tabCls}`]: {
+      margin: {
+        _skip_check_: true,
+        value: tabsHorizontalItemMargin
+      }
+    }
+  };
+};
+const genRtlStyle = token => {
+  const {
+    componentCls,
+    tabsHorizontalItemMarginRTL,
+    iconCls,
+    cardGutter,
+    calc
+  } = token;
+  const rtlCls = `${componentCls}-rtl`;
+  return {
+    [rtlCls]: {
+      direction: 'rtl',
+      [`${componentCls}-nav`]: {
+        [`${componentCls}-tab`]: {
+          margin: {
+            _skip_check_: true,
+            value: tabsHorizontalItemMarginRTL
+          },
+          [`${componentCls}-tab:last-of-type`]: {
+            marginLeft: {
+              _skip_check_: true,
+              value: 0
+            }
+          },
+          [iconCls]: {
+            marginRight: {
+              _skip_check_: true,
+              value: 0
+            },
+            marginLeft: {
+              _skip_check_: true,
+              value: unit(token.marginSM)
+            }
+          },
+          [`${componentCls}-tab-remove`]: {
+            marginRight: {
+              _skip_check_: true,
+              value: unit(token.marginXS)
+            },
+            marginLeft: {
+              _skip_check_: true,
+              value: unit(calc(token.marginXXS).mul(-1).equal())
+            },
+            [iconCls]: {
+              margin: 0
+            }
+          }
+        }
+      },
+      [`&${componentCls}-left`]: {
+        [`> ${componentCls}-nav`]: {
+          order: 1
+        },
+        [`> ${componentCls}-content-holder`]: {
+          order: 0
+        }
+      },
+      [`&${componentCls}-right`]: {
+        [`> ${componentCls}-nav`]: {
+          order: 0
+        },
+        [`> ${componentCls}-content-holder`]: {
+          order: 1
+        }
+      },
+      // ====================== Card ======================
+      [`&${componentCls}-card${componentCls}-top, &${componentCls}-card${componentCls}-bottom`]: {
+        [`> ${componentCls}-nav, > div > ${componentCls}-nav`]: {
+          [`${componentCls}-tab + ${componentCls}-tab`]: {
+            marginRight: {
+              _skip_check_: true,
+              value: cardGutter
+            },
+            marginLeft: {
+              _skip_check_: true,
+              value: 0
+            }
+          }
+        }
+      }
+    },
+    [`${componentCls}-dropdown-rtl`]: {
+      direction: 'rtl'
+    },
+    [`${componentCls}-menu-item`]: {
+      [`${componentCls}-dropdown-rtl`]: {
+        textAlign: {
+          _skip_check_: true,
+          value: 'right'
+        }
+      }
+    }
+  };
+};
+const genTabsStyle = token => {
+  const {
+    componentCls,
+    tabsCardPadding,
+    cardHeight,
+    cardGutter,
+    itemHoverColor,
+    itemActiveColor,
+    colorBorderSecondary
+  } = token;
+  return {
+    [componentCls]: Object.assign(Object.assign(Object.assign(Object.assign({}, resetComponent(token)), {
+      display: 'flex',
+      // ========================== Navigation ==========================
+      [`> ${componentCls}-nav, > div > ${componentCls}-nav`]: {
+        position: 'relative',
+        display: 'flex',
+        flex: 'none',
+        alignItems: 'center',
+        [`${componentCls}-nav-wrap`]: {
+          position: 'relative',
+          display: 'flex',
+          flex: 'auto',
+          alignSelf: 'stretch',
+          overflow: 'hidden',
+          whiteSpace: 'nowrap',
+          transform: 'translate(0)',
+          // Fix chrome render bug
+          // >>>>> Ping shadow
+          '&::before, &::after': {
+            position: 'absolute',
+            zIndex: 1,
+            opacity: 0,
+            transition: `opacity ${token.motionDurationSlow}`,
+            content: "''",
+            pointerEvents: 'none'
+          }
+        },
+        [`${componentCls}-nav-list`]: {
+          position: 'relative',
+          display: 'flex',
+          transition: `opacity ${token.motionDurationSlow}`
+        },
+        // >>>>>>>> Operations
+        [`${componentCls}-nav-operations`]: {
+          display: 'flex',
+          alignSelf: 'stretch'
+        },
+        [`${componentCls}-nav-operations-hidden`]: {
+          position: 'absolute',
+          visibility: 'hidden',
+          pointerEvents: 'none'
+        },
+        [`${componentCls}-nav-more`]: {
+          position: 'relative',
+          padding: tabsCardPadding,
+          background: 'transparent',
+          border: 0,
+          color: token.colorText,
+          '&::after': {
+            position: 'absolute',
+            right: {
+              _skip_check_: true,
+              value: 0
+            },
+            bottom: 0,
+            left: {
+              _skip_check_: true,
+              value: 0
+            },
+            height: token.calc(token.controlHeightLG).div(8).equal(),
+            transform: 'translateY(100%)',
+            content: "''"
+          }
+        },
+        [`${componentCls}-nav-add`]: Object.assign({
+          minWidth: cardHeight,
+          minHeight: cardHeight,
+          marginLeft: {
+            _skip_check_: true,
+            value: cardGutter
+          },
+          padding: `0 ${unit(token.paddingXS)}`,
+          background: 'transparent',
+          border: `${unit(token.lineWidth)} ${token.lineType} ${colorBorderSecondary}`,
+          borderRadius: `${unit(token.borderRadiusLG)} ${unit(token.borderRadiusLG)} 0 0`,
+          outline: 'none',
+          cursor: 'pointer',
+          color: token.colorText,
+          transition: `all ${token.motionDurationSlow} ${token.motionEaseInOut}`,
+          '&:hover': {
+            color: itemHoverColor
+          },
+          '&:active, &:focus:not(:focus-visible)': {
+            color: itemActiveColor
+          }
+        }, genFocusStyle(token))
+      },
+      [`${componentCls}-extra-content`]: {
+        flex: 'none'
+      },
+      // ============================ InkBar ============================
+      [`${componentCls}-ink-bar`]: {
+        position: 'absolute',
+        background: token.inkBarColor,
+        pointerEvents: 'none'
+      }
+    }), genTabStyle(token)), {
+      // =========================== TabPanes ===========================
+      [`${componentCls}-content`]: {
+        position: 'relative',
+        width: '100%'
+      },
+      [`${componentCls}-content-holder`]: {
+        flex: 'auto',
+        minWidth: 0,
+        minHeight: 0
+      },
+      [`${componentCls}-tabpane`]: {
+        outline: 'none',
+        '&-hidden': {
+          display: 'none'
+        }
+      }
+    }),
+    [`${componentCls}-centered`]: {
+      [`> ${componentCls}-nav, > div > ${componentCls}-nav`]: {
+        [`${componentCls}-nav-wrap`]: {
+          [`&:not([class*='${componentCls}-nav-wrap-ping'])`]: {
+            justifyContent: 'center'
+          }
+        }
+      }
+    }
+  };
+};
+const tabs_style_prepareComponentToken = token => {
+  const cardHeight = token.controlHeightLG;
+  return {
+    zIndexPopup: token.zIndexPopupBase + 50,
+    cardBg: token.colorFillAlter,
+    cardHeight,
+    // Initialize with empty string, because cardPadding will be calculated with cardHeight by default.
+    cardPadding: `${(cardHeight - Math.round(token.fontSize * token.lineHeight)) / 2 - token.lineWidth}px ${token.padding}px`,
+    cardPaddingSM: `${token.paddingXXS * 1.5}px ${token.padding}px`,
+    cardPaddingLG: `${token.paddingXS}px ${token.padding}px ${token.paddingXXS * 1.5}px`,
+    titleFontSize: token.fontSize,
+    titleFontSizeLG: token.fontSizeLG,
+    titleFontSizeSM: token.fontSize,
+    inkBarColor: token.colorPrimary,
+    horizontalMargin: `0 0 ${token.margin}px 0`,
+    horizontalItemGutter: 32,
+    // Fixed Value
+    // Initialize with empty string, because horizontalItemMargin will be calculated with horizontalItemGutter by default.
+    horizontalItemMargin: ``,
+    horizontalItemMarginRTL: ``,
+    horizontalItemPadding: `${token.paddingSM}px 0`,
+    horizontalItemPaddingSM: `${token.paddingXS}px 0`,
+    horizontalItemPaddingLG: `${token.padding}px 0`,
+    verticalItemPadding: `${token.paddingXS}px ${token.paddingLG}px`,
+    verticalItemMargin: `${token.margin}px 0 0 0`,
+    itemColor: token.colorText,
+    itemSelectedColor: token.colorPrimary,
+    itemHoverColor: token.colorPrimaryHover,
+    itemActiveColor: token.colorPrimaryActive,
+    cardGutter: token.marginXXS / 2
+  };
+};
+// ============================== Export ==============================
+/* harmony default export */ const tabs_style = (genStyleHooks('Tabs', token => {
+  const tabsToken = statistic_merge(token, {
+    // `cardPadding` is empty by default, so we could calculate with dynamic `cardHeight`
+    tabsCardPadding: token.cardPadding,
+    dropdownEdgeChildVerticalPadding: token.paddingXXS,
+    tabsActiveTextShadow: '0 0 0.25px currentcolor',
+    tabsDropdownHeight: 200,
+    tabsDropdownWidth: 120,
+    tabsHorizontalItemMargin: `0 0 0 ${unit(token.horizontalItemGutter)}`,
+    tabsHorizontalItemMarginRTL: `0 0 0 ${unit(token.horizontalItemGutter)}`
+  });
+  return [genSizeStyle(tabsToken), genRtlStyle(tabsToken), genPositionStyle(tabsToken), genDropdownStyle(tabsToken), genCardStyle(tabsToken), genTabsStyle(tabsToken), style_motion(tabsToken)];
+}, tabs_style_prepareComponentToken));
+;// CONCATENATED MODULE: ./node_modules/antd/es/tabs/TabPane.js
+const TabPane_TabPane = () => null;
+if (false) {}
+/* harmony default export */ const tabs_TabPane = (TabPane_TabPane);
+;// CONCATENATED MODULE: ./node_modules/antd/es/tabs/index.js
+"use client";
+
+var tabs_rest = undefined && undefined.__rest || function (s, e) {
+  var t = {};
+  for (var p in s) if (Object.prototype.hasOwnProperty.call(s, p) && e.indexOf(p) < 0) t[p] = s[p];
+  if (s != null && typeof Object.getOwnPropertySymbols === "function") for (var i = 0, p = Object.getOwnPropertySymbols(s); i < p.length; i++) {
+    if (e.indexOf(p[i]) < 0 && Object.prototype.propertyIsEnumerable.call(s, p[i])) t[p[i]] = s[p[i]];
+  }
+  return t;
+};
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+const tabs_Tabs = props => {
+  var _a, _b, _c, _d, _e, _f, _g, _h;
+  const {
+      type,
+      className,
+      rootClassName,
+      size: customSize,
+      onEdit,
+      hideAdd,
+      centered,
+      addIcon,
+      removeIcon,
+      moreIcon,
+      popupClassName,
+      children,
+      items,
+      animated,
+      style,
+      indicatorSize,
+      indicator
+    } = props,
+    otherProps = tabs_rest(props, ["type", "className", "rootClassName", "size", "onEdit", "hideAdd", "centered", "addIcon", "removeIcon", "moreIcon", "popupClassName", "children", "items", "animated", "style", "indicatorSize", "indicator"]);
+  const {
+    prefixCls: customizePrefixCls
+  } = otherProps;
+  const {
+    direction,
+    tabs,
+    getPrefixCls,
+    getPopupContainer
+  } = react.useContext(context_ConfigContext);
+  const prefixCls = getPrefixCls('tabs', customizePrefixCls);
+  const rootCls = hooks_useCSSVarCls(prefixCls);
+  const [wrapCSSVar, hashId, cssVarCls] = tabs_style(prefixCls, rootCls);
+  let editable;
+  if (type === 'editable-card') {
+    editable = {
+      onEdit: (editType, _ref) => {
+        let {
+          key,
+          event
+        } = _ref;
+        onEdit === null || onEdit === void 0 ? void 0 : onEdit(editType === 'add' ? event : key, editType);
+      },
+      removeIcon: (_a = removeIcon !== null && removeIcon !== void 0 ? removeIcon : tabs === null || tabs === void 0 ? void 0 : tabs.removeIcon) !== null && _a !== void 0 ? _a : /*#__PURE__*/react.createElement(icons_CloseOutlined, null),
+      addIcon: (addIcon !== null && addIcon !== void 0 ? addIcon : tabs === null || tabs === void 0 ? void 0 : tabs.addIcon) || /*#__PURE__*/react.createElement(icons_PlusOutlined, null),
+      showAdd: hideAdd !== true
+    };
+  }
+  const rootPrefixCls = getPrefixCls();
+  if (false) {}
+  const size = hooks_useSize(customSize);
+  const mergedItems = useLegacyItems(items, children);
+  const mergedAnimated = useAnimateConfig_useAnimateConfig(prefixCls, animated);
+  const mergedStyle = Object.assign(Object.assign({}, tabs === null || tabs === void 0 ? void 0 : tabs.style), style);
+  const mergedIndicator = {
+    align: (_b = indicator === null || indicator === void 0 ? void 0 : indicator.align) !== null && _b !== void 0 ? _b : (_c = tabs === null || tabs === void 0 ? void 0 : tabs.indicator) === null || _c === void 0 ? void 0 : _c.align,
+    size: (_g = (_e = (_d = indicator === null || indicator === void 0 ? void 0 : indicator.size) !== null && _d !== void 0 ? _d : indicatorSize) !== null && _e !== void 0 ? _e : (_f = tabs === null || tabs === void 0 ? void 0 : tabs.indicator) === null || _f === void 0 ? void 0 : _f.size) !== null && _g !== void 0 ? _g : tabs === null || tabs === void 0 ? void 0 : tabs.indicatorSize
+  };
+  return wrapCSSVar( /*#__PURE__*/react.createElement(rc_tabs_es, Object.assign({
+    direction: direction,
+    getPopupContainer: getPopupContainer,
+    moreTransitionName: `${rootPrefixCls}-slide-up`
+  }, otherProps, {
+    items: mergedItems,
+    className: classnames_default()({
+      [`${prefixCls}-${size}`]: size,
+      [`${prefixCls}-card`]: ['card', 'editable-card'].includes(type),
+      [`${prefixCls}-editable-card`]: type === 'editable-card',
+      [`${prefixCls}-centered`]: centered
+    }, tabs === null || tabs === void 0 ? void 0 : tabs.className, className, rootClassName, hashId, cssVarCls, rootCls),
+    popupClassName: classnames_default()(popupClassName, hashId, cssVarCls, rootCls),
+    style: mergedStyle,
+    editable: editable,
+    moreIcon: (_h = moreIcon !== null && moreIcon !== void 0 ? moreIcon : tabs === null || tabs === void 0 ? void 0 : tabs.moreIcon) !== null && _h !== void 0 ? _h : /*#__PURE__*/react.createElement(icons_EllipsisOutlined, null),
+    prefixCls: prefixCls,
+    animated: mergedAnimated,
+    indicator: mergedIndicator
+  })));
+};
+tabs_Tabs.TabPane = tabs_TabPane;
+if (false) {}
+/* harmony default export */ const es_tabs = (tabs_Tabs);
+;// CONCATENATED MODULE: ./node_modules/antd/es/card/Grid.js
+"use client";
+
+var Grid_rest = undefined && undefined.__rest || function (s, e) {
+  var t = {};
+  for (var p in s) if (Object.prototype.hasOwnProperty.call(s, p) && e.indexOf(p) < 0) t[p] = s[p];
+  if (s != null && typeof Object.getOwnPropertySymbols === "function") for (var i = 0, p = Object.getOwnPropertySymbols(s); i < p.length; i++) {
+    if (e.indexOf(p[i]) < 0 && Object.prototype.propertyIsEnumerable.call(s, p[i])) t[p[i]] = s[p[i]];
+  }
+  return t;
+};
+
+
+
+const Grid = _a => {
+  var {
+      prefixCls,
+      className,
+      hoverable = true
+    } = _a,
+    props = Grid_rest(_a, ["prefixCls", "className", "hoverable"]);
+  const {
+    getPrefixCls
+  } = react.useContext(context_ConfigContext);
+  const prefix = getPrefixCls('card', prefixCls);
+  const classString = classnames_default()(`${prefix}-grid`, className, {
+    [`${prefix}-grid-hoverable`]: hoverable
+  });
+  return /*#__PURE__*/react.createElement("div", Object.assign({}, props, {
+    className: classString
+  }));
+};
+/* harmony default export */ const card_Grid = (Grid);
+;// CONCATENATED MODULE: ./node_modules/antd/es/card/style/index.js
+
+
+
+// ============================== Styles ==============================
+// ============================== Head ==============================
+const genCardHeadStyle = token => {
+  const {
+    antCls,
+    componentCls,
+    headerHeight,
+    cardPaddingBase,
+    tabsMarginBottom
+  } = token;
+  return Object.assign(Object.assign({
+    display: 'flex',
+    justifyContent: 'center',
+    flexDirection: 'column',
+    minHeight: headerHeight,
+    marginBottom: -1,
+    padding: `0 ${unit(cardPaddingBase)}`,
+    color: token.colorTextHeading,
+    fontWeight: token.fontWeightStrong,
+    fontSize: token.headerFontSize,
+    background: token.headerBg,
+    borderBottom: `${unit(token.lineWidth)} ${token.lineType} ${token.colorBorderSecondary}`,
+    borderRadius: `${unit(token.borderRadiusLG)} ${unit(token.borderRadiusLG)} 0 0`
+  }, clearFix()), {
+    '&-wrapper': {
+      width: '100%',
+      display: 'flex',
+      alignItems: 'center'
+    },
+    '&-title': Object.assign(Object.assign({
+      display: 'inline-block',
+      flex: 1
+    }, textEllipsis), {
+      [`
+          > ${componentCls}-typography,
+          > ${componentCls}-typography-edit-content
+        `]: {
+        insetInlineStart: 0,
+        marginTop: 0,
+        marginBottom: 0
+      }
+    }),
+    [`${antCls}-tabs-top`]: {
+      clear: 'both',
+      marginBottom: tabsMarginBottom,
+      color: token.colorText,
+      fontWeight: 'normal',
+      fontSize: token.fontSize,
+      '&-bar': {
+        borderBottom: `${unit(token.lineWidth)} ${token.lineType} ${token.colorBorderSecondary}`
+      }
+    }
+  });
+};
+// ============================== Grid ==============================
+const genCardGridStyle = token => {
+  const {
+    cardPaddingBase,
+    colorBorderSecondary,
+    cardShadow,
+    lineWidth
+  } = token;
+  return {
+    width: '33.33%',
+    padding: cardPaddingBase,
+    border: 0,
+    borderRadius: 0,
+    boxShadow: `
+      ${unit(lineWidth)} 0 0 0 ${colorBorderSecondary},
+      0 ${unit(lineWidth)} 0 0 ${colorBorderSecondary},
+      ${unit(lineWidth)} ${unit(lineWidth)} 0 0 ${colorBorderSecondary},
+      ${unit(lineWidth)} 0 0 0 ${colorBorderSecondary} inset,
+      0 ${unit(lineWidth)} 0 0 ${colorBorderSecondary} inset;
+    `,
+    transition: `all ${token.motionDurationMid}`,
+    '&-hoverable:hover': {
+      position: 'relative',
+      zIndex: 1,
+      boxShadow: cardShadow
+    }
+  };
+};
+// ============================== Actions ==============================
+const genCardActionsStyle = token => {
+  const {
+    componentCls,
+    iconCls,
+    actionsLiMargin,
+    cardActionsIconSize,
+    colorBorderSecondary,
+    actionsBg
+  } = token;
+  return Object.assign(Object.assign({
+    margin: 0,
+    padding: 0,
+    listStyle: 'none',
+    background: actionsBg,
+    borderTop: `${unit(token.lineWidth)} ${token.lineType} ${colorBorderSecondary}`,
+    display: 'flex',
+    borderRadius: `0 0 ${unit(token.borderRadiusLG)} ${unit(token.borderRadiusLG)}`
+  }, clearFix()), {
+    '& > li': {
+      margin: actionsLiMargin,
+      color: token.colorTextDescription,
+      textAlign: 'center',
+      '> span': {
+        position: 'relative',
+        display: 'block',
+        minWidth: token.calc(token.cardActionsIconSize).mul(2).equal(),
+        fontSize: token.fontSize,
+        lineHeight: token.lineHeight,
+        cursor: 'pointer',
+        '&:hover': {
+          color: token.colorPrimary,
+          transition: `color ${token.motionDurationMid}`
+        },
+        [`a:not(${componentCls}-btn), > ${iconCls}`]: {
+          display: 'inline-block',
+          width: '100%',
+          color: token.colorTextDescription,
+          lineHeight: unit(token.fontHeight),
+          transition: `color ${token.motionDurationMid}`,
+          '&:hover': {
+            color: token.colorPrimary
+          }
+        },
+        [`> ${iconCls}`]: {
+          fontSize: cardActionsIconSize,
+          lineHeight: unit(token.calc(cardActionsIconSize).mul(token.lineHeight).equal())
+        }
+      },
+      '&:not(:last-child)': {
+        borderInlineEnd: `${unit(token.lineWidth)} ${token.lineType} ${colorBorderSecondary}`
+      }
+    }
+  });
+};
+// ============================== Meta ==============================
+const genCardMetaStyle = token => Object.assign(Object.assign({
+  margin: `${unit(token.calc(token.marginXXS).mul(-1).equal())} 0`,
+  display: 'flex'
+}, clearFix()), {
+  '&-avatar': {
+    paddingInlineEnd: token.padding
+  },
+  '&-detail': {
+    overflow: 'hidden',
+    flex: 1,
+    '> div:not(:last-child)': {
+      marginBottom: token.marginXS
+    }
+  },
+  '&-title': Object.assign({
+    color: token.colorTextHeading,
+    fontWeight: token.fontWeightStrong,
+    fontSize: token.fontSizeLG
+  }, textEllipsis),
+  '&-description': {
+    color: token.colorTextDescription
+  }
+});
+// ============================== Inner ==============================
+const genCardTypeInnerStyle = token => {
+  const {
+    componentCls,
+    cardPaddingBase,
+    colorFillAlter
+  } = token;
+  return {
+    [`${componentCls}-head`]: {
+      padding: `0 ${unit(cardPaddingBase)}`,
+      background: colorFillAlter,
+      '&-title': {
+        fontSize: token.fontSize
+      }
+    },
+    [`${componentCls}-body`]: {
+      padding: `${unit(token.padding)} ${unit(cardPaddingBase)}`
+    }
+  };
+};
+// ============================== Loading ==============================
+const genCardLoadingStyle = token => {
+  const {
+    componentCls
+  } = token;
+  return {
+    overflow: 'hidden',
+    [`${componentCls}-body`]: {
+      userSelect: 'none'
+    }
+  };
+};
+// ============================== Basic ==============================
+const style_genCardStyle = token => {
+  const {
+    antCls,
+    componentCls,
+    cardShadow,
+    cardHeadPadding,
+    colorBorderSecondary,
+    boxShadowTertiary,
+    cardPaddingBase,
+    extraColor
+  } = token;
+  return {
+    [componentCls]: Object.assign(Object.assign({}, resetComponent(token)), {
+      position: 'relative',
+      background: token.colorBgContainer,
+      borderRadius: token.borderRadiusLG,
+      [`&:not(${componentCls}-bordered)`]: {
+        boxShadow: boxShadowTertiary
+      },
+      [`${componentCls}-head`]: genCardHeadStyle(token),
+      [`${componentCls}-extra`]: {
+        // https://stackoverflow.com/a/22429853/3040605
+        marginInlineStart: 'auto',
+        color: extraColor,
+        fontWeight: 'normal',
+        fontSize: token.fontSize
+      },
+      [`${componentCls}-body`]: Object.assign({
+        padding: cardPaddingBase,
+        borderRadius: ` 0 0 ${unit(token.borderRadiusLG)} ${unit(token.borderRadiusLG)}`
+      }, clearFix()),
+      [`${componentCls}-grid`]: genCardGridStyle(token),
+      [`${componentCls}-cover`]: {
+        '> *': {
+          display: 'block',
+          width: '100%'
+        },
+        [`img, img + ${antCls}-image-mask`]: {
+          borderRadius: `${unit(token.borderRadiusLG)} ${unit(token.borderRadiusLG)} 0 0`
+        }
+      },
+      [`${componentCls}-actions`]: genCardActionsStyle(token),
+      [`${componentCls}-meta`]: genCardMetaStyle(token)
+    }),
+    [`${componentCls}-bordered`]: {
+      border: `${unit(token.lineWidth)} ${token.lineType} ${colorBorderSecondary}`,
+      [`${componentCls}-cover`]: {
+        marginTop: -1,
+        marginInlineStart: -1,
+        marginInlineEnd: -1
+      }
+    },
+    [`${componentCls}-hoverable`]: {
+      cursor: 'pointer',
+      transition: `box-shadow ${token.motionDurationMid}, border-color ${token.motionDurationMid}`,
+      '&:hover': {
+        borderColor: 'transparent',
+        boxShadow: cardShadow
+      }
+    },
+    [`${componentCls}-contain-grid`]: {
+      borderRadius: `${unit(token.borderRadiusLG)} ${unit(token.borderRadiusLG)} 0 0 `,
+      [`${componentCls}-body`]: {
+        display: 'flex',
+        flexWrap: 'wrap'
+      },
+      [`&:not(${componentCls}-loading) ${componentCls}-body`]: {
+        marginBlockStart: token.calc(token.lineWidth).mul(-1).equal(),
+        marginInlineStart: token.calc(token.lineWidth).mul(-1).equal(),
+        padding: 0
+      }
+    },
+    [`${componentCls}-contain-tabs`]: {
+      [`> ${componentCls}-head`]: {
+        minHeight: 0,
+        [`${componentCls}-head-title, ${componentCls}-extra`]: {
+          paddingTop: cardHeadPadding
+        }
+      }
+    },
+    [`${componentCls}-type-inner`]: genCardTypeInnerStyle(token),
+    [`${componentCls}-loading`]: genCardLoadingStyle(token),
+    [`${componentCls}-rtl`]: {
+      direction: 'rtl'
+    }
+  };
+};
+// ============================== Size ==============================
+const genCardSizeStyle = token => {
+  const {
+    componentCls,
+    cardPaddingSM,
+    headerHeightSM,
+    headerFontSizeSM
+  } = token;
+  return {
+    [`${componentCls}-small`]: {
+      [`> ${componentCls}-head`]: {
+        minHeight: headerHeightSM,
+        padding: `0 ${unit(cardPaddingSM)}`,
+        fontSize: headerFontSizeSM,
+        [`> ${componentCls}-head-wrapper`]: {
+          [`> ${componentCls}-extra`]: {
+            fontSize: token.fontSize
+          }
+        }
+      },
+      [`> ${componentCls}-body`]: {
+        padding: cardPaddingSM
+      }
+    },
+    [`${componentCls}-small${componentCls}-contain-tabs`]: {
+      [`> ${componentCls}-head`]: {
+        [`${componentCls}-head-title, ${componentCls}-extra`]: {
+          paddingTop: 0,
+          display: 'flex',
+          alignItems: 'center'
+        }
+      }
+    }
+  };
+};
+const card_style_prepareComponentToken = token => ({
+  headerBg: 'transparent',
+  headerFontSize: token.fontSizeLG,
+  headerFontSizeSM: token.fontSize,
+  headerHeight: token.fontSizeLG * token.lineHeightLG + token.padding * 2,
+  headerHeightSM: token.fontSize * token.lineHeight + token.paddingXS * 2,
+  actionsBg: token.colorBgContainer,
+  actionsLiMargin: `${token.paddingSM}px 0`,
+  tabsMarginBottom: -token.padding - token.lineWidth,
+  extraColor: token.colorText
+});
+// ============================== Export ==============================
+/* harmony default export */ const card_style = (genStyleHooks('Card', token => {
+  const cardToken = statistic_merge(token, {
+    cardShadow: token.boxShadowCard,
+    cardHeadPadding: token.padding,
+    cardPaddingBase: token.paddingLG,
+    cardActionsIconSize: token.fontSize,
+    cardPaddingSM: 12 // Fixed padding.
+  });
+  return [
+  // Style
+  style_genCardStyle(cardToken),
+  // Size
+  genCardSizeStyle(cardToken)];
+}, card_style_prepareComponentToken));
+;// CONCATENATED MODULE: ./node_modules/antd/es/card/Card.js
+"use client";
+
+var Card_rest = undefined && undefined.__rest || function (s, e) {
+  var t = {};
+  for (var p in s) if (Object.prototype.hasOwnProperty.call(s, p) && e.indexOf(p) < 0) t[p] = s[p];
+  if (s != null && typeof Object.getOwnPropertySymbols === "function") for (var i = 0, p = Object.getOwnPropertySymbols(s); i < p.length; i++) {
+    if (e.indexOf(p[i]) < 0 && Object.prototype.propertyIsEnumerable.call(s, p[i])) t[p[i]] = s[p[i]];
+  }
+  return t;
+};
+
+
+
+
+
+
+
+
+
+
+const ActionNode = props => {
+  const {
+    actionClasses,
+    actions = [],
+    actionStyle
+  } = props;
+  return /*#__PURE__*/react.createElement("ul", {
+    className: actionClasses,
+    style: actionStyle
+  }, actions.map((action, index) => {
+    // Move this out since eslint not allow index key
+    // And eslint-disable makes conflict with rollup
+    // ref https://github.com/ant-design/ant-design/issues/46022
+    const key = `action-${index}`;
+    return /*#__PURE__*/react.createElement("li", {
+      style: {
+        width: `${100 / actions.length}%`
+      },
+      key: key
+    }, /*#__PURE__*/react.createElement("span", null, action));
+  }));
+};
+const Card = /*#__PURE__*/react.forwardRef((props, ref) => {
+  const {
+      prefixCls: customizePrefixCls,
+      className,
+      rootClassName,
+      style,
+      extra,
+      headStyle = {},
+      bodyStyle = {},
+      title,
+      loading,
+      bordered = true,
+      size: customizeSize,
+      type,
+      cover,
+      actions,
+      tabList,
+      children,
+      activeTabKey,
+      defaultActiveTabKey,
+      tabBarExtraContent,
+      hoverable,
+      tabProps = {},
+      classNames: customClassNames,
+      styles: customStyles
+    } = props,
+    others = Card_rest(props, ["prefixCls", "className", "rootClassName", "style", "extra", "headStyle", "bodyStyle", "title", "loading", "bordered", "size", "type", "cover", "actions", "tabList", "children", "activeTabKey", "defaultActiveTabKey", "tabBarExtraContent", "hoverable", "tabProps", "classNames", "styles"]);
+  const {
+    getPrefixCls,
+    direction,
+    card
+  } = react.useContext(context_ConfigContext);
+  // =================Warning===================
+  if (false) {}
+  const onTabChange = key => {
+    var _a;
+    (_a = props.onTabChange) === null || _a === void 0 ? void 0 : _a.call(props, key);
+  };
+  const moduleClass = moduleName => {
+    var _a;
+    return classnames_default()((_a = card === null || card === void 0 ? void 0 : card.classNames) === null || _a === void 0 ? void 0 : _a[moduleName], customClassNames === null || customClassNames === void 0 ? void 0 : customClassNames[moduleName]);
+  };
+  const moduleStyle = moduleName => {
+    var _a;
+    return Object.assign(Object.assign({}, (_a = card === null || card === void 0 ? void 0 : card.styles) === null || _a === void 0 ? void 0 : _a[moduleName]), customStyles === null || customStyles === void 0 ? void 0 : customStyles[moduleName]);
+  };
+  const isContainGrid = react.useMemo(() => {
+    let containGrid = false;
+    react.Children.forEach(children, element => {
+      if (element && element.type && element.type === card_Grid) {
+        containGrid = true;
+      }
+    });
+    return containGrid;
+  }, [children]);
+  const prefixCls = getPrefixCls('card', customizePrefixCls);
+  const [wrapCSSVar, hashId, cssVarCls] = card_style(prefixCls);
+  const loadingBlock = /*#__PURE__*/react.createElement(skeleton, {
+    loading: true,
+    active: true,
+    paragraph: {
+      rows: 4
+    },
+    title: false
+  }, children);
+  const hasActiveTabKey = activeTabKey !== undefined;
+  const extraProps = Object.assign(Object.assign({}, tabProps), {
+    [hasActiveTabKey ? 'activeKey' : 'defaultActiveKey']: hasActiveTabKey ? activeTabKey : defaultActiveTabKey,
+    tabBarExtraContent
+  });
+  let head;
+  const mergedSize = hooks_useSize(customizeSize);
+  const tabSize = !mergedSize || mergedSize === 'default' ? 'large' : mergedSize;
+  const tabs = tabList ? ( /*#__PURE__*/react.createElement(es_tabs, Object.assign({
+    size: tabSize
+  }, extraProps, {
+    className: `${prefixCls}-head-tabs`,
+    onChange: onTabChange,
+    items: tabList.map(_a => {
+      var {
+          tab
+        } = _a,
+        item = Card_rest(_a, ["tab"]);
+      return Object.assign({
+        label: tab
+      }, item);
+    })
+  }))) : null;
+  if (title || extra || tabs) {
+    const headClasses = classnames_default()(`${prefixCls}-head`, moduleClass('header'));
+    const titleClasses = classnames_default()(`${prefixCls}-head-title`, moduleClass('title'));
+    const extraClasses = classnames_default()(`${prefixCls}-extra`, moduleClass('extra'));
+    const mergedHeadStyle = Object.assign(Object.assign({}, headStyle), moduleStyle('header'));
+    head = /*#__PURE__*/react.createElement("div", {
+      className: headClasses,
+      style: mergedHeadStyle
+    }, /*#__PURE__*/react.createElement("div", {
+      className: `${prefixCls}-head-wrapper`
+    }, title && ( /*#__PURE__*/react.createElement("div", {
+      className: titleClasses,
+      style: moduleStyle('title')
+    }, title)), extra && ( /*#__PURE__*/react.createElement("div", {
+      className: extraClasses,
+      style: moduleStyle('extra')
+    }, extra))), tabs);
+  }
+  const coverClasses = classnames_default()(`${prefixCls}-cover`, moduleClass('cover'));
+  const coverDom = cover ? ( /*#__PURE__*/react.createElement("div", {
+    className: coverClasses,
+    style: moduleStyle('cover')
+  }, cover)) : null;
+  const bodyClasses = classnames_default()(`${prefixCls}-body`, moduleClass('body'));
+  const mergedBodyStyle = Object.assign(Object.assign({}, bodyStyle), moduleStyle('body'));
+  const body = /*#__PURE__*/react.createElement("div", {
+    className: bodyClasses,
+    style: mergedBodyStyle
+  }, loading ? loadingBlock : children);
+  const actionClasses = classnames_default()(`${prefixCls}-actions`, moduleClass('actions'));
+  const actionDom = actions && actions.length ? ( /*#__PURE__*/react.createElement(ActionNode, {
+    actionClasses: actionClasses,
+    actionStyle: moduleStyle('actions'),
+    actions: actions
+  })) : null;
+  const divProps = omit(others, ['onTabChange']);
+  const classString = classnames_default()(prefixCls, card === null || card === void 0 ? void 0 : card.className, {
+    [`${prefixCls}-loading`]: loading,
+    [`${prefixCls}-bordered`]: bordered,
+    [`${prefixCls}-hoverable`]: hoverable,
+    [`${prefixCls}-contain-grid`]: isContainGrid,
+    [`${prefixCls}-contain-tabs`]: tabList && tabList.length,
+    [`${prefixCls}-${mergedSize}`]: mergedSize,
+    [`${prefixCls}-type-${type}`]: !!type,
+    [`${prefixCls}-rtl`]: direction === 'rtl'
+  }, className, rootClassName, hashId, cssVarCls);
+  const mergedStyle = Object.assign(Object.assign({}, card === null || card === void 0 ? void 0 : card.style), style);
+  return wrapCSSVar( /*#__PURE__*/react.createElement("div", Object.assign({
+    ref: ref
+  }, divProps, {
+    className: classString,
+    style: mergedStyle
+  }), head, coverDom, body, actionDom));
+});
+/* harmony default export */ const card_Card = (Card);
+;// CONCATENATED MODULE: ./node_modules/antd/es/card/Meta.js
+"use client";
+
+var Meta_rest = undefined && undefined.__rest || function (s, e) {
+  var t = {};
+  for (var p in s) if (Object.prototype.hasOwnProperty.call(s, p) && e.indexOf(p) < 0) t[p] = s[p];
+  if (s != null && typeof Object.getOwnPropertySymbols === "function") for (var i = 0, p = Object.getOwnPropertySymbols(s); i < p.length; i++) {
+    if (e.indexOf(p[i]) < 0 && Object.prototype.propertyIsEnumerable.call(s, p[i])) t[p[i]] = s[p[i]];
+  }
+  return t;
+};
+
+
+
+const Meta = props => {
+  const {
+      prefixCls: customizePrefixCls,
+      className,
+      avatar,
+      title,
+      description
+    } = props,
+    others = Meta_rest(props, ["prefixCls", "className", "avatar", "title", "description"]);
+  const {
+    getPrefixCls
+  } = react.useContext(context_ConfigContext);
+  const prefixCls = getPrefixCls('card', customizePrefixCls);
+  const classString = classnames_default()(`${prefixCls}-meta`, className);
+  const avatarDom = avatar ? ( /*#__PURE__*/react.createElement("div", {
+    className: `${prefixCls}-meta-avatar`
+  }, avatar)) : null;
+  const titleDom = title ? ( /*#__PURE__*/react.createElement("div", {
+    className: `${prefixCls}-meta-title`
+  }, title)) : null;
+  const descriptionDom = description ? ( /*#__PURE__*/react.createElement("div", {
+    className: `${prefixCls}-meta-description`
+  }, description)) : null;
+  const MetaDetail = titleDom || descriptionDom ? ( /*#__PURE__*/react.createElement("div", {
+    className: `${prefixCls}-meta-detail`
+  }, titleDom, descriptionDom)) : null;
+  return /*#__PURE__*/react.createElement("div", Object.assign({}, others, {
+    className: classString
+  }), avatarDom, MetaDetail);
+};
+/* harmony default export */ const card_Meta = (Meta);
+;// CONCATENATED MODULE: ./node_modules/antd/es/card/index.js
+"use client";
+
+
+
+
+const es_card_Card = card_Card;
+es_card_Card.Grid = card_Grid;
+es_card_Card.Meta = card_Meta;
+if (false) {}
+/* harmony default export */ const card = (es_card_Card);
+;// CONCATENATED MODULE: ./client/Login.jsx
+
+
+const {
+  Content: Login_Content
+} = es_layout;
+const flexStyle = {
+  height: "100vh"
+};
+const cardStyle = {
+  width: "300px"
+};
+const SignupForm = () => {
+  return /*#__PURE__*/react.createElement(es_form, {
+    layout: "vertical"
+  }, /*#__PURE__*/react.createElement(es_form.Item, {
+    label: "Email",
+    name: "email"
+  }, /*#__PURE__*/react.createElement(input, null)), /*#__PURE__*/react.createElement(es_form.Item, {
+    label: "Nick Name",
+    name: "displayName"
+  }, /*#__PURE__*/react.createElement(input, null)), /*#__PURE__*/react.createElement(es_form.Item, {
+    label: "Username",
+    name: "username"
+  }, /*#__PURE__*/react.createElement(input, null)), /*#__PURE__*/react.createElement(es_form.Item, {
+    label: "Password",
+    name: "password"
+  }, /*#__PURE__*/react.createElement(input, null)), /*#__PURE__*/react.createElement(es_form.Item, null, /*#__PURE__*/react.createElement(es_button, {
+    type: "primary",
+    htmlType: "submit"
+  }, "Create Account")));
+};
+const LoginForm = () => {
+  return /*#__PURE__*/react.createElement(es_form, {
+    layout: "vertical"
+  }, /*#__PURE__*/react.createElement(es_form.Item, {
+    label: "Email",
+    name: "email"
+  }, /*#__PURE__*/react.createElement(input, null)), /*#__PURE__*/react.createElement(es_form.Item, {
+    label: "Password",
+    name: "password"
+  }, /*#__PURE__*/react.createElement(input, null)), /*#__PURE__*/react.createElement(es_form.Item, null, /*#__PURE__*/react.createElement(es_button, {
+    type: "primary",
+    htmlType: "submit"
+  }, "Log In")));
+};
+const Login = () => {
+  const [displayLogin, setDisplayLogin] = (0,react.useState)(false);
+  return /*#__PURE__*/react.createElement(es_layout, null, /*#__PURE__*/react.createElement(Login_Content, null, /*#__PURE__*/react.createElement(flex, {
+    justify: "center",
+    align: "center",
+    gap: "middle",
+    vertical: true,
+    style: flexStyle
+  }, /*#__PURE__*/react.createElement(card, {
+    title: displayLogin ? "Log In" : "Sign Up",
+    style: cardStyle
+  }, displayLogin ? /*#__PURE__*/react.createElement(LoginForm, null) : /*#__PURE__*/react.createElement(SignupForm, null)), /*#__PURE__*/react.createElement(es_button, {
+    onClick: () => setDisplayLogin(!displayLogin)
+  }, displayLogin ? "Need an account?" : "Already have an account?"))));
+};
+/* harmony default export */ const client_Login = (Login);
+;// CONCATENATED MODULE: ./node_modules/antd/es/theme/getDesignToken.js
+
+
+
+
+const getDesignToken = config => {
+  const theme = (config === null || config === void 0 ? void 0 : config.algorithm) ? createTheme(config.algorithm) : createTheme(derivative);
+  const mergedToken = Object.assign(Object.assign({}, seed), config === null || config === void 0 ? void 0 : config.token);
+  return getComputedToken(mergedToken, {
+    override: config === null || config === void 0 ? void 0 : config.token
+  }, theme, formatToken);
+};
+/* harmony default export */ const theme_getDesignToken = (getDesignToken);
+;// CONCATENATED MODULE: ./node_modules/antd/es/theme/themes/compact/genCompactSizeMapToken.js
+function genCompactSizeMapToken_genSizeMapToken(token) {
+  const {
+    sizeUnit,
+    sizeStep
+  } = token;
+  const compactSizeStep = sizeStep - 2;
+  return {
+    sizeXXL: sizeUnit * (compactSizeStep + 10),
+    sizeXL: sizeUnit * (compactSizeStep + 6),
+    sizeLG: sizeUnit * (compactSizeStep + 2),
+    sizeMD: sizeUnit * (compactSizeStep + 2),
+    sizeMS: sizeUnit * (compactSizeStep + 1),
+    size: sizeUnit * compactSizeStep,
+    sizeSM: sizeUnit * compactSizeStep,
+    sizeXS: sizeUnit * (compactSizeStep - 1),
+    sizeXXS: sizeUnit * (compactSizeStep - 1)
+  };
+}
+;// CONCATENATED MODULE: ./node_modules/antd/es/theme/themes/compact/index.js
+
+
+
+
+const compact_derivative = (token, mapToken) => {
+  const mergedMapToken = mapToken !== null && mapToken !== void 0 ? mapToken : derivative(token);
+  const fontSize = mergedMapToken.fontSizeSM; // Smaller size font-size as base
+  const controlHeight = mergedMapToken.controlHeight - 4;
+  return Object.assign(Object.assign(Object.assign(Object.assign(Object.assign({}, mergedMapToken), genCompactSizeMapToken_genSizeMapToken(mapToken !== null && mapToken !== void 0 ? mapToken : token)), shared_genFontMapToken(fontSize)), {
+    // controlHeight
+    controlHeight
+  }), shared_genControlHeight(Object.assign(Object.assign({}, mergedMapToken), {
+    controlHeight
+  })));
+};
+/* harmony default export */ const compact = (compact_derivative);
+;// CONCATENATED MODULE: ./node_modules/antd/es/theme/themes/dark/colorAlgorithm.js
+
+const colorAlgorithm_getAlphaColor = (baseColor, alpha) => new TinyColor(baseColor).setAlpha(alpha).toRgbString();
+const colorAlgorithm_getSolidColor = (baseColor, brightness) => {
+  const instance = new TinyColor(baseColor);
+  return instance.lighten(brightness).toHexString();
+};
+;// CONCATENATED MODULE: ./node_modules/antd/es/theme/themes/dark/colors.js
+
+
+const colors_generateColorPalettes = baseColor => {
+  const colors = generate(baseColor, {
+    theme: 'dark'
+  });
+  return {
+    1: colors[0],
+    2: colors[1],
+    3: colors[2],
+    4: colors[3],
+    5: colors[6],
+    6: colors[5],
+    7: colors[4],
+    8: colors[6],
+    9: colors[5],
+    10: colors[4]
+    // 8: colors[9],
+    // 9: colors[8],
+    // 10: colors[7],
+  };
+};
+const colors_generateNeutralColorPalettes = (bgBaseColor, textBaseColor) => {
+  const colorBgBase = bgBaseColor || '#000';
+  const colorTextBase = textBaseColor || '#fff';
+  return {
+    colorBgBase,
+    colorTextBase,
+    colorText: colorAlgorithm_getAlphaColor(colorTextBase, 0.85),
+    colorTextSecondary: colorAlgorithm_getAlphaColor(colorTextBase, 0.65),
+    colorTextTertiary: colorAlgorithm_getAlphaColor(colorTextBase, 0.45),
+    colorTextQuaternary: colorAlgorithm_getAlphaColor(colorTextBase, 0.25),
+    colorFill: colorAlgorithm_getAlphaColor(colorTextBase, 0.18),
+    colorFillSecondary: colorAlgorithm_getAlphaColor(colorTextBase, 0.12),
+    colorFillTertiary: colorAlgorithm_getAlphaColor(colorTextBase, 0.08),
+    colorFillQuaternary: colorAlgorithm_getAlphaColor(colorTextBase, 0.04),
+    colorBgElevated: colorAlgorithm_getSolidColor(colorBgBase, 12),
+    colorBgContainer: colorAlgorithm_getSolidColor(colorBgBase, 8),
+    colorBgLayout: colorAlgorithm_getSolidColor(colorBgBase, 0),
+    colorBgSpotlight: colorAlgorithm_getSolidColor(colorBgBase, 26),
+    colorBgBlur: colorAlgorithm_getAlphaColor(colorTextBase, 0.04),
+    colorBorder: colorAlgorithm_getSolidColor(colorBgBase, 26),
+    colorBorderSecondary: colorAlgorithm_getSolidColor(colorBgBase, 19)
+  };
+};
+;// CONCATENATED MODULE: ./node_modules/antd/es/theme/themes/dark/index.js
+
+
+
+
+
+const dark_derivative = (token, mapToken) => {
+  const colorPalettes = Object.keys(defaultPresetColors).map(colorKey => {
+    const colors = generate(token[colorKey], {
+      theme: 'dark'
+    });
+    return new Array(10).fill(1).reduce((prev, _, i) => {
+      prev[`${colorKey}-${i + 1}`] = colors[i];
+      prev[`${colorKey}${i + 1}`] = colors[i];
+      return prev;
+    }, {});
+  }).reduce((prev, cur) => {
+    prev = Object.assign(Object.assign({}, prev), cur);
+    return prev;
+  }, {});
+  const mergedMapToken = mapToken !== null && mapToken !== void 0 ? mapToken : derivative(token);
+  return Object.assign(Object.assign(Object.assign({}, mergedMapToken), colorPalettes), genColorMapToken(token, {
+    generateColorPalettes: colors_generateColorPalettes,
+    generateNeutralColorPalettes: colors_generateNeutralColorPalettes
+  }));
+};
+/* harmony default export */ const dark = (dark_derivative);
+;// CONCATENATED MODULE: ./node_modules/antd/es/theme/index.js
+"use client";
+
+/* eslint-disable import/prefer-default-export */
+
+
+
+
+
+// ZombieJ: We export as object to user but array in internal.
+// This is used to minimize the bundle size for antd package but safe to refactor as object also.
+// Please do not export internal `useToken` directly to avoid something export unexpected.
+/** Get current context Design Token. Will be different if you are using nest theme config. */
+function theme_useToken() {
+  const [theme, token, hashId] = useToken();
+  return {
+    theme,
+    token,
+    hashId
+  };
+}
+/* harmony default export */ const es_theme = ({
+  /** @private Test Usage. Do not use in production. */
+  defaultConfig: defaultConfig,
+  /** Default seedToken */
+  defaultSeed: defaultConfig.token,
+  useToken: theme_useToken,
+  defaultAlgorithm: derivative,
+  darkAlgorithm: dark,
+  compactAlgorithm: compact,
+  getDesignToken: theme_getDesignToken
+});
+;// CONCATENATED MODULE: ./node_modules/antd/es/modal/locale.js
+
+let runtimeLocale = Object.assign({}, es_locale_en_US.Modal);
+let localeList = [];
+const generateLocale = () => localeList.reduce((merged, locale) => Object.assign(Object.assign({}, merged), locale), es_locale_en_US.Modal);
+function changeConfirmLocale(newLocale) {
+  if (newLocale) {
+    const cloneLocale = Object.assign({}, newLocale);
+    localeList.push(cloneLocale);
+    runtimeLocale = generateLocale();
+    return () => {
+      localeList = localeList.filter(locale => locale !== cloneLocale);
+      runtimeLocale = generateLocale();
+    };
+  }
+  runtimeLocale = Object.assign({}, es_locale_en_US.Modal);
+}
+function getConfirmLocale() {
+  return runtimeLocale;
+}
+;// CONCATENATED MODULE: ./node_modules/antd/es/locale/index.js
+"use client";
+
+
+
+
+
+
+const ANT_MARK = 'internalMark';
+const LocaleProvider = props => {
+  const {
+    locale = {},
+    children,
+    _ANT_MARK__
+  } = props;
+  if (false) {}
+  react.useEffect(() => {
+    const clearLocale = changeConfirmLocale(locale && locale.Modal);
+    return clearLocale;
+  }, [locale]);
+  const getMemoizedContextValue = react.useMemo(() => Object.assign(Object.assign({}, locale), {
+    exist: true
+  }), [locale]);
+  return /*#__PURE__*/react.createElement(locale_context.Provider, {
+    value: getMemoizedContextValue
+  }, children);
+};
+if (false) {}
+/* harmony default export */ const es_locale = (LocaleProvider);
+;// CONCATENATED MODULE: ./node_modules/antd/es/config-provider/cssVariables.js
+/* eslint-disable import/prefer-default-export, prefer-destructuring */
+
+
+
+
+
+const dynamicStyleMark = `-ant-${Date.now()}-${Math.random()}`;
+function getStyle(globalPrefixCls, theme) {
+  const variables = {};
+  const formatColor = (color, updater) => {
+    let clone = color.clone();
+    clone = (updater === null || updater === void 0 ? void 0 : updater(clone)) || clone;
+    return clone.toRgbString();
+  };
+  const fillColor = (colorVal, type) => {
+    const baseColor = new TinyColor(colorVal);
+    const colorPalettes = generate(baseColor.toRgbString());
+    variables[`${type}-color`] = formatColor(baseColor);
+    variables[`${type}-color-disabled`] = colorPalettes[1];
+    variables[`${type}-color-hover`] = colorPalettes[4];
+    variables[`${type}-color-active`] = colorPalettes[6];
+    variables[`${type}-color-outline`] = baseColor.clone().setAlpha(0.2).toRgbString();
+    variables[`${type}-color-deprecated-bg`] = colorPalettes[0];
+    variables[`${type}-color-deprecated-border`] = colorPalettes[2];
+  };
+  // ================ Primary Color ================
+  if (theme.primaryColor) {
+    fillColor(theme.primaryColor, 'primary');
+    const primaryColor = new TinyColor(theme.primaryColor);
+    const primaryColors = generate(primaryColor.toRgbString());
+    // Legacy - We should use semantic naming standard
+    primaryColors.forEach((color, index) => {
+      variables[`primary-${index + 1}`] = color;
+    });
+    // Deprecated
+    variables['primary-color-deprecated-l-35'] = formatColor(primaryColor, c => c.lighten(35));
+    variables['primary-color-deprecated-l-20'] = formatColor(primaryColor, c => c.lighten(20));
+    variables['primary-color-deprecated-t-20'] = formatColor(primaryColor, c => c.tint(20));
+    variables['primary-color-deprecated-t-50'] = formatColor(primaryColor, c => c.tint(50));
+    variables['primary-color-deprecated-f-12'] = formatColor(primaryColor, c => c.setAlpha(c.getAlpha() * 0.12));
+    const primaryActiveColor = new TinyColor(primaryColors[0]);
+    variables['primary-color-active-deprecated-f-30'] = formatColor(primaryActiveColor, c => c.setAlpha(c.getAlpha() * 0.3));
+    variables['primary-color-active-deprecated-d-02'] = formatColor(primaryActiveColor, c => c.darken(2));
+  }
+  // ================ Success Color ================
+  if (theme.successColor) {
+    fillColor(theme.successColor, 'success');
+  }
+  // ================ Warning Color ================
+  if (theme.warningColor) {
+    fillColor(theme.warningColor, 'warning');
+  }
+  // ================= Error Color =================
+  if (theme.errorColor) {
+    fillColor(theme.errorColor, 'error');
+  }
+  // ================= Info Color ==================
+  if (theme.infoColor) {
+    fillColor(theme.infoColor, 'info');
+  }
+  // Convert to css variables
+  const cssList = Object.keys(variables).map(key => `--${globalPrefixCls}-${key}: ${variables[key]};`);
+  return `
+  :root {
+    ${cssList.join('\n')}
+  }
+  `.trim();
+}
+function registerTheme(globalPrefixCls, theme) {
+  const style = getStyle(globalPrefixCls, theme);
+  if (canUseDom()) {
+    updateCSS(style, `${dynamicStyleMark}-dynamic-theme`);
+  } else {
+     false ? 0 : void 0;
+  }
+}
+;// CONCATENATED MODULE: ./node_modules/antd/es/config-provider/hooks/useConfig.js
+
+
+
+function useConfig() {
+  const componentDisabled = (0,react.useContext)(config_provider_DisabledContext);
+  const componentSize = (0,react.useContext)(config_provider_SizeContext);
+  return {
+    componentDisabled,
+    componentSize
+  };
+}
+/* harmony default export */ const hooks_useConfig = (useConfig);
+;// CONCATENATED MODULE: ./node_modules/antd/es/config-provider/hooks/useThemeKey.js
+
+const useThemeKey_fullClone = Object.assign({}, react_namespaceObject);
+const {
+  useId: useThemeKey_useId
+} = useThemeKey_fullClone;
+const useEmptyId = () => '';
+const useThemeKey = typeof useThemeKey_useId === 'undefined' ? useEmptyId : useThemeKey_useId;
+/* harmony default export */ const hooks_useThemeKey = (useThemeKey);
+;// CONCATENATED MODULE: ./node_modules/antd/es/config-provider/hooks/useTheme.js
+
+
+
+
+
+function useTheme(theme, parentTheme, config) {
+  var _a, _b;
+  const warning = warning_devUseWarning('ConfigProvider');
+  const themeConfig = theme || {};
+  const parentThemeConfig = themeConfig.inherit === false || !parentTheme ? Object.assign(Object.assign({}, defaultConfig), {
+    hashed: (_a = parentTheme === null || parentTheme === void 0 ? void 0 : parentTheme.hashed) !== null && _a !== void 0 ? _a : defaultConfig.hashed,
+    cssVar: parentTheme === null || parentTheme === void 0 ? void 0 : parentTheme.cssVar
+  }) : parentTheme;
+  const themeKey = hooks_useThemeKey();
+  if (false) {}
+  return useMemo_useMemo(() => {
+    var _a, _b;
+    if (!theme) {
+      return parentTheme;
+    }
+    // Override
+    const mergedComponents = Object.assign({}, parentThemeConfig.components);
+    Object.keys(theme.components || {}).forEach(componentName => {
+      mergedComponents[componentName] = Object.assign(Object.assign({}, mergedComponents[componentName]), theme.components[componentName]);
+    });
+    const cssVarKey = `css-var-${themeKey.replace(/:/g, '')}`;
+    const mergedCssVar = ((_a = themeConfig.cssVar) !== null && _a !== void 0 ? _a : parentThemeConfig.cssVar) && Object.assign(Object.assign(Object.assign({
+      prefix: config === null || config === void 0 ? void 0 : config.prefixCls
+    }, typeof parentThemeConfig.cssVar === 'object' ? parentThemeConfig.cssVar : {}), typeof themeConfig.cssVar === 'object' ? themeConfig.cssVar : {}), {
+      key: typeof themeConfig.cssVar === 'object' && ((_b = themeConfig.cssVar) === null || _b === void 0 ? void 0 : _b.key) || cssVarKey
+    });
+    // Base token
+    return Object.assign(Object.assign(Object.assign({}, parentThemeConfig), themeConfig), {
+      token: Object.assign(Object.assign({}, parentThemeConfig.token), themeConfig.token),
+      components: mergedComponents,
+      cssVar: mergedCssVar
+    });
+  }, [themeConfig, parentThemeConfig], (prev, next) => prev.some((prevTheme, index) => {
+    const nextTheme = next[index];
+    return !es_isEqual(prevTheme, nextTheme, true);
+  }));
+}
+;// CONCATENATED MODULE: ./node_modules/antd/es/config-provider/MotionWrapper.js
+"use client";
+
+
+
+
+function MotionWrapper(props) {
+  const {
+    children
+  } = props;
+  const [, token] = useToken();
+  const {
+    motion
+  } = token;
+  const needWrapMotionProviderRef = react.useRef(false);
+  needWrapMotionProviderRef.current = needWrapMotionProviderRef.current || motion === false;
+  if (needWrapMotionProviderRef.current) {
+    return /*#__PURE__*/react.createElement(MotionProvider, {
+      motion: motion
+    }, children);
+  }
+  return children;
+}
+;// CONCATENATED MODULE: ./node_modules/antd/es/config-provider/PropWarning.js
+"use client";
+
+
+
+/**
+ * Warning for ConfigProviderProps.
+ * This will be empty function in production.
+ */
+const PropWarning = /*#__PURE__*/(/* unused pure expression or super */ null && (React.memo(_ref => {
+  let {
+    dropdownMatchSelectWidth
+  } = _ref;
+  const warning = devUseWarning('ConfigProvider');
+  warning.deprecated(dropdownMatchSelectWidth === undefined, 'dropdownMatchSelectWidth', 'popupMatchSelectWidth');
+  return null;
+})));
+if (false) {}
+/* harmony default export */ const config_provider_PropWarning = ( false ? 0 : () => null);
+;// CONCATENATED MODULE: ./node_modules/antd/es/config-provider/index.js
+"use client";
+
+var config_provider_rest = undefined && undefined.__rest || function (s, e) {
+  var t = {};
+  for (var p in s) if (Object.prototype.hasOwnProperty.call(s, p) && e.indexOf(p) < 0) t[p] = s[p];
+  if (s != null && typeof Object.getOwnPropertySymbols === "function") for (var i = 0, p = Object.getOwnPropertySymbols(s); i < p.length; i++) {
+    if (e.indexOf(p[i]) < 0 && Object.prototype.propertyIsEnumerable.call(s, p[i])) t[p[i]] = s[p[i]];
+  }
+  return t;
+};
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+/**
+ * Since too many feedback using static method like `Modal.confirm` not getting theme, we record the
+ * theme register info here to help developer get warning info.
+ */
+let existThemeConfig = false;
+const warnContext = (/* unused pure expression or super */ null && ( false ? 0 : /* istanbul ignore next */
+null));
+
+const configConsumerProps = (/* unused pure expression or super */ null && (['getTargetContainer', 'getPopupContainer', 'rootPrefixCls', 'getPrefixCls', 'renderEmpty', 'csp', 'autoInsertSpaceInButton', 'locale']));
+// These props is used by `useContext` directly in sub component
+const PASSED_PROPS = ['getTargetContainer', 'getPopupContainer', 'renderEmpty', 'input', 'pagination', 'form', 'select', 'button'];
+const defaultPrefixCls = 'ant';
+let globalPrefixCls;
+let globalIconPrefixCls;
+let globalTheme;
+let globalHolderRender;
+function getGlobalPrefixCls() {
+  return globalPrefixCls || defaultPrefixCls;
+}
+function getGlobalIconPrefixCls() {
+  return globalIconPrefixCls || defaultIconPrefixCls;
+}
+function isLegacyTheme(theme) {
+  return Object.keys(theme).some(key => key.endsWith('Color'));
+}
+const setGlobalConfig = props => {
+  const {
+    prefixCls,
+    iconPrefixCls,
+    theme,
+    holderRender
+  } = props;
+  if (prefixCls !== undefined) {
+    globalPrefixCls = prefixCls;
+  }
+  if (iconPrefixCls !== undefined) {
+    globalIconPrefixCls = iconPrefixCls;
+  }
+  if ('holderRender' in props) {
+    globalHolderRender = holderRender;
+  }
+  if (theme) {
+    if (isLegacyTheme(theme)) {
+       false ? 0 : void 0;
+      registerTheme(getGlobalPrefixCls(), theme);
+    } else {
+      globalTheme = theme;
+    }
+  }
+};
+const globalConfig = () => ({
+  getPrefixCls: (suffixCls, customizePrefixCls) => {
+    if (customizePrefixCls) {
+      return customizePrefixCls;
+    }
+    return suffixCls ? `${getGlobalPrefixCls()}-${suffixCls}` : getGlobalPrefixCls();
+  },
+  getIconPrefixCls: getGlobalIconPrefixCls,
+  getRootPrefixCls: () => {
+    // If Global prefixCls provided, use this
+    if (globalPrefixCls) {
+      return globalPrefixCls;
+    }
+    // Fallback to default prefixCls
+    return getGlobalPrefixCls();
+  },
+  getTheme: () => globalTheme,
+  holderRender: globalHolderRender
+});
+const ProviderChildren = props => {
+  const {
+    children,
+    csp: customCsp,
+    autoInsertSpaceInButton,
+    alert,
+    anchor,
+    form,
+    locale,
+    componentSize,
+    direction,
+    space,
+    virtual,
+    dropdownMatchSelectWidth,
+    popupMatchSelectWidth,
+    popupOverflow,
+    legacyLocale,
+    parentContext,
+    iconPrefixCls: customIconPrefixCls,
+    theme,
+    componentDisabled,
+    segmented,
+    statistic,
+    spin,
+    calendar,
+    carousel,
+    cascader,
+    collapse,
+    typography,
+    checkbox,
+    descriptions,
+    divider,
+    drawer,
+    skeleton,
+    steps,
+    image,
+    layout,
+    list,
+    mentions,
+    modal,
+    progress,
+    result,
+    slider,
+    breadcrumb,
+    menu,
+    pagination,
+    input,
+    textArea,
+    empty,
+    badge,
+    radio,
+    rate,
+    switch: SWITCH,
+    transfer,
+    avatar,
+    message,
+    tag,
+    table,
+    card,
+    tabs,
+    timeline,
+    timePicker,
+    upload,
+    notification,
+    tree,
+    colorPicker,
+    datePicker,
+    rangePicker,
+    flex,
+    wave,
+    dropdown,
+    warning: warningConfig,
+    tour,
+    floatButtonGroup
+  } = props;
+  // =================================== Context ===================================
+  const getPrefixCls = react.useCallback((suffixCls, customizePrefixCls) => {
+    const {
+      prefixCls
+    } = props;
+    if (customizePrefixCls) {
+      return customizePrefixCls;
+    }
+    const mergedPrefixCls = prefixCls || parentContext.getPrefixCls('');
+    return suffixCls ? `${mergedPrefixCls}-${suffixCls}` : mergedPrefixCls;
+  }, [parentContext.getPrefixCls, props.prefixCls]);
+  const iconPrefixCls = customIconPrefixCls || parentContext.iconPrefixCls || context_defaultIconPrefixCls;
+  const csp = customCsp || parentContext.csp;
+  util_useResetIconStyle(iconPrefixCls, csp);
+  const mergedTheme = useTheme(theme, parentContext.theme, {
+    prefixCls: getPrefixCls('')
+  });
+  if (false) {}
+  const baseConfig = {
+    csp,
+    autoInsertSpaceInButton,
+    alert,
+    anchor,
+    locale: locale || legacyLocale,
+    direction,
+    space,
+    virtual,
+    popupMatchSelectWidth: popupMatchSelectWidth !== null && popupMatchSelectWidth !== void 0 ? popupMatchSelectWidth : dropdownMatchSelectWidth,
+    popupOverflow,
+    getPrefixCls,
+    iconPrefixCls,
+    theme: mergedTheme,
+    segmented,
+    statistic,
+    spin,
+    calendar,
+    carousel,
+    cascader,
+    collapse,
+    typography,
+    checkbox,
+    descriptions,
+    divider,
+    drawer,
+    skeleton,
+    steps,
+    image,
+    input,
+    textArea,
+    layout,
+    list,
+    mentions,
+    modal,
+    progress,
+    result,
+    slider,
+    breadcrumb,
+    menu,
+    pagination,
+    empty,
+    badge,
+    radio,
+    rate,
+    switch: SWITCH,
+    transfer,
+    avatar,
+    message,
+    tag,
+    table,
+    card,
+    tabs,
+    timeline,
+    timePicker,
+    upload,
+    notification,
+    tree,
+    colorPicker,
+    datePicker,
+    rangePicker,
+    flex,
+    wave,
+    dropdown,
+    warning: warningConfig,
+    tour,
+    floatButtonGroup
+  };
+  const config = Object.assign({}, parentContext);
+  Object.keys(baseConfig).forEach(key => {
+    if (baseConfig[key] !== undefined) {
+      config[key] = baseConfig[key];
+    }
+  });
+  // Pass the props used by `useContext` directly with child component.
+  // These props should merged into `config`.
+  PASSED_PROPS.forEach(propName => {
+    const propValue = props[propName];
+    if (propValue) {
+      config[propName] = propValue;
+    }
+  });
+  // https://github.com/ant-design/ant-design/issues/27617
+  const memoedConfig = useMemo_useMemo(() => config, config, (prevConfig, currentConfig) => {
+    const prevKeys = Object.keys(prevConfig);
+    const currentKeys = Object.keys(currentConfig);
+    return prevKeys.length !== currentKeys.length || prevKeys.some(key => prevConfig[key] !== currentConfig[key]);
+  });
+  const memoIconContextValue = react.useMemo(() => ({
+    prefixCls: iconPrefixCls,
+    csp
+  }), [iconPrefixCls, csp]);
+  let childNode = /*#__PURE__*/react.createElement(react.Fragment, null, /*#__PURE__*/react.createElement(config_provider_PropWarning, {
+    dropdownMatchSelectWidth: dropdownMatchSelectWidth
+  }), children);
+  const validateMessages = react.useMemo(() => {
+    var _a, _b, _c, _d;
+    return merge(((_a = es_locale_en_US.Form) === null || _a === void 0 ? void 0 : _a.defaultValidateMessages) || {}, ((_c = (_b = memoedConfig.locale) === null || _b === void 0 ? void 0 : _b.Form) === null || _c === void 0 ? void 0 : _c.defaultValidateMessages) || {}, ((_d = memoedConfig.form) === null || _d === void 0 ? void 0 : _d.validateMessages) || {}, (form === null || form === void 0 ? void 0 : form.validateMessages) || {});
+  }, [memoedConfig, form === null || form === void 0 ? void 0 : form.validateMessages]);
+  if (Object.keys(validateMessages).length > 0) {
+    childNode = /*#__PURE__*/react.createElement(validateMessagesContext.Provider, {
+      value: validateMessages
+    }, childNode);
+  }
+  if (locale) {
+    childNode = /*#__PURE__*/react.createElement(es_locale, {
+      locale: locale,
+      _ANT_MARK__: ANT_MARK
+    }, childNode);
+  }
+  if (iconPrefixCls || csp) {
+    childNode = /*#__PURE__*/react.createElement(Context.Provider, {
+      value: memoIconContextValue
+    }, childNode);
+  }
+  if (componentSize) {
+    childNode = /*#__PURE__*/react.createElement(SizeContextProvider, {
+      size: componentSize
+    }, childNode);
+  }
+  // =================================== Motion ===================================
+  childNode = /*#__PURE__*/react.createElement(MotionWrapper, null, childNode);
+  // ================================ Dynamic theme ================================
+  const memoTheme = react.useMemo(() => {
+    const _a = mergedTheme || {},
+      {
+        algorithm,
+        token,
+        components,
+        cssVar
+      } = _a,
+      rest = config_provider_rest(_a, ["algorithm", "token", "components", "cssVar"]);
+    const themeObj = algorithm && (!Array.isArray(algorithm) || algorithm.length > 0) ? createTheme(algorithm) : defaultTheme;
+    const parsedComponents = {};
+    Object.entries(components || {}).forEach(_ref => {
+      let [componentName, componentToken] = _ref;
+      const parsedToken = Object.assign({}, componentToken);
+      if ('algorithm' in parsedToken) {
+        if (parsedToken.algorithm === true) {
+          parsedToken.theme = themeObj;
+        } else if (Array.isArray(parsedToken.algorithm) || typeof parsedToken.algorithm === 'function') {
+          parsedToken.theme = createTheme(parsedToken.algorithm);
+        }
+        delete parsedToken.algorithm;
+      }
+      parsedComponents[componentName] = parsedToken;
+    });
+    const mergedToken = Object.assign(Object.assign({}, seed), token);
+    return Object.assign(Object.assign({}, rest), {
+      theme: themeObj,
+      token: mergedToken,
+      components: parsedComponents,
+      override: Object.assign({
+        override: mergedToken
+      }, parsedComponents),
+      cssVar: cssVar
+    });
+  }, [mergedTheme]);
+  if (theme) {
+    childNode = /*#__PURE__*/react.createElement(DesignTokenContext.Provider, {
+      value: memoTheme
+    }, childNode);
+  }
+  // ================================== Warning ===================================
+  if (memoedConfig.warning) {
+    childNode = /*#__PURE__*/react.createElement(WarningContext.Provider, {
+      value: memoedConfig.warning
+    }, childNode);
+  }
+  // =================================== Render ===================================
+  if (componentDisabled !== undefined) {
+    childNode = /*#__PURE__*/react.createElement(DisabledContextProvider, {
+      disabled: componentDisabled
+    }, childNode);
+  }
+  return /*#__PURE__*/react.createElement(context_ConfigContext.Provider, {
+    value: memoedConfig
+  }, childNode);
+};
+const ConfigProvider = props => {
+  const context = react.useContext(context_ConfigContext);
+  const antLocale = react.useContext(locale_context);
+  return /*#__PURE__*/react.createElement(ProviderChildren, Object.assign({
+    parentContext: context,
+    legacyLocale: antLocale
+  }, props));
+};
+ConfigProvider.ConfigContext = context_ConfigContext;
+ConfigProvider.SizeContext = config_provider_SizeContext;
+ConfigProvider.config = setGlobalConfig;
+ConfigProvider.useConfig = hooks_useConfig;
+Object.defineProperty(ConfigProvider, 'SizeContext', {
+  get: () => {
+     false ? 0 : void 0;
+    return config_provider_SizeContext;
+  }
+});
+if (false) {}
+/* harmony default export */ const config_provider = (ConfigProvider);
+;// CONCATENATED MODULE: ./client/App.jsx
+
+
+
+
+
+const appTheme = {
+  algorithm: es_theme.darkAlgorithm,
+  components: {
+    Menu: {
+      itemSelectedBg: "rgba(255, 255, 255, 0.3)",
+      itemSelectedColor: "fff"
+    }
+  }
+};
+const App = () => {
+  const loggedIn = false;
+  return /*#__PURE__*/react.createElement(config_provider, {
+    theme: appTheme
+  }, loggedIn ? /*#__PURE__*/react.createElement(client_Chat, null) : /*#__PURE__*/react.createElement(client_Login, null));
 };
 const init = () => {
   const domNode = document.getElementById("app");
