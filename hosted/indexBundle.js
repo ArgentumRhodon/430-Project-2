@@ -31434,12 +31434,11 @@ const channels = [{
 const Chat = () => {
   const [message, setMessage] = (0,react.useState)("");
   const [messages, setMessages] = (0,react.useState)([]);
-  const [placeholder, setPlaceholder] = (0,react.useState)("Message #general");
+  const [placeholder, setPlaceholder] = (0,react.useState)("Message general");
   const socket = hooks_useSocket();
   const onSend = e => {
     if (!e.target.value) return;
     if (e.code === "Enter") {
-      console.log(message);
       socket.emit("message", message);
       setMessage("");
     }
@@ -39408,7 +39407,7 @@ const appTheme = {
   }
 };
 const App = () => {
-  const loggedIn = false;
+  const loggedIn = true;
   return /*#__PURE__*/react.createElement(config_provider, {
     theme: appTheme
   }, loggedIn ? /*#__PURE__*/react.createElement(client_Chat, null) : /*#__PURE__*/react.createElement(client_Login, null));

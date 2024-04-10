@@ -42,7 +42,7 @@ const channels = [
 const Chat = () => {
   const [message, setMessage] = useState("");
   const [messages, setMessages] = useState([]);
-  const [placeholder, setPlaceholder] = useState("Message #general");
+  const [placeholder, setPlaceholder] = useState("Message general");
   const socket = useSocket();
 
   const onSend = (e) => {

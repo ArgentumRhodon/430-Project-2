@@ -9,6 +9,8 @@ const createMainWindow = () => {
   mainWindow = new BrowserWindow({
     width,
     height,
+    minWidth: 1000,
+    minHeight: 500,
     webPreferences: {
       contextIsolation: true,
       sandbox: true,

@@ -17,7 +17,7 @@ const appTheme = {
 };
 
 const App = () => {
-  const loggedIn = false;
+  const loggedIn = true;
 
   return (
     <ConfigProvider theme={appTheme}>
