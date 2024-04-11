@@ -34,16 +34,33 @@ const menuStyle = {
   height: "100%",
 };
 
-const channels = [
-  { label: "general", key: 0 },
-  { label: "help", key: 1 },
+const servers = [
+  {
+    label: "Server 1",
+    key: 0,
+    channels: [
+      { label: "General 1", key: 0, messages: [] },
+      { label: "Help 1", key: 1, messages: [] },
+    ],
+  },
+  {
+    label: "Server 2",
+    key: 1,
+    channels: [
+      { label: "General 2", key: 0, messages: [] },
+      { label: "Help 2", key: 1, messages: [] },
+    ],
+  },
 ];
 
 const Chat = () => {
-  const [message, setMessage] = useState("");
-  const [messages, setMessages] = useState([]);
-  const [placeholder, setPlaceholder] = useState("Message general");
   const socket = useSocket();
+
+  const [server, setServer] = useState(servers[0]);
+  const [channel, setChannel] = useState(servers[0].channels[0]);
+
+  const [message, setMessage] = useState("");
+  const [placeholder, setPlaceholder] = useState("Message General 1");
 
   const onSend = (e) => {
     if (!e.target.value) return;
@@ -54,14 +71,21 @@ const Chat = () => {
     }
   };
 
-  socket.on("message", (msg) => setMessages([...messages, msg]));
+  // socket.on("message", (msg) => setMessages([...messages, msg]));
 
-  const onMenuSelect = (e) => {
-    const channel = channels.find((channel) => channel.key == e.key);
+  const onServerSelect = (e) => {
+    setServer(servers[e.key]);
+    setChannel(server.channels[0]);
     setPlaceholder(`Message ${channel.label}`);
     setMessage("");
-    setMessages([]);
-    socket.emit("room change", channel.label);
+    socket.emit("room change", server.label);
+    console.log(server, channel, e.key);
+  };
+
+  const onChannelSelect = (e) => {
+    setChannel(server.channels[e.key]);
+    setPlaceholder(`Message ${channel.label}`);
+    console.log(server, channel, e.key);
   };
 
   return (
@@ -70,16 +94,25 @@ const Chat = () => {
         <Menu
           mode="vertical"
           defaultSelectedKeys={["0"]}
-          items={channels}
+          items={servers}
           style={menuStyle}
-          onSelect={onMenuSelect}
+          onSelect={onServerSelect}
         />
       </Sider>
       <Layout style={innerLayoutStyle}>
+        <Sider>
+          <Menu
+            mode="vertical"
+            defaultSelectedKeys={["0"]}
+            items={server.channels}
+            style={menuStyle}
+            onSelect={onChannelSelect}
+          />
+        </Sider>
         <Content style={contentStyles}>
-          {messages.map((msg) => (
+          {/* {serverMsgs[channelIndex].map((msg) => (
             <p>{msg}</p>
-          ))}
+          ))} */}
         </Content>
         <Footer style={footerStyles}>
           <Input
