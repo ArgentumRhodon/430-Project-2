@@ -66,17 +66,25 @@ const Chat = () => {
     if (!e.target.value) return;
 
     if (e.code === "Enter") {
-      socket.emit("message", message);
+      console.log("Hey");
+      socket.emit("message", { message, channel });
       setMessage("");
     }
   };
 
-  // socket.on("message", (msg) => setMessages([...messages, msg]));
+  socket.on("message", ({ message, from }) => {
+    console.log(from);
+
+    setChannel({
+      label: channel.label,
+      key: channel.key,
+      messages: [...channel.messages, message],
+    });
+  });
 
   const onServerSelect = (e) => {
     setServer(servers[parseInt(e.key)]);
     setMessage("");
-    socket.emit("room change", server.label);
   };
 
   const onChannelSelect = (e) => {
@@ -86,11 +94,12 @@ const Chat = () => {
 
   useEffect(() => {
     setChannel(server.channels[0]);
+    socket.emit("room change", server.label);
   }, [server]);
 
   useEffect(() => {
     setPlaceholder(`Message ${channel.label}`);
-  }, [channel]);
+  }, [channel.label]);
 
   return (
     <Layout>
@@ -114,9 +123,9 @@ const Chat = () => {
           />
         </Sider>
         <Content style={contentStyles}>
-          {/* {serverMsgs[channelIndex].map((msg) => (
-            <p>{msg}</p>
-          ))} */}
+          {channel.messages.map((message) => (
+            <p>{message}</p>
+          ))}
         </Content>
         <Footer style={footerStyles}>
           <Input

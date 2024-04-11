@@ -31385,7 +31385,7 @@ Object.assign(esm_lookup, {
 
 ;// CONCATENATED MODULE: ./client/hooks/useSocket.js
 
-const socket = esm_lookup.connect("http://localhost:3001");
+const socket = esm_lookup.connect("http://localhost:3000");
 const useSocket = () => socket;
 /* harmony default export */ const hooks_useSocket = (useSocket);
 ;// CONCATENATED MODULE: ./client/Chat.jsx
@@ -31458,17 +31458,28 @@ const Chat = () => {
   const onSend = e => {
     if (!e.target.value) return;
     if (e.code === "Enter") {
-      socket.emit("message", message);
+      console.log("Hey");
+      socket.emit("message", {
+        message,
+        channel
+      });
       setMessage("");
     }
   };
-
-  // socket.on("message", (msg) => setMessages([...messages, msg]));
-
+  socket.on("message", ({
+    message,
+    from
+  }) => {
+    console.log(from);
+    setChannel({
+      label: channel.label,
+      key: channel.key,
+      messages: [...channel.messages, message]
+    });
+  });
   const onServerSelect = e => {
     setServer(servers[parseInt(e.key)]);
     setMessage("");
-    socket.emit("room change", server.label);
   };
   const onChannelSelect = e => {
     setChannel(server.channels[parseInt(e.key)]);
@@ -31476,10 +31487,11 @@ const Chat = () => {
   };
   (0,react.useEffect)(() => {
     setChannel(server.channels[0]);
+    socket.emit("room change", server.label);
   }, [server]);
   (0,react.useEffect)(() => {
     setPlaceholder(`Message ${channel.label}`);
-  }, [channel]);
+  }, [channel.label]);
   return /*#__PURE__*/react.createElement(es_layout, null, /*#__PURE__*/react.createElement(Chat_Sider, {
     style: siderStyle
   }, /*#__PURE__*/react.createElement(es_menu, {
@@ -31498,7 +31510,7 @@ const Chat = () => {
     onSelect: onChannelSelect
   })), /*#__PURE__*/react.createElement(Chat_Content, {
     style: contentStyles
-  }), /*#__PURE__*/react.createElement(Chat_Footer, {
+  }, channel.messages.map(message => /*#__PURE__*/react.createElement("p", null, message))), /*#__PURE__*/react.createElement(Chat_Footer, {
     style: footerStyles
   }, /*#__PURE__*/react.createElement(input, {
     placeholder: placeholder,
