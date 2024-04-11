@@ -31466,32 +31466,34 @@ const Chat = () => {
   // socket.on("message", (msg) => setMessages([...messages, msg]));
 
   const onServerSelect = e => {
-    setServer(servers[e.key]);
-    setChannel(server.channels[0]);
-    setPlaceholder(`Message ${channel.label}`);
+    setServer(servers[parseInt(e.key)]);
     setMessage("");
     socket.emit("room change", server.label);
-    console.log(server, channel, e.key);
   };
   const onChannelSelect = e => {
-    setChannel(server.channels[e.key]);
-    setPlaceholder(`Message ${channel.label}`);
-    console.log(server, channel, e.key);
+    setChannel(server.channels[parseInt(e.key)]);
+    setMessage("");
   };
+  (0,react.useEffect)(() => {
+    setChannel(server.channels[0]);
+  }, [server]);
+  (0,react.useEffect)(() => {
+    setPlaceholder(`Message ${channel.label}`);
+  }, [channel]);
   return /*#__PURE__*/react.createElement(es_layout, null, /*#__PURE__*/react.createElement(Chat_Sider, {
     style: siderStyle
   }, /*#__PURE__*/react.createElement(es_menu, {
     mode: "vertical",
-    defaultSelectedKeys: ["0"],
     items: servers,
+    defaultSelectedKeys: [server.key.toString()],
     style: menuStyle,
     onSelect: onServerSelect
   })), /*#__PURE__*/react.createElement(es_layout, {
     style: innerLayoutStyle
   }, /*#__PURE__*/react.createElement(Chat_Sider, null, /*#__PURE__*/react.createElement(es_menu, {
     mode: "vertical",
-    defaultSelectedKeys: ["0"],
     items: server.channels,
+    selectedKeys: [channel.key.toString()],
     style: menuStyle,
     onSelect: onChannelSelect
   })), /*#__PURE__*/react.createElement(Chat_Content, {

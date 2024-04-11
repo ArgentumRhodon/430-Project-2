@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 const { Sider, Content, Footer } = Layout;
 import { Layout, Menu, Input } from "antd";
 import useSocket from "./hooks/useSocket";
@@ -74,27 +74,31 @@ const Chat = () => {
   // socket.on("message", (msg) => setMessages([...messages, msg]));
 
   const onServerSelect = (e) => {
-    setServer(servers[e.key]);
-    setChannel(server.channels[0]);
-    setPlaceholder(`Message ${channel.label}`);
+    setServer(servers[parseInt(e.key)]);
     setMessage("");
     socket.emit("room change", server.label);
-    console.log(server, channel, e.key);
   };
 
   const onChannelSelect = (e) => {
-    setChannel(server.channels[e.key]);
-    setPlaceholder(`Message ${channel.label}`);
-    console.log(server, channel, e.key);
+    setChannel(server.channels[parseInt(e.key)]);
+    setMessage("");
   };
+
+  useEffect(() => {
+    setChannel(server.channels[0]);
+  }, [server]);
+
+  useEffect(() => {
+    setPlaceholder(`Message ${channel.label}`);
+  }, [channel]);
 
   return (
     <Layout>
       <Sider style={siderStyle}>
         <Menu
           mode="vertical"
-          defaultSelectedKeys={["0"]}
           items={servers}
+          defaultSelectedKeys={[server.key.toString()]}
           style={menuStyle}
           onSelect={onServerSelect}
         />
@@ -103,8 +107,8 @@ const Chat = () => {
         <Sider>
           <Menu
             mode="vertical"
-            defaultSelectedKeys={["0"]}
             items={server.channels}
+            selectedKeys={[channel.key.toString()]}
             style={menuStyle}
             onSelect={onChannelSelect}
           />
