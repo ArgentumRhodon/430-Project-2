@@ -34,96 +34,67 @@ const menuStyle = {
   height: "100%",
 };
 
-const servers = [
+const chats = [
   {
-    label: "Server 1",
+    label: "Chat 1",
     key: 0,
-    channels: [
-      { label: "General 1", key: 0, messages: [] },
-      { label: "Help 1", key: 1, messages: [] },
-    ],
   },
   {
-    label: "Server 2",
+    label: "Chat 2",
     key: 1,
-    channels: [
-      { label: "General 2", key: 0, messages: [] },
-      { label: "Help 2", key: 1, messages: [] },
-    ],
+  },
+  {
+    label: "Chat 3",
+    key: 2,
   },
 ];
 
 const Chat = () => {
   const socket = useSocket();
 
-  const [server, setServer] = useState(servers[0]);
-  const [channel, setChannel] = useState(servers[0].channels[0]);
-
+  const [chat, setChat] = useState(chats[0]);
   const [message, setMessage] = useState("");
-  const [placeholder, setPlaceholder] = useState("Message General 1");
+  const [messages, setMessages] = useState([]);
+  const [placeholder, setPlaceholder] = useState(`Message ${chats[0]}`);
 
   const onSend = (e) => {
     if (!e.target.value) return;
 
     if (e.code === "Enter") {
-      console.log("Hey");
-      socket.emit("message", { message, channel });
+      socket.emit("send message", message);
       setMessage("");
     }
   };
 
-  socket.on("message", ({ message, from }) => {
-    console.log(from);
-
-    setChannel({
-      label: channel.label,
-      key: channel.key,
-      messages: [...channel.messages, message],
-    });
+  socket.on("incoming message", (incomingMessage) => {
+    setMessages([...messages, incomingMessage]);
   });
 
-  const onServerSelect = (e) => {
-    setServer(servers[parseInt(e.key)]);
-    setMessage("");
-  };
-
-  const onChannelSelect = (e) => {
-    setChannel(server.channels[parseInt(e.key)]);
+  const onChatSelect = (e) => {
+    setChat(chats[e.key]);
     setMessage("");
   };
 
   useEffect(() => {
-    setChannel(server.channels[0]);
-    socket.emit("room change", server.label);
-  }, [server]);
-
-  useEffect(() => {
-    setPlaceholder(`Message ${channel.label}`);
-  }, [channel.label]);
+    socket.emit("room change", chat.label);
+    setPlaceholder(`Message ${chat.label}`);
+    setMessages([]);
+  }, [chat]);
 
   return (
     <Layout>
       <Sider style={siderStyle}>
         <Menu
           mode="vertical"
-          items={servers}
-          defaultSelectedKeys={[server.key.toString()]}
+          items={chats}
+          defaultSelectedKeys={["0"]}
           style={menuStyle}
-          onSelect={onServerSelect}
+          onSelect={onChatSelect}
         />
       </Sider>
       <Layout style={innerLayoutStyle}>
-        <Sider>
-          <Menu
-            mode="vertical"
-            items={server.channels}
-            selectedKeys={[channel.key.toString()]}
-            style={menuStyle}
-            onSelect={onChannelSelect}
-          />
-        </Sider>
         <Content style={contentStyles}>
-          {channel.messages.map((message) => (
+          {messages.map((message) => (
             <p>{message}</p>
           ))}
         </Content>

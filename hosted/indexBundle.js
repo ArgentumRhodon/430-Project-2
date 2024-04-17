@@ -31424,93 +31424,54 @@ const footerStyles = {
 const menuStyle = {
   height: "100%"
 };
-const servers = [{
-  label: "Server 1",
-  key: 0,
-  channels: [{
-    label: "General 1",
-    key: 0,
-    messages: []
-  }, {
-    label: "Help 1",
-    key: 1,
-    messages: []
-  }]
+const chats = [{
+  label: "Chat 1",
+  key: 0
 }, {
-  label: "Server 2",
-  key: 1,
-  channels: [{
-    label: "General 2",
-    key: 0,
-    messages: []
-  }, {
-    label: "Help 2",
-    key: 1,
-    messages: []
-  }]
+  label: "Chat 2",
+  key: 1
+}, {
+  label: "Chat 3",
+  key: 2
 }];
 const Chat = () => {
   const socket = hooks_useSocket();
-  const [server, setServer] = (0,react.useState)(servers[0]);
-  const [channel, setChannel] = (0,react.useState)(servers[0].channels[0]);
+  const [chat, setChat] = (0,react.useState)(chats[0]);
   const [message, setMessage] = (0,react.useState)("");
-  const [placeholder, setPlaceholder] = (0,react.useState)("Message General 1");
+  const [messages, setMessages] = (0,react.useState)([]);
+  const [placeholder, setPlaceholder] = (0,react.useState)(`Message ${chats[0]}`);
   const onSend = e => {
     if (!e.target.value) return;
     if (e.code === "Enter") {
-      console.log("Hey");
-      socket.emit("message", {
-        message,
-        channel
-      });
+      socket.emit("send message", message);
       setMessage("");
     }
   };
-  socket.on("message", ({
-    message,
-    from
-  }) => {
-    console.log(from);
-    setChannel({
-      label: channel.label,
-      key: channel.key,
-      messages: [...channel.messages, message]
-    });
+  socket.on("incoming message", incomingMessage => {
+    setMessages([...messages, incomingMessage]);
   });
-  const onServerSelect = e => {
-    setServer(servers[parseInt(e.key)]);
-    setMessage("");
-  };
-  const onChannelSelect = e => {
-    setChannel(server.channels[parseInt(e.key)]);
+  const onChatSelect = e => {
+    setChat(chats[e.key]);
     setMessage("");
   };
   (0,react.useEffect)(() => {
-    setChannel(server.channels[0]);
-    socket.emit("room change", server.label);
-  }, [server]);
-  (0,react.useEffect)(() => {
-    setPlaceholder(`Message ${channel.label}`);
-  }, [channel.label]);
+    socket.emit("room change", chat.label);
+    setPlaceholder(`Message ${chat.label}`);
+    setMessages([]);
+  }, [chat]);
   return /*#__PURE__*/react.createElement(es_layout, null, /*#__PURE__*/react.createElement(Chat_Sider, {
     style: siderStyle
   }, /*#__PURE__*/react.createElement(es_menu, {
     mode: "vertical",
-    items: servers,
-    defaultSelectedKeys: [server.key.toString()],
+    items: chats,
+    defaultSelectedKeys: ["0"],
     style: menuStyle,
-    onSelect: onServerSelect
+    onSelect: onChatSelect
   })), /*#__PURE__*/react.createElement(es_layout, {
     style: innerLayoutStyle
-  }, /*#__PURE__*/react.createElement(Chat_Sider, null, /*#__PURE__*/react.createElement(es_menu, {
-    mode: "vertical",
-    items: server.channels,
-    selectedKeys: [channel.key.toString()],
-    style: menuStyle,
-    onSelect: onChannelSelect
-  })), /*#__PURE__*/react.createElement(Chat_Content, {
+  }, /*#__PURE__*/react.createElement(Chat_Content, {
     style: contentStyles
-  }, channel.messages.map(message => /*#__PURE__*/react.createElement("p", null, message))), /*#__PURE__*/react.createElement(Chat_Footer, {
+  }, messages.map(message => /*#__PURE__*/react.createElement("p", null, message))), /*#__PURE__*/react.createElement(Chat_Footer, {
     style: footerStyles
   }, /*#__PURE__*/react.createElement(input, {
     placeholder: placeholder,
