@@ -7,16 +7,18 @@ const flexStyle = {
 };
 
 const cardStyle = {
+  textAlign: "center",
   width: "300px",
+};
+
+const buttonStyle = {
+  width: "100%",
 };
 
 const SignupForm = () => {
   return (
     <Form layout="vertical">
       <Form.Item label="Email" name="email">
-        <Input />
-      </Form.Item>
-      <Form.Item label="Nick Name" name="displayName">
         <Input />
       </Form.Item>
       <Form.Item label="Username" name="username">
@@ -26,7 +28,7 @@ const SignupForm = () => {
         <Input />
       </Form.Item>
       <Form.Item>
-        <Button type="primary" htmlType="submit">
+        <Button type="primary" htmlType="submit" style={buttonStyle}>
           Create Account
         </Button>
       </Form.Item>
@@ -44,7 +46,7 @@ const LoginForm = () => {
         <Input />
       </Form.Item>
       <Form.Item>
-        <Button type="primary" htmlType="submit">
+        <Button type="primary" htmlType="submit" style={buttonStyle}>
           Log In
         </Button>
       </Form.Item>
@@ -67,10 +69,10 @@ const Login = () => {
         >
           <Card title={displayLogin ? "Log In" : "Sign Up"} style={cardStyle}>
             {displayLogin ? <LoginForm /> : <SignupForm />}
+            <a onClick={() => setDisplayLogin(!displayLogin)}>
+              {displayLogin ? "Need an account?" : "Already have an account?"}
+            </a>
           </Card>
-          <Button onClick={() => setDisplayLogin(!displayLogin)}>
-            {displayLogin ? "Need an account?" : "Already have an account?"}
-          </Button>
         </Flex>
       </Content>
     </Layout>

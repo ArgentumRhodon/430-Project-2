@@ -10,7 +10,7 @@ const createMainWindow = () => {
     width,
     height,
     minWidth: 800,
-    minHeight: 500,
+    minHeight: 600,
     webPreferences: {
       contextIsolation: true,
       sandbox: true,

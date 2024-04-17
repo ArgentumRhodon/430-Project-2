@@ -38560,7 +38560,11 @@ const flexStyle = {
   height: "100vh"
 };
 const cardStyle = {
+  textAlign: "center",
   width: "300px"
+};
+const buttonStyle = {
+  width: "100%"
 };
 const SignupForm = () => {
   return /*#__PURE__*/react.createElement(es_form, {
@@ -38569,9 +38573,6 @@ const SignupForm = () => {
     label: "Email",
     name: "email"
   }, /*#__PURE__*/react.createElement(input, null)), /*#__PURE__*/react.createElement(es_form.Item, {
-    label: "Nick Name",
-    name: "displayName"
-  }, /*#__PURE__*/react.createElement(input, null)), /*#__PURE__*/react.createElement(es_form.Item, {
     label: "Username",
     name: "username"
   }, /*#__PURE__*/react.createElement(input, null)), /*#__PURE__*/react.createElement(es_form.Item, {
@@ -38579,7 +38580,8 @@ const SignupForm = () => {
     name: "password"
   }, /*#__PURE__*/react.createElement(input, null)), /*#__PURE__*/react.createElement(es_form.Item, null, /*#__PURE__*/react.createElement(es_button, {
     type: "primary",
-    htmlType: "submit"
+    htmlType: "submit",
+    style: buttonStyle
   }, "Create Account")));
 };
 const LoginForm = () => {
@@ -38593,7 +38595,8 @@ const LoginForm = () => {
     name: "password"
   }, /*#__PURE__*/react.createElement(input, null)), /*#__PURE__*/react.createElement(es_form.Item, null, /*#__PURE__*/react.createElement(es_button, {
     type: "primary",
-    htmlType: "submit"
+    htmlType: "submit",
+    style: buttonStyle
   }, "Log In")));
 };
 const Login = () => {
@@ -38607,9 +38610,9 @@ const Login = () => {
   }, /*#__PURE__*/react.createElement(card, {
     title: displayLogin ? "Log In" : "Sign Up",
     style: cardStyle
-  }, displayLogin ? /*#__PURE__*/react.createElement(LoginForm, null) : /*#__PURE__*/react.createElement(SignupForm, null)), /*#__PURE__*/react.createElement(es_button, {
+  }, displayLogin ? /*#__PURE__*/react.createElement(LoginForm, null) : /*#__PURE__*/react.createElement(SignupForm, null), /*#__PURE__*/react.createElement("a", {
     onClick: () => setDisplayLogin(!displayLogin)
-  }, displayLogin ? "Need an account?" : "Already have an account?"))));
+  }, displayLogin ? "Need an account?" : "Already have an account?")))));
 };
 /* harmony default export */ const client_Login = (Login);
 ;// CONCATENATED MODULE: ./node_modules/antd/es/theme/getDesignToken.js
@@ -39415,7 +39418,7 @@ const appTheme = {
   }
 };
 const App = () => {
-  const loggedIn = true;
+  const loggedIn = false;
   return /*#__PURE__*/react.createElement(config_provider, {
     theme: appTheme
   }, loggedIn ? /*#__PURE__*/react.createElement(client_Chat, null) : /*#__PURE__*/react.createElement(client_Login, null));
