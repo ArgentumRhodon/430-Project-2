@@ -38550,7 +38550,86 @@ es_card_Card.Grid = card_Grid;
 es_card_Card.Meta = card_Meta;
 if (false) {}
 /* harmony default export */ const card = (es_card_Card);
+;// CONCATENATED MODULE: ./client/utils/poster.js
+const sendPost = async (url, data, handler) => {
+  const response = await fetch(url, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify(data)
+  });
+  const result = await response.json();
+
+  // if (result.redirect) {
+  //   window.location = result.redirect;
+  // }
+
+  // if (result.error) {
+  //   handleError(result.error);
+  // }
+
+  if (handler) {
+    handler(result);
+  }
+};
+/* harmony default export */ const poster = (sendPost);
+;// CONCATENATED MODULE: ./client/hooks/useSignup.js
+
+const handleSignup = e => {
+  if (!e.email || !e.username || !e.password) {
+    console.log("All fields required!");
+    return false;
+  }
+  poster("http://localhost:3000/signup", e);
+  return false;
+};
+const useSignup = () => handleSignup;
+/* harmony default export */ const hooks_useSignup = (useSignup);
+;// CONCATENATED MODULE: ./client/hooks/useLogin.js
+/* Sends post requests to the server using fetch. Will look for various
+   entries in the response JSON object, and will handle them appropriately.
+*/
+
+
+
+// const sendDelete = async (url, data, handler) => {
+//   const response = await fetch(url, {
+//     method: "DELETE",
+//     headers: {
+//       "Content-Type": "application/json",
+//     },
+//     body: JSON.stringify(data),
+//   });
+
+//   const result = await response.json();
+
+//   if (result.redirect) {
+//     window.location = result.redirect;
+//   }
+
+//   if (result.error) {
+//     handleError(result.error);
+//   }
+
+//   if (handler) {
+//     handler(result);
+//   }
+// };
+
+const handleLogin = e => {
+  if (!e.email || !e.password) {
+    console.log("Username or password is empty!");
+    return false;
+  }
+  poster("http://localhost:3000/login", e);
+  return false;
+};
+const useLogin = () => handleLogin;
+/* harmony default export */ const hooks_useLogin = (useLogin);
 ;// CONCATENATED MODULE: ./client/Login.jsx
+
+
 
 
 const {
@@ -38566,18 +38645,37 @@ const cardStyle = {
 const buttonStyle = {
   width: "100%"
 };
+const validateMessages = {
+  required: "${label} is required!",
+  types: {
+    email: "Not a valid email!"
+  }
+};
 const SignupForm = () => {
+  const signupHelper = hooks_useSignup();
   return /*#__PURE__*/react.createElement(es_form, {
-    layout: "vertical"
+    layout: "vertical",
+    onFinish: signupHelper,
+    validateMessages: validateMessages
   }, /*#__PURE__*/react.createElement(es_form.Item, {
     label: "Email",
-    name: "email"
+    name: "email",
+    rules: [{
+      type: "email",
+      required: true
+    }]
   }, /*#__PURE__*/react.createElement(input, null)), /*#__PURE__*/react.createElement(es_form.Item, {
     label: "Username",
-    name: "username"
+    name: "username",
+    rules: [{
+      required: true
+    }]
   }, /*#__PURE__*/react.createElement(input, null)), /*#__PURE__*/react.createElement(es_form.Item, {
     label: "Password",
-    name: "password"
+    name: "password",
+    rules: [{
+      required: true
+    }]
   }, /*#__PURE__*/react.createElement(input, null)), /*#__PURE__*/react.createElement(es_form.Item, null, /*#__PURE__*/react.createElement(es_button, {
     type: "primary",
     htmlType: "submit",
@@ -38585,14 +38683,24 @@ const SignupForm = () => {
   }, "Create Account")));
 };
 const LoginForm = () => {
+  const loginHelper = hooks_useLogin();
   return /*#__PURE__*/react.createElement(es_form, {
-    layout: "vertical"
+    layout: "vertical",
+    onFinish: loginHelper,
+    validateMessages: validateMessages
   }, /*#__PURE__*/react.createElement(es_form.Item, {
     label: "Email",
-    name: "email"
+    name: "email",
+    rules: [{
+      type: "email",
+      required: "true"
+    }]
   }, /*#__PURE__*/react.createElement(input, null)), /*#__PURE__*/react.createElement(es_form.Item, {
     label: "Password",
-    name: "password"
+    name: "password",
+    rules: [{
+      required: true
+    }]
   }, /*#__PURE__*/react.createElement(input, null)), /*#__PURE__*/react.createElement(es_form.Item, null, /*#__PURE__*/react.createElement(es_button, {
     type: "primary",
     htmlType: "submit",
@@ -38600,7 +38708,7 @@ const LoginForm = () => {
   }, "Log In")));
 };
 const Login = () => {
-  const [displayLogin, setDisplayLogin] = (0,react.useState)(false);
+  const [displayLogin, setDisplayLogin] = (0,react.useState)(true);
   return /*#__PURE__*/react.createElement(es_layout, null, /*#__PURE__*/react.createElement(Login_Content, null, /*#__PURE__*/react.createElement(flex, {
     justify: "center",
     align: "center",

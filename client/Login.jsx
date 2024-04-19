@@ -1,5 +1,7 @@
 import React, { useState } from "react";
 import { Layout, Flex, Card, Form, Input, Button } from "antd";
+import useSignup from "./hooks/useSignup";
+import useLogin from "./hooks/useLogin";
 const { Content } = Layout;
 
 const flexStyle = {
@@ -15,16 +17,54 @@ const buttonStyle = {
   width: "100%",
 };
 
+const validateMessages = {
+  required: "${label} is required!",
+  types: {
+    email: "Not a valid email!",
+  },
+};
+
 const SignupForm = () => {
+  const signupHelper = useSignup();
+
   return (
-    <Form layout="vertical">
-      <Form.Item label="Email" name="email">
+    <Form
+      layout="vertical"
+      onFinish={signupHelper}
+      validateMessages={validateMessages}
+    >
+      <Form.Item
+        label="Email"
+        name="email"
+        rules={[
+          {
+            type: "email",
+            required: true,
+          },
+        ]}
+      >
         <Input />
       </Form.Item>
-      <Form.Item label="Username" name="username">
+      <Form.Item
+        label="Username"
+        name="username"
+        rules={[
+          {
+            required: true,
+          },
+        ]}
+      >
         <Input />
       </Form.Item>
-      <Form.Item label="Password" name="password">
+      <Form.Item
+        label="Password"
+        name="password"
+        rules={[
+          {
+            required: true,
+          },
+        ]}
+      >
         <Input />
       </Form.Item>
       <Form.Item>
@@ -37,12 +77,35 @@ const SignupForm = () => {
 };
 
 const LoginForm = () => {
+  const loginHelper = useLogin();
+
   return (
-    <Form layout="vertical">
-      <Form.Item label="Email" name="email">
+    <Form
+      layout="vertical"
+      onFinish={loginHelper}
+      validateMessages={validateMessages}
+    >
+      <Form.Item
+        label="Email"
+        name="email"
+        rules={[
+          {
+            type: "email",
+            required: "true",
+          },
+        ]}
+      >
         <Input />
       </Form.Item>
-      <Form.Item label="Password" name="password">
+      <Form.Item
+        label="Password"
+        name="password"
+        rules={[
+          {
+            required: true,
+          },
+        ]}
+      >
         <Input />
       </Form.Item>
       <Form.Item>
@@ -55,7 +118,7 @@ const LoginForm = () => {
 };
 
 const Login = () => {
-  const [displayLogin, setDisplayLogin] = useState(false);
+  const [displayLogin, setDisplayLogin] = useState(true);
 
   return (
     <Layout>
