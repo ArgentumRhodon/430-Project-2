@@ -1,10 +1,11 @@
 import React from "react";
 import { createRoot } from "react-dom/client";
-
+import { HashRouter, Link, Route, Routes } from "react-router-dom";
 import Chat from "./Chat";
 import Login from "./Login";
 
 import { theme, ConfigProvider } from "antd";
+import useSocket from "./hooks/useSocket";
 
 const appTheme = {
   algorithm: theme.darkAlgorithm,
@@ -17,11 +18,18 @@ const appTheme = {
 };
 
 const App = () => {
-  const loggedIn = false;
-
   return (
     <ConfigProvider theme={appTheme}>
-      {loggedIn ? <Chat /> : <Login />}
+      <HashRouter>
+        {/* <div>
+          <Link to="/">Login</Link>
+          <Link to="/app">Chat</Link>
+        </div> */}
+        <Routes>
+          <Route path="/" element={<Login />} />
+          <Route path="/app" element={<Chat />}></Route>
+        </Routes>
+      </HashRouter>
     </ConfigProvider>
   );
 };
