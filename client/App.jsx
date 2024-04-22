@@ -1,8 +1,8 @@
 import React from "react";
 import { createRoot } from "react-dom/client";
 import { HashRouter, Link, Route, Routes } from "react-router-dom";
-import Chat from "./Chat";
-import Login from "./Login";
+import Chat from "./pages/Chat.jsx";
+import Login from "./pages/Login.jsx";
 
 import { theme, ConfigProvider } from "antd";
 

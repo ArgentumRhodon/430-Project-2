@@ -38546,7 +38546,7 @@ Object.assign(esm_lookup, {
 const socket = esm_lookup.connect("http://localhost:3000");
 const useSocket = () => socket;
 /* harmony default export */ const hooks_useSocket = (useSocket);
-;// CONCATENATED MODULE: ./client/Chat.jsx
+;// CONCATENATED MODULE: ./client/pages/Chat.jsx
 
 const {
   Sider: Chat_Sider,
@@ -38641,2562 +38641,51 @@ const Chat = () => {
     value: message
   }))));
 };
-/* harmony default export */ const client_Chat = (Chat);
-;// CONCATENATED MODULE: ./node_modules/antd/es/form/hooks/useDebounce.js
-
-function useDebounce(value) {
-  const [cacheValue, setCacheValue] = react.useState(value);
-  react.useEffect(() => {
-    const timeout = setTimeout(() => {
-      setCacheValue(value);
-    }, value.length ? 0 : 10);
-    return () => {
-      clearTimeout(timeout);
-    };
-  }, [value]);
-  return cacheValue;
-}
-;// CONCATENATED MODULE: ./node_modules/antd/es/form/style/explain.js
-const genFormValidateMotionStyle = token => {
-  const {
-    componentCls
-  } = token;
-  const helpCls = `${componentCls}-show-help`;
-  const helpItemCls = `${componentCls}-show-help-item`;
-  return {
-    [helpCls]: {
-      // Explain holder
-      transition: `opacity ${token.motionDurationSlow} ${token.motionEaseInOut}`,
-      '&-appear, &-enter': {
-        opacity: 0,
-        '&-active': {
-          opacity: 1
-        }
-      },
-      '&-leave': {
-        opacity: 1,
-        '&-active': {
-          opacity: 0
-        }
-      },
-      // Explain
-      [helpItemCls]: {
-        overflow: 'hidden',
-        transition: `height ${token.motionDurationSlow} ${token.motionEaseInOut},
-                     opacity ${token.motionDurationSlow} ${token.motionEaseInOut},
-                     transform ${token.motionDurationSlow} ${token.motionEaseInOut} !important`,
-        [`&${helpItemCls}-appear, &${helpItemCls}-enter`]: {
-          transform: `translateY(-5px)`,
-          opacity: 0,
-          [`&-active`]: {
-            transform: 'translateY(0)',
-            opacity: 1
-          }
-        },
-        [`&${helpItemCls}-leave-active`]: {
-          transform: `translateY(-5px)`
-        }
-      }
-    }
-  };
-};
-/* harmony default export */ const explain = (genFormValidateMotionStyle);
-;// CONCATENATED MODULE: ./node_modules/antd/es/form/style/index.js
-
-
-
-
-
-const resetForm = token => ({
-  legend: {
-    display: 'block',
-    width: '100%',
-    marginBottom: token.marginLG,
-    padding: 0,
-    color: token.colorTextDescription,
-    fontSize: token.fontSizeLG,
-    lineHeight: 'inherit',
-    border: 0,
-    borderBottom: `${unit(token.lineWidth)} ${token.lineType} ${token.colorBorder}`
-  },
-  'input[type="search"]': {
-    boxSizing: 'border-box'
-  },
-  // Position radios and checkboxes better
-  'input[type="radio"], input[type="checkbox"]': {
-    lineHeight: 'normal'
-  },
-  'input[type="file"]': {
-    display: 'block'
-  },
-  // Make range inputs behave like textual form controls
-  'input[type="range"]': {
-    display: 'block',
-    width: '100%'
-  },
-  // Make multiple select elements height not fixed
-  'select[multiple], select[size]': {
-    height: 'auto'
-  },
-  // Focus for file, radio, and checkbox
-  [`input[type='file']:focus,
-  input[type='radio']:focus,
-  input[type='checkbox']:focus`]: {
-    outline: 0,
-    boxShadow: `0 0 0 ${unit(token.controlOutlineWidth)} ${token.controlOutline}`
-  },
-  // Adjust output element
-  output: {
-    display: 'block',
-    paddingTop: 15,
-    color: token.colorText,
-    fontSize: token.fontSize,
-    lineHeight: token.lineHeight
-  }
-});
-const genFormSize = (token, height) => {
-  const {
-    formItemCls
-  } = token;
-  return {
-    [formItemCls]: {
-      [`${formItemCls}-label > label`]: {
-        height
-      },
-      [`${formItemCls}-control-input`]: {
-        minHeight: height
-      }
-    }
-  };
-};
-const genFormStyle = token => {
-  const {
-    componentCls
-  } = token;
-  return {
-    [token.componentCls]: Object.assign(Object.assign(Object.assign({}, resetComponent(token)), resetForm(token)), {
-      [`${componentCls}-text`]: {
-        display: 'inline-block',
-        paddingInlineEnd: token.paddingSM
-      },
-      // ================================================================
-      // =                             Size                             =
-      // ================================================================
-      '&-small': Object.assign({}, genFormSize(token, token.controlHeightSM)),
-      '&-large': Object.assign({}, genFormSize(token, token.controlHeightLG))
-    })
-  };
-};
-const genFormItemStyle = token => {
-  const {
-    formItemCls,
-    iconCls,
-    componentCls,
-    rootPrefixCls,
-    labelRequiredMarkColor,
-    labelColor,
-    labelFontSize,
-    labelHeight,
-    labelColonMarginInlineStart,
-    labelColonMarginInlineEnd,
-    itemMarginBottom
-  } = token;
-  return {
-    [formItemCls]: Object.assign(Object.assign({}, resetComponent(token)), {
-      marginBottom: itemMarginBottom,
-      verticalAlign: 'top',
-      '&-with-help': {
-        transition: 'none'
-      },
-      [`&-hidden,
-        &-hidden.${rootPrefixCls}-row`]: {
-        // https://github.com/ant-design/ant-design/issues/26141
-        display: 'none'
-      },
-      '&-has-warning': {
-        [`${formItemCls}-split`]: {
-          color: token.colorError
-        }
-      },
-      '&-has-error': {
-        [`${formItemCls}-split`]: {
-          color: token.colorWarning
-        }
-      },
-      // ==============================================================
-      // =                            Label                           =
-      // ==============================================================
-      [`${formItemCls}-label`]: {
-        flexGrow: 0,
-        overflow: 'hidden',
-        whiteSpace: 'nowrap',
-        textAlign: 'end',
-        verticalAlign: 'middle',
-        '&-left': {
-          textAlign: 'start'
-        },
-        '&-wrap': {
-          overflow: 'unset',
-          lineHeight: token.lineHeight,
-          whiteSpace: 'unset'
-        },
-        '> label': {
-          position: 'relative',
-          display: 'inline-flex',
-          alignItems: 'center',
-          maxWidth: '100%',
-          height: labelHeight,
-          color: labelColor,
-          fontSize: labelFontSize,
-          [`> ${iconCls}`]: {
-            fontSize: token.fontSize,
-            verticalAlign: 'top'
-          },
-          // Required mark
-          [`&${formItemCls}-required:not(${formItemCls}-required-mark-optional)::before`]: {
-            display: 'inline-block',
-            marginInlineEnd: token.marginXXS,
-            color: labelRequiredMarkColor,
-            fontSize: token.fontSize,
-            fontFamily: 'SimSun, sans-serif',
-            lineHeight: 1,
-            content: '"*"',
-            [`${componentCls}-hide-required-mark &`]: {
-              display: 'none'
-            }
-          },
-          // Optional mark
-          [`${formItemCls}-optional`]: {
-            display: 'inline-block',
-            marginInlineStart: token.marginXXS,
-            color: token.colorTextDescription,
-            [`${componentCls}-hide-required-mark &`]: {
-              display: 'none'
-            }
-          },
-          // Optional mark
-          [`${formItemCls}-tooltip`]: {
-            color: token.colorTextDescription,
-            cursor: 'help',
-            writingMode: 'horizontal-tb',
-            marginInlineStart: token.marginXXS
-          },
-          '&::after': {
-            content: '":"',
-            position: 'relative',
-            marginBlock: 0,
-            marginInlineStart: labelColonMarginInlineStart,
-            marginInlineEnd: labelColonMarginInlineEnd
-          },
-          [`&${formItemCls}-no-colon::after`]: {
-            content: '"\\a0"'
-          }
-        }
-      },
-      // ==============================================================
-      // =                            Input                           =
-      // ==============================================================
-      [`${formItemCls}-control`]: {
-        ['--ant-display']: 'flex',
-        flexDirection: 'column',
-        flexGrow: 1,
-        [`&:first-child:not([class^="'${rootPrefixCls}-col-'"]):not([class*="' ${rootPrefixCls}-col-'"])`]: {
-          width: '100%'
-        },
-        '&-input': {
-          position: 'relative',
-          display: 'flex',
-          alignItems: 'center',
-          minHeight: token.controlHeight,
-          '&-content': {
-            flex: 'auto',
-            maxWidth: '100%'
-          }
-        }
-      },
-      // ==============================================================
-      // =                           Explain                          =
-      // ==============================================================
-      [formItemCls]: {
-        '&-explain, &-extra': {
-          clear: 'both',
-          color: token.colorTextDescription,
-          fontSize: token.fontSize,
-          lineHeight: token.lineHeight
-        },
-        '&-explain-connected': {
-          width: '100%'
-        },
-        '&-extra': {
-          minHeight: token.controlHeightSM,
-          transition: `color ${token.motionDurationMid} ${token.motionEaseOut}` // sync input color transition
-        },
-        '&-explain': {
-          '&-error': {
-            color: token.colorError
-          },
-          '&-warning': {
-            color: token.colorWarning
-          }
-        }
-      },
-      [`&-with-help ${formItemCls}-explain`]: {
-        height: 'auto',
-        opacity: 1
-      },
-      // ==============================================================
-      // =                        Feedback Icon                       =
-      // ==============================================================
-      [`${formItemCls}-feedback-icon`]: {
-        fontSize: token.fontSize,
-        textAlign: 'center',
-        visibility: 'visible',
-        animationName: zoomIn,
-        animationDuration: token.motionDurationMid,
-        animationTimingFunction: token.motionEaseOutBack,
-        pointerEvents: 'none',
-        '&-success': {
-          color: token.colorSuccess
-        },
-        '&-error': {
-          color: token.colorError
-        },
-        '&-warning': {
-          color: token.colorWarning
-        },
-        '&-validating': {
-          color: token.colorPrimary
-        }
-      }
-    })
-  };
-};
-const genHorizontalStyle = token => {
-  const {
-    componentCls,
-    formItemCls
-  } = token;
-  return {
-    [`${componentCls}-horizontal`]: {
-      [`${formItemCls}-label`]: {
-        flexGrow: 0
-      },
-      [`${formItemCls}-control`]: {
-        flex: '1 1 0',
-        // https://github.com/ant-design/ant-design/issues/32777
-        // https://github.com/ant-design/ant-design/issues/33773
-        minWidth: 0
-      },
-      // Do not change this to `ant-col-24`! `-24` match all the responsive rules
-      // https://github.com/ant-design/ant-design/issues/32980
-      // https://github.com/ant-design/ant-design/issues/34903
-      // https://github.com/ant-design/ant-design/issues/44538
-      [`${formItemCls}-label[class$='-24'], ${formItemCls}-label[class*='-24 ']`]: {
-        [`& + ${formItemCls}-control`]: {
-          minWidth: 'unset'
-        }
-      }
-    }
-  };
-};
-const genInlineStyle = token => {
-  const {
-    componentCls,
-    formItemCls
-  } = token;
-  return {
-    [`${componentCls}-inline`]: {
-      display: 'flex',
-      flexWrap: 'wrap',
-      [formItemCls]: {
-        flex: 'none',
-        marginInlineEnd: token.margin,
-        marginBottom: 0,
-        '&-row': {
-          flexWrap: 'nowrap'
-        },
-        [`> ${formItemCls}-label,
-        > ${formItemCls}-control`]: {
-          display: 'inline-block',
-          verticalAlign: 'top'
-        },
-        [`> ${formItemCls}-label`]: {
-          flex: 'none'
-        },
-        [`${componentCls}-text`]: {
-          display: 'inline-block'
-        },
-        [`${formItemCls}-has-feedback`]: {
-          display: 'inline-block'
-        }
-      }
-    }
-  };
-};
-const makeVerticalLayoutLabel = token => ({
-  padding: token.verticalLabelPadding,
-  margin: token.verticalLabelMargin,
-  whiteSpace: 'initial',
-  textAlign: 'start',
-  '> label': {
-    margin: 0,
-    '&::after': {
-      // https://github.com/ant-design/ant-design/issues/43538
-      visibility: 'hidden'
-    }
-  }
-});
-const makeVerticalLayout = token => {
-  const {
-    componentCls,
-    formItemCls,
-    rootPrefixCls
-  } = token;
-  return {
-    [`${formItemCls} ${formItemCls}-label`]: makeVerticalLayoutLabel(token),
-    // ref: https://github.com/ant-design/ant-design/issues/45122
-    [`${componentCls}:not(${componentCls}-inline)`]: {
-      [formItemCls]: {
-        flexWrap: 'wrap',
-        [`${formItemCls}-label, ${formItemCls}-control`]: {
-          // When developer pass `xs: { span }`,
-          // It should follow the `xs` screen config
-          // ref: https://github.com/ant-design/ant-design/issues/44386
-          [`&:not([class*=" ${rootPrefixCls}-col-xs"])`]: {
-            flex: '0 0 100%',
-            maxWidth: '100%'
-          }
-        }
-      }
-    }
-  };
-};
-const genVerticalStyle = token => {
-  const {
-    componentCls,
-    formItemCls,
-    rootPrefixCls
-  } = token;
-  return {
-    [`${componentCls}-vertical`]: {
-      [formItemCls]: {
-        '&-row': {
-          flexDirection: 'column'
-        },
-        '&-label > label': {
-          height: 'auto'
-        },
-        [`${componentCls}-item-control`]: {
-          width: '100%'
-        }
-      }
+/* harmony default export */ const pages_Chat = (Chat);
+;// CONCATENATED MODULE: ./client/hooks/useAuth.js
+const devURL = "http://localhost:3000";
+const prodURL = "https://tempie-server-b490ad9cab9b.herokuapp.com";
+const targetURL = devURL;
+const sendPost = async (url, data, handler) => {
+  const response = await fetch(url, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json"
     },
-    [`${componentCls}-vertical ${formItemCls}-label,
-      .${rootPrefixCls}-col-24${formItemCls}-label,
-      .${rootPrefixCls}-col-xl-24${formItemCls}-label`]: makeVerticalLayoutLabel(token),
-    [`@media (max-width: ${unit(token.screenXSMax)})`]: [makeVerticalLayout(token), {
-      [componentCls]: {
-        [`.${rootPrefixCls}-col-xs-24${formItemCls}-label`]: makeVerticalLayoutLabel(token)
-      }
-    }],
-    [`@media (max-width: ${unit(token.screenSMMax)})`]: {
-      [componentCls]: {
-        [`.${rootPrefixCls}-col-sm-24${formItemCls}-label`]: makeVerticalLayoutLabel(token)
-      }
-    },
-    [`@media (max-width: ${unit(token.screenMDMax)})`]: {
-      [componentCls]: {
-        [`.${rootPrefixCls}-col-md-24${formItemCls}-label`]: makeVerticalLayoutLabel(token)
-      }
-    },
-    [`@media (max-width: ${unit(token.screenLGMax)})`]: {
-      [componentCls]: {
-        [`.${rootPrefixCls}-col-lg-24${formItemCls}-label`]: makeVerticalLayoutLabel(token)
-      }
-    }
-  };
-};
-// ============================== Export ==============================
-const form_style_prepareComponentToken = token => ({
-  labelRequiredMarkColor: token.colorError,
-  labelColor: token.colorTextHeading,
-  labelFontSize: token.fontSize,
-  labelHeight: token.controlHeight,
-  labelColonMarginInlineStart: token.marginXXS / 2,
-  labelColonMarginInlineEnd: token.marginXS,
-  itemMarginBottom: token.marginLG,
-  verticalLabelPadding: `0 0 ${token.paddingXS}px`,
-  verticalLabelMargin: 0
-});
-const style_prepareToken = (token, rootPrefixCls) => {
-  const formToken = statistic_merge(token, {
-    formItemCls: `${token.componentCls}-item`,
-    rootPrefixCls
+    body: JSON.stringify(data)
   });
-  return formToken;
+  const result = await response.json();
+  if (handler) handler(result);
 };
-/* harmony default export */ const form_style = (genStyleHooks('Form', (token, _ref) => {
-  let {
-    rootPrefixCls
-  } = _ref;
-  const formToken = style_prepareToken(token, rootPrefixCls);
-  return [genFormStyle(formToken), genFormItemStyle(formToken), explain(formToken), genHorizontalStyle(formToken), genInlineStyle(formToken), genVerticalStyle(formToken), collapse(formToken), zoomIn];
-}, form_style_prepareComponentToken, {
-  // Let From style before the Grid
-  // ref https://github.com/ant-design/ant-design/issues/44386
-  order: -1000
-}));
-;// CONCATENATED MODULE: ./node_modules/antd/es/form/ErrorList.js
-"use client";
-
-
-
-
-
-
-
-
-
-
-
-const ErrorList_EMPTY_LIST = [];
-function toErrorEntity(error, prefix, errorStatus) {
-  let index = arguments.length > 3 && arguments[3] !== undefined ? arguments[3] : 0;
-  return {
-    key: typeof error === 'string' ? error : `${prefix}-${index}`,
-    error,
-    errorStatus
-  };
-}
-const ErrorList = _ref => {
-  let {
-    help,
-    helpStatus,
-    errors = ErrorList_EMPTY_LIST,
-    warnings = ErrorList_EMPTY_LIST,
-    className: rootClassName,
-    fieldId,
-    onVisibleChanged
-  } = _ref;
-  const {
-    prefixCls
-  } = react.useContext(FormItemPrefixContext);
-  const baseClassName = `${prefixCls}-item-explain`;
-  const rootCls = hooks_useCSSVarCls(prefixCls);
-  const [wrapCSSVar, hashId, cssVarCls] = form_style(prefixCls, rootCls);
-  const collapseMotion = (0,react.useMemo)(() => motion(prefixCls), [prefixCls]);
-  // We have to debounce here again since somewhere use ErrorList directly still need no shaking
-  // ref: https://github.com/ant-design/ant-design/issues/36336
-  const debounceErrors = useDebounce(errors);
-  const debounceWarnings = useDebounce(warnings);
-  const fullKeyList = react.useMemo(() => {
-    if (help !== undefined && help !== null) {
-      return [toErrorEntity(help, 'help', helpStatus)];
-    }
-    return [].concat(_toConsumableArray(debounceErrors.map((error, index) => toErrorEntity(error, 'error', 'error', index))), _toConsumableArray(debounceWarnings.map((warning, index) => toErrorEntity(warning, 'warning', 'warning', index))));
-  }, [help, helpStatus, debounceErrors, debounceWarnings]);
-  const helpProps = {};
-  if (fieldId) {
-    helpProps.id = `${fieldId}_help`;
-  }
-  return wrapCSSVar( /*#__PURE__*/react.createElement(rc_motion_es, {
-    motionDeadline: collapseMotion.motionDeadline,
-    motionName: `${prefixCls}-show-help`,
-    visible: !!fullKeyList.length,
-    onVisibleChanged: onVisibleChanged
-  }, holderProps => {
-    const {
-      className: holderClassName,
-      style: holderStyle
-    } = holderProps;
-    return /*#__PURE__*/react.createElement("div", Object.assign({}, helpProps, {
-      className: classnames_default()(baseClassName, holderClassName, cssVarCls, rootCls, rootClassName, hashId),
-      style: holderStyle,
-      role: "alert"
-    }), /*#__PURE__*/react.createElement(CSSMotionList, Object.assign({
-      keys: fullKeyList
-    }, motion(prefixCls), {
-      motionName: `${prefixCls}-show-help-item`,
-      component: false
-    }), itemProps => {
-      const {
-        key,
-        error,
-        errorStatus,
-        className: itemClassName,
-        style: itemStyle
-      } = itemProps;
-      return /*#__PURE__*/react.createElement("div", {
-        key: key,
-        className: classnames_default()(itemClassName, {
-          [`${baseClassName}-${errorStatus}`]: errorStatus
-        }),
-        style: itemStyle
-      }, error);
-    }));
-  }));
-};
-/* harmony default export */ const form_ErrorList = (ErrorList);
-;// CONCATENATED MODULE: ./node_modules/compute-scroll-into-view/dist/index.js
-const t=t=>"object"==typeof t&&null!=t&&1===t.nodeType,e=(t,e)=>(!e||"hidden"!==t)&&("visible"!==t&&"clip"!==t),n=(t,n)=>{if(t.clientHeight<t.scrollHeight||t.clientWidth<t.scrollWidth){const o=getComputedStyle(t,null);return e(o.overflowY,n)||e(o.overflowX,n)||(t=>{const e=(t=>{if(!t.ownerDocument||!t.ownerDocument.defaultView)return null;try{return t.ownerDocument.defaultView.frameElement}catch(t){return null}})(t);return!!e&&(e.clientHeight<t.scrollHeight||e.clientWidth<t.scrollWidth)})(t)}return!1},o=(t,e,n,o,l,r,i,s)=>r<t&&i>e||r>t&&i<e?0:r<=t&&s<=n||i>=e&&s>=n?r-t-o:i>e&&s<n||r<t&&s>n?i-e+l:0,l=t=>{const e=t.parentElement;return null==e?t.getRootNode().host||null:e},dist_r=(e,r)=>{var i,s,d,h;if("undefined"==typeof document)return[];const{scrollMode:c,block:f,inline:u,boundary:a,skipOverflowHiddenElements:g}=r,p="function"==typeof a?a:t=>t!==a;if(!t(e))throw new TypeError("Invalid target");const m=document.scrollingElement||document.documentElement,w=[];let W=e;for(;t(W)&&p(W);){if(W=l(W),W===m){w.push(W);break}null!=W&&W===document.body&&n(W)&&!n(document.documentElement)||null!=W&&n(W,g)&&w.push(W)}const b=null!=(s=null==(i=window.visualViewport)?void 0:i.width)?s:innerWidth,H=null!=(h=null==(d=window.visualViewport)?void 0:d.height)?h:innerHeight,{scrollX:y,scrollY:M}=window,{height:v,width:E,top:x,right:C,bottom:I,left:R}=e.getBoundingClientRect(),{top:T,right:B,bottom:F,left:V}=(t=>{const e=window.getComputedStyle(t);return{top:parseFloat(e.scrollMarginTop)||0,right:parseFloat(e.scrollMarginRight)||0,bottom:parseFloat(e.scrollMarginBottom)||0,left:parseFloat(e.scrollMarginLeft)||0}})(e);let k="start"===f||"nearest"===f?x-T:"end"===f?I+F:x+v/2-T+F,D="center"===u?R+E/2-V+B:"end"===u?C+B:R-V;const L=[];for(let t=0;t<w.length;t++){const e=w[t],{height:n,width:l,top:r,right:i,bottom:s,left:d}=e.getBoundingClientRect();if("if-needed"===c&&x>=0&&R>=0&&I<=H&&C<=b&&x>=r&&I<=s&&R>=d&&C<=i)return L;const h=getComputedStyle(e),a=parseInt(h.borderLeftWidth,10),g=parseInt(h.borderTopWidth,10),p=parseInt(h.borderRightWidth,10),W=parseInt(h.borderBottomWidth,10);let T=0,B=0;const F="offsetWidth"in e?e.offsetWidth-e.clientWidth-a-p:0,V="offsetHeight"in e?e.offsetHeight-e.clientHeight-g-W:0,S="offsetWidth"in e?0===e.offsetWidth?0:l/e.offsetWidth:0,X="offsetHeight"in e?0===e.offsetHeight?0:n/e.offsetHeight:0;if(m===e)T="start"===f?k:"end"===f?k-H:"nearest"===f?o(M,M+H,H,g,W,M+k,M+k+v,v):k-H/2,B="start"===u?D:"center"===u?D-b/2:"end"===u?D-b:o(y,y+b,b,a,p,y+D,y+D+E,E),T=Math.max(0,T+M),B=Math.max(0,B+y);else{T="start"===f?k-r-g:"end"===f?k-s+W+V:"nearest"===f?o(r,s,n,g,W+V,k,k+v,v):k-(r+n/2)+V/2,B="start"===u?D-d-a:"center"===u?D-(d+l/2)+F/2:"end"===u?D-i+p+F:o(d,i,l,a,p+F,D,D+E,E);const{scrollLeft:t,scrollTop:h}=e;T=0===X?0:Math.max(0,Math.min(h+T/X,e.scrollHeight-n/X+V)),B=0===S?0:Math.max(0,Math.min(t+B/S,e.scrollWidth-l/S+F)),k+=h-T,D+=t-B}L.push({el:e,top:T,left:B})}return L};//# sourceMappingURL=index.js.map
-
-;// CONCATENATED MODULE: ./node_modules/scroll-into-view-if-needed/dist/index.js
-const dist_o=t=>!1===t?{block:"end",inline:"nearest"}:(t=>t===Object(t)&&0!==Object.keys(t).length)(t)?t:{block:"start",inline:"nearest"};function dist_e(e,r){if(!e.isConnected||!(t=>{let o=t;for(;o&&o.parentNode;){if(o.parentNode===document)return!0;o=o.parentNode instanceof ShadowRoot?o.parentNode.host:o.parentNode}return!1})(e))return;const n=(t=>{const o=window.getComputedStyle(t);return{top:parseFloat(o.scrollMarginTop)||0,right:parseFloat(o.scrollMarginRight)||0,bottom:parseFloat(o.scrollMarginBottom)||0,left:parseFloat(o.scrollMarginLeft)||0}})(e);if((t=>"object"==typeof t&&"function"==typeof t.behavior)(r))return r.behavior(dist_r(e,r));const l="boolean"==typeof r||null==r?void 0:r.behavior;for(const{el:a,top:i,left:s}of dist_r(e,dist_o(r))){const t=i-n.top+n.bottom,o=s-n.left+n.right;a.scroll({top:t,left:o,behavior:l})}}//# sourceMappingURL=index.js.map
-
-;// CONCATENATED MODULE: ./node_modules/antd/es/form/util.js
-// form item name black list.  in form ,you can use form.id get the form item element.
-// use object hasOwnProperty will get better performance if black list is longer.
-const formItemNameBlackList = ['parentNode'];
-// default form item id prefix.
-const defaultItemNamePrefixCls = 'form_item';
-function util_toArray(candidate) {
-  if (candidate === undefined || candidate === false) return [];
-  return Array.isArray(candidate) ? candidate : [candidate];
-}
-function getFieldId(namePath, formName) {
-  if (!namePath.length) {
-    return undefined;
-  }
-  const mergedId = namePath.join('_');
-  if (formName) {
-    return `${formName}_${mergedId}`;
-  }
-  const isIllegalName = formItemNameBlackList.includes(mergedId);
-  return isIllegalName ? `${defaultItemNamePrefixCls}_${mergedId}` : mergedId;
-}
-/**
- * Get merged status by meta or passed `validateStatus`.
- */
-function getStatus(errors, warnings, meta, defaultValidateStatus, hasFeedback, validateStatus) {
-  let status = defaultValidateStatus;
-  if (validateStatus !== undefined) {
-    status = validateStatus;
-  } else if (meta.validating) {
-    status = 'validating';
-  } else if (errors.length) {
-    status = 'error';
-  } else if (warnings.length) {
-    status = 'warning';
-  } else if (meta.touched || hasFeedback && meta.validated) {
-    // success feedback should display when pass hasFeedback prop and current value is valid value
-    status = 'success';
-  }
-  return status;
-}
-;// CONCATENATED MODULE: ./node_modules/antd/es/form/hooks/useForm.js
-
-
-
-
-function toNamePathStr(name) {
-  const namePath = util_toArray(name);
-  return namePath.join('_');
-}
-function useForm_useForm(form) {
-  const [rcForm] = es_useForm();
-  const itemsRef = react.useRef({});
-  const wrapForm = react.useMemo(() => form !== null && form !== void 0 ? form : Object.assign(Object.assign({}, rcForm), {
-    __INTERNAL__: {
-      itemRef: name => node => {
-        const namePathStr = toNamePathStr(name);
-        if (node) {
-          itemsRef.current[namePathStr] = node;
-        } else {
-          delete itemsRef.current[namePathStr];
-        }
-      }
-    },
-    scrollToField: function (name) {
-      let options = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : {};
-      const namePath = util_toArray(name);
-      const fieldId = getFieldId(namePath, wrapForm.__INTERNAL__.name);
-      const node = fieldId ? document.getElementById(fieldId) : null;
-      if (node) {
-        dist_e(node, Object.assign({
-          scrollMode: 'if-needed',
-          block: 'nearest'
-        }, options));
-      }
-    },
-    getFieldInstance: name => {
-      const namePathStr = toNamePathStr(name);
-      return itemsRef.current[namePathStr];
-    }
-  }), [form, rcForm]);
-  return [wrapForm];
-}
-;// CONCATENATED MODULE: ./node_modules/antd/es/form/validateMessagesContext.js
-"use client";
-
-
-// ZombieJ: We export single file here since
-// ConfigProvider use this which will make loop deps
-// to import whole `rc-field-form`
-/* harmony default export */ const validateMessagesContext = (/*#__PURE__*/(0,react.createContext)(undefined));
-;// CONCATENATED MODULE: ./node_modules/antd/es/form/Form.js
-"use client";
-
-var Form_rest = undefined && undefined.__rest || function (s, e) {
-  var t = {};
-  for (var p in s) if (Object.prototype.hasOwnProperty.call(s, p) && e.indexOf(p) < 0) t[p] = s[p];
-  if (s != null && typeof Object.getOwnPropertySymbols === "function") for (var i = 0, p = Object.getOwnPropertySymbols(s); i < p.length; i++) {
-    if (e.indexOf(p[i]) < 0 && Object.prototype.propertyIsEnumerable.call(s, p[i])) t[p[i]] = s[p[i]];
-  }
-  return t;
-};
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-const Form_InternalForm = (props, ref) => {
-  const contextDisabled = react.useContext(config_provider_DisabledContext);
-  const {
-    getPrefixCls,
-    direction,
-    form: contextForm
-  } = react.useContext(context_ConfigContext);
-  const {
-      prefixCls: customizePrefixCls,
-      className,
-      rootClassName,
-      size,
-      disabled = contextDisabled,
-      form,
-      colon,
-      labelAlign,
-      labelWrap,
-      labelCol,
-      wrapperCol,
-      hideRequiredMark,
-      layout = 'horizontal',
-      scrollToFirstError,
-      requiredMark,
-      onFinishFailed,
-      name,
-      style,
-      feedbackIcons,
-      variant
-    } = props,
-    restFormProps = Form_rest(props, ["prefixCls", "className", "rootClassName", "size", "disabled", "form", "colon", "labelAlign", "labelWrap", "labelCol", "wrapperCol", "hideRequiredMark", "layout", "scrollToFirstError", "requiredMark", "onFinishFailed", "name", "style", "feedbackIcons", "variant"]);
-  const mergedSize = hooks_useSize(size);
-  const contextValidateMessages = react.useContext(validateMessagesContext);
-  if (false) {}
-  const mergedRequiredMark = (0,react.useMemo)(() => {
-    if (requiredMark !== undefined) {
-      return requiredMark;
-    }
-    if (hideRequiredMark) {
-      return false;
-    }
-    if (contextForm && contextForm.requiredMark !== undefined) {
-      return contextForm.requiredMark;
-    }
-    return true;
-  }, [hideRequiredMark, requiredMark, contextForm]);
-  const mergedColon = colon !== null && colon !== void 0 ? colon : contextForm === null || contextForm === void 0 ? void 0 : contextForm.colon;
-  const prefixCls = getPrefixCls('form', customizePrefixCls);
-  // Style
-  const rootCls = hooks_useCSSVarCls(prefixCls);
-  const [wrapCSSVar, hashId, cssVarCls] = form_style(prefixCls, rootCls);
-  const formClassName = classnames_default()(prefixCls, `${prefixCls}-${layout}`, {
-    [`${prefixCls}-hide-required-mark`]: mergedRequiredMark === false,
-    [`${prefixCls}-rtl`]: direction === 'rtl',
-    [`${prefixCls}-${mergedSize}`]: mergedSize
-  }, cssVarCls, rootCls, hashId, contextForm === null || contextForm === void 0 ? void 0 : contextForm.className, className, rootClassName);
-  const [wrapForm] = useForm_useForm(form);
-  const {
-    __INTERNAL__
-  } = wrapForm;
-  __INTERNAL__.name = name;
-  const formContextValue = (0,react.useMemo)(() => ({
-    name,
-    labelAlign,
-    labelCol,
-    labelWrap,
-    wrapperCol,
-    vertical: layout === 'vertical',
-    colon: mergedColon,
-    requiredMark: mergedRequiredMark,
-    itemRef: __INTERNAL__.itemRef,
-    form: wrapForm,
-    feedbackIcons
-  }), [name, labelAlign, labelCol, wrapperCol, layout, mergedColon, mergedRequiredMark, wrapForm, feedbackIcons]);
-  react.useImperativeHandle(ref, () => wrapForm);
-  const scrollToField = (options, fieldName) => {
-    if (options) {
-      let defaultScrollToFirstError = {
-        block: 'nearest'
-      };
-      if (typeof options === 'object') {
-        defaultScrollToFirstError = options;
-      }
-      wrapForm.scrollToField(fieldName, defaultScrollToFirstError);
-    }
-  };
-  const onInternalFinishFailed = errorInfo => {
-    onFinishFailed === null || onFinishFailed === void 0 ? void 0 : onFinishFailed(errorInfo);
-    if (errorInfo.errorFields.length) {
-      const fieldName = errorInfo.errorFields[0].name;
-      if (scrollToFirstError !== undefined) {
-        scrollToField(scrollToFirstError, fieldName);
-        return;
-      }
-      if (contextForm && contextForm.scrollToFirstError !== undefined) {
-        scrollToField(contextForm.scrollToFirstError, fieldName);
-      }
-    }
-  };
-  return wrapCSSVar( /*#__PURE__*/react.createElement(VariantContext.Provider, {
-    value: variant
-  }, /*#__PURE__*/react.createElement(DisabledContextProvider, {
-    disabled: disabled
-  }, /*#__PURE__*/react.createElement(config_provider_SizeContext.Provider, {
-    value: mergedSize
-  }, /*#__PURE__*/react.createElement(context_FormProvider, {
-    // This is not list in API, we pass with spread
-    validateMessages: contextValidateMessages
-  }, /*#__PURE__*/react.createElement(context_FormContext.Provider, {
-    value: formContextValue
-  }, /*#__PURE__*/react.createElement(rc_field_form_es, Object.assign({
-    id: name
-  }, restFormProps, {
-    name: name,
-    onFinishFailed: onInternalFinishFailed,
-    form: wrapForm,
-    style: Object.assign(Object.assign({}, contextForm === null || contextForm === void 0 ? void 0 : contextForm.style), style),
-    className: formClassName
-  }))))))));
-};
-const form_Form_Form = /*#__PURE__*/react.forwardRef(Form_InternalForm);
-if (false) {}
-
-/* harmony default export */ const form_Form = (form_Form_Form);
-;// CONCATENATED MODULE: ./node_modules/antd/es/form/hooks/useChildren.js
-
-function useChildren(children) {
-  if (typeof children === 'function') {
-    return children;
-  }
-  const childList = toArray_toArray(children);
-  return childList.length <= 1 ? childList[0] : childList;
-}
-;// CONCATENATED MODULE: ./node_modules/antd/es/form/hooks/useFormItemStatus.js
-
-
-
-const useFormItemStatus = () => {
-  const {
-    status,
-    errors = [],
-    warnings = []
-  } = (0,react.useContext)(FormItemInputContext);
-  if (false) {}
-  return {
-    status,
-    errors,
-    warnings
-  };
-};
-// Only used for compatible package. Not promise this will work on future version.
-useFormItemStatus.Context = FormItemInputContext;
-/* harmony default export */ const hooks_useFormItemStatus = (useFormItemStatus);
-;// CONCATENATED MODULE: ./node_modules/antd/es/form/hooks/useFrameState.js
-
-
-
-function useFrameState(defaultValue) {
-  const [value, setValue] = react.useState(defaultValue);
-  const frameRef = (0,react.useRef)(null);
-  const batchRef = (0,react.useRef)([]);
-  const destroyRef = (0,react.useRef)(false);
-  react.useEffect(() => {
-    destroyRef.current = false;
-    return () => {
-      destroyRef.current = true;
-      es_raf.cancel(frameRef.current);
-      frameRef.current = null;
-    };
-  }, []);
-  function setFrameValue(updater) {
-    if (destroyRef.current) {
-      return;
-    }
-    if (frameRef.current === null) {
-      batchRef.current = [];
-      frameRef.current = es_raf(() => {
-        frameRef.current = null;
-        setValue(prevValue => {
-          let current = prevValue;
-          batchRef.current.forEach(func => {
-            current = func(current);
-          });
-          return current;
-        });
-      });
-    }
-    batchRef.current.push(updater);
-  }
-  return [value, setFrameValue];
-}
-;// CONCATENATED MODULE: ./node_modules/antd/es/form/hooks/useItemRef.js
-
-
-
-function useItemRef() {
-  const {
-    itemRef
-  } = react.useContext(context_FormContext);
-  const cacheRef = react.useRef({});
-  function getRef(name, children) {
-    const childrenRef = children && typeof children === 'object' && children.ref;
-    const nameStr = name.join('_');
-    if (cacheRef.current.name !== nameStr || cacheRef.current.originRef !== childrenRef) {
-      cacheRef.current.name = nameStr;
-      cacheRef.current.originRef = childrenRef;
-      cacheRef.current.ref = composeRef(itemRef(name), childrenRef);
-    }
-    return cacheRef.current.ref;
-  }
-  return getRef;
-}
-;// CONCATENATED MODULE: ./node_modules/antd/es/_util/responsiveObserver.js
-
-
-const responsiveArray = ['xxl', 'xl', 'lg', 'md', 'sm', 'xs'];
-const getResponsiveMap = token => ({
-  xs: `(max-width: ${token.screenXSMax}px)`,
-  sm: `(min-width: ${token.screenSM}px)`,
-  md: `(min-width: ${token.screenMD}px)`,
-  lg: `(min-width: ${token.screenLG}px)`,
-  xl: `(min-width: ${token.screenXL}px)`,
-  xxl: `(min-width: ${token.screenXXL}px)`
-});
-/**
- * Ensures that the breakpoints token are valid, in good order
- * For each breakpoint : screenMin <= screen <= screenMax and screenMax <= nextScreenMin
- */
-const validateBreakpoints = token => {
-  const indexableToken = token;
-  const revBreakpoints = [].concat(responsiveArray).reverse();
-  revBreakpoints.forEach((breakpoint, i) => {
-    const breakpointUpper = breakpoint.toUpperCase();
-    const screenMin = `screen${breakpointUpper}Min`;
-    const screen = `screen${breakpointUpper}`;
-    if (!(indexableToken[screenMin] <= indexableToken[screen])) {
-      throw new Error(`${screenMin}<=${screen} fails : !(${indexableToken[screenMin]}<=${indexableToken[screen]})`);
-    }
-    if (i < revBreakpoints.length - 1) {
-      const screenMax = `screen${breakpointUpper}Max`;
-      if (!(indexableToken[screen] <= indexableToken[screenMax])) {
-        throw new Error(`${screen}<=${screenMax} fails : !(${indexableToken[screen]}<=${indexableToken[screenMax]})`);
-      }
-      const nextBreakpointUpperMin = revBreakpoints[i + 1].toUpperCase();
-      const nextScreenMin = `screen${nextBreakpointUpperMin}Min`;
-      if (!(indexableToken[screenMax] <= indexableToken[nextScreenMin])) {
-        throw new Error(`${screenMax}<=${nextScreenMin} fails : !(${indexableToken[screenMax]}<=${indexableToken[nextScreenMin]})`);
-      }
+const sendGet = async (url, handler) => {
+  const response = await fetch(url, {
+    method: "GET",
+    headers: {
+      "Content-Type": "application/json"
     }
   });
-  return token;
+  const result = await response.json();
+  if (handler) handler(result);
 };
-function useResponsiveObserver() {
-  const [, token] = useToken();
-  const responsiveMap = getResponsiveMap(validateBreakpoints(token));
-  // To avoid repeat create instance, we add `useMemo` here.
-  return react.useMemo(() => {
-    const subscribers = new Map();
-    let subUid = -1;
-    let screens = {};
-    return {
-      matchHandlers: {},
-      dispatch(pointMap) {
-        screens = pointMap;
-        subscribers.forEach(func => func(screens));
-        return subscribers.size >= 1;
-      },
-      subscribe(func) {
-        if (!subscribers.size) this.register();
-        subUid += 1;
-        subscribers.set(subUid, func);
-        func(screens);
-        return subUid;
-      },
-      unsubscribe(paramToken) {
-        subscribers.delete(paramToken);
-        if (!subscribers.size) this.unregister();
-      },
-      unregister() {
-        Object.keys(responsiveMap).forEach(screen => {
-          const matchMediaQuery = responsiveMap[screen];
-          const handler = this.matchHandlers[matchMediaQuery];
-          handler === null || handler === void 0 ? void 0 : handler.mql.removeListener(handler === null || handler === void 0 ? void 0 : handler.listener);
-        });
-        subscribers.clear();
-      },
-      register() {
-        Object.keys(responsiveMap).forEach(screen => {
-          const matchMediaQuery = responsiveMap[screen];
-          const listener = _ref => {
-            let {
-              matches
-            } = _ref;
-            this.dispatch(Object.assign(Object.assign({}, screens), {
-              [screen]: matches
-            }));
-          };
-          const mql = window.matchMedia(matchMediaQuery);
-          mql.addListener(listener);
-          this.matchHandlers[matchMediaQuery] = {
-            mql,
-            listener
-          };
-          listener(mql);
-        });
-      },
-      responsiveMap
-    };
-  }, [token]);
-}
-const matchScreen = (screens, screenSizes) => {
-  if (screenSizes && typeof screenSizes === 'object') {
-    for (let i = 0; i < responsiveArray.length; i++) {
-      const breakpoint = responsiveArray[i];
-      if (screens[breakpoint] && screenSizes[breakpoint] !== undefined) {
-        return screenSizes[breakpoint];
-      }
-    }
+const login = (e, handler) => {
+  if (!e.email || !e.password) {
+    return false;
   }
+  sendPost(`${targetURL}/login`, e, handler);
+  return false;
 };
-;// CONCATENATED MODULE: ./node_modules/antd/es/grid/RowContext.js
-
-const RowContext = /*#__PURE__*/(0,react.createContext)({});
-/* harmony default export */ const grid_RowContext = (RowContext);
-;// CONCATENATED MODULE: ./node_modules/antd/es/grid/style/index.js
-
-
-// ============================== Row-Shared ==============================
-const genGridRowStyle = token => {
-  const {
-    componentCls
-  } = token;
-  return {
-    // Grid system
-    [componentCls]: {
-      display: 'flex',
-      flexFlow: 'row wrap',
-      minWidth: 0,
-      '&::before, &::after': {
-        display: 'flex'
-      },
-      '&-no-wrap': {
-        flexWrap: 'nowrap'
-      },
-      // The origin of the X-axis
-      '&-start': {
-        justifyContent: 'flex-start'
-      },
-      // The center of the X-axis
-      '&-center': {
-        justifyContent: 'center'
-      },
-      // The opposite of the X-axis
-      '&-end': {
-        justifyContent: 'flex-end'
-      },
-      '&-space-between': {
-        justifyContent: 'space-between'
-      },
-      '&-space-around': {
-        justifyContent: 'space-around'
-      },
-      '&-space-evenly': {
-        justifyContent: 'space-evenly'
-      },
-      // Align at the top
-      '&-top': {
-        alignItems: 'flex-start'
-      },
-      // Align at the center
-      '&-middle': {
-        alignItems: 'center'
-      },
-      '&-bottom': {
-        alignItems: 'flex-end'
-      }
-    }
-  };
-};
-// ============================== Col-Shared ==============================
-const genGridColStyle = token => {
-  const {
-    componentCls
-  } = token;
-  return {
-    // Grid system
-    [componentCls]: {
-      position: 'relative',
-      maxWidth: '100%',
-      // Prevent columns from collapsing when empty
-      minHeight: 1
-    }
-  };
-};
-const genLoopGridColumnsStyle = (token, sizeCls) => {
-  const {
-    prefixCls,
-    componentCls,
-    gridColumns
-  } = token;
-  const gridColumnsStyle = {};
-  for (let i = gridColumns; i >= 0; i--) {
-    if (i === 0) {
-      gridColumnsStyle[`${componentCls}${sizeCls}-${i}`] = {
-        display: 'none'
-      };
-      gridColumnsStyle[`${componentCls}-push-${i}`] = {
-        insetInlineStart: 'auto'
-      };
-      gridColumnsStyle[`${componentCls}-pull-${i}`] = {
-        insetInlineEnd: 'auto'
-      };
-      gridColumnsStyle[`${componentCls}${sizeCls}-push-${i}`] = {
-        insetInlineStart: 'auto'
-      };
-      gridColumnsStyle[`${componentCls}${sizeCls}-pull-${i}`] = {
-        insetInlineEnd: 'auto'
-      };
-      gridColumnsStyle[`${componentCls}${sizeCls}-offset-${i}`] = {
-        marginInlineStart: 0
-      };
-      gridColumnsStyle[`${componentCls}${sizeCls}-order-${i}`] = {
-        order: 0
-      };
-    } else {
-      gridColumnsStyle[`${componentCls}${sizeCls}-${i}`] = [
-      // https://github.com/ant-design/ant-design/issues/44456
-      // Form set `display: flex` on Col which will override `display: block`.
-      // Let's get it from css variable to support override.
-      {
-        ['--ant-display']: 'block',
-        // Fallback to display if variable not support
-        display: 'block'
-      }, {
-        display: 'var(--ant-display)',
-        flex: `0 0 ${i / gridColumns * 100}%`,
-        maxWidth: `${i / gridColumns * 100}%`
-      }];
-      gridColumnsStyle[`${componentCls}${sizeCls}-push-${i}`] = {
-        insetInlineStart: `${i / gridColumns * 100}%`
-      };
-      gridColumnsStyle[`${componentCls}${sizeCls}-pull-${i}`] = {
-        insetInlineEnd: `${i / gridColumns * 100}%`
-      };
-      gridColumnsStyle[`${componentCls}${sizeCls}-offset-${i}`] = {
-        marginInlineStart: `${i / gridColumns * 100}%`
-      };
-      gridColumnsStyle[`${componentCls}${sizeCls}-order-${i}`] = {
-        order: i
-      };
-    }
+const signup = (e, handler) => {
+  if (!e.email || !e.username || !e.password) {
+    return false;
   }
-  // Flex CSS Var
-  gridColumnsStyle[`${componentCls}${sizeCls}-flex`] = {
-    flex: `var(--${prefixCls}${sizeCls}-flex)`
-  };
-  return gridColumnsStyle;
+  sendPost(`${targetURL}/signup`, e, handler);
+  return false;
 };
-const genGridStyle = (token, sizeCls) => genLoopGridColumnsStyle(token, sizeCls);
-const genGridMediaStyle = (token, screenSize, sizeCls) => ({
-  [`@media (min-width: ${unit(screenSize)})`]: Object.assign({}, genGridStyle(token, sizeCls))
-});
-const prepareRowComponentToken = () => ({});
-const prepareColComponentToken = () => ({});
-// ============================== Export ==============================
-const useRowStyle = genStyleHooks('Grid', genGridRowStyle, prepareRowComponentToken);
-const useColStyle = genStyleHooks('Grid', token => {
-  const gridToken = statistic_merge(token, {
-    gridColumns: 24 // Row is divided into 24 parts in Grid
-  });
-  const gridMediaSizesMap = {
-    '-sm': gridToken.screenSMMin,
-    '-md': gridToken.screenMDMin,
-    '-lg': gridToken.screenLGMin,
-    '-xl': gridToken.screenXLMin,
-    '-xxl': gridToken.screenXXLMin
-  };
-  return [genGridColStyle(gridToken), genGridStyle(gridToken, ''), genGridStyle(gridToken, '-xs'), Object.keys(gridMediaSizesMap).map(key => genGridMediaStyle(gridToken, gridMediaSizesMap[key], key)).reduce((pre, cur) => Object.assign(Object.assign({}, pre), cur), {})];
-}, prepareColComponentToken);
-;// CONCATENATED MODULE: ./node_modules/antd/es/grid/row.js
-"use client";
-
-var row_rest = undefined && undefined.__rest || function (s, e) {
-  var t = {};
-  for (var p in s) if (Object.prototype.hasOwnProperty.call(s, p) && e.indexOf(p) < 0) t[p] = s[p];
-  if (s != null && typeof Object.getOwnPropertySymbols === "function") for (var i = 0, p = Object.getOwnPropertySymbols(s); i < p.length; i++) {
-    if (e.indexOf(p[i]) < 0 && Object.prototype.propertyIsEnumerable.call(s, p[i])) t[p[i]] = s[p[i]];
-  }
-  return t;
+const logout = handler => {
+  sendGet(`${targetURL}/logout`, handler);
+  return false;
 };
-
-
-
-
-
-
-const RowAligns = (/* unused pure expression or super */ null && (['top', 'middle', 'bottom', 'stretch']));
-const RowJustify = (/* unused pure expression or super */ null && (['start', 'end', 'center', 'space-around', 'space-between', 'space-evenly']));
-function useMergedPropByScreen(oriProp, screen) {
-  const [prop, setProp] = react.useState(typeof oriProp === 'string' ? oriProp : '');
-  const calcMergedAlignOrJustify = () => {
-    if (typeof oriProp === 'string') {
-      setProp(oriProp);
-    }
-    if (typeof oriProp !== 'object') {
-      return;
-    }
-    for (let i = 0; i < responsiveArray.length; i++) {
-      const breakpoint = responsiveArray[i];
-      // if do not match, do nothing
-      if (!screen[breakpoint]) {
-        continue;
-      }
-      const curVal = oriProp[breakpoint];
-      if (curVal !== undefined) {
-        setProp(curVal);
-        return;
-      }
-    }
-  };
-  react.useEffect(() => {
-    calcMergedAlignOrJustify();
-  }, [JSON.stringify(oriProp), screen]);
-  return prop;
-}
-const Row = /*#__PURE__*/react.forwardRef((props, ref) => {
-  const {
-      prefixCls: customizePrefixCls,
-      justify,
-      align,
-      className,
-      style,
-      children,
-      gutter = 0,
-      wrap
-    } = props,
-    others = row_rest(props, ["prefixCls", "justify", "align", "className", "style", "children", "gutter", "wrap"]);
-  const {
-    getPrefixCls,
-    direction
-  } = react.useContext(context_ConfigContext);
-  const [screens, setScreens] = react.useState({
-    xs: true,
-    sm: true,
-    md: true,
-    lg: true,
-    xl: true,
-    xxl: true
-  });
-  // to save screens info when responsiveObserve callback had been call
-  const [curScreens, setCurScreens] = react.useState({
-    xs: false,
-    sm: false,
-    md: false,
-    lg: false,
-    xl: false,
-    xxl: false
-  });
-  // ================================== calc responsive data ==================================
-  const mergedAlign = useMergedPropByScreen(align, curScreens);
-  const mergedJustify = useMergedPropByScreen(justify, curScreens);
-  const gutterRef = react.useRef(gutter);
-  const responsiveObserver = useResponsiveObserver();
-  // ================================== Effect ==================================
-  react.useEffect(() => {
-    const token = responsiveObserver.subscribe(screen => {
-      setCurScreens(screen);
-      const currentGutter = gutterRef.current || 0;
-      if (!Array.isArray(currentGutter) && typeof currentGutter === 'object' || Array.isArray(currentGutter) && (typeof currentGutter[0] === 'object' || typeof currentGutter[1] === 'object')) {
-        setScreens(screen);
-      }
-    });
-    return () => responsiveObserver.unsubscribe(token);
-  }, []);
-  // ================================== Render ==================================
-  const getGutter = () => {
-    const results = [undefined, undefined];
-    const normalizedGutter = Array.isArray(gutter) ? gutter : [gutter, undefined];
-    normalizedGutter.forEach((g, index) => {
-      if (typeof g === 'object') {
-        for (let i = 0; i < responsiveArray.length; i++) {
-          const breakpoint = responsiveArray[i];
-          if (screens[breakpoint] && g[breakpoint] !== undefined) {
-            results[index] = g[breakpoint];
-            break;
-          }
-        }
-      } else {
-        results[index] = g;
-      }
-    });
-    return results;
-  };
-  const prefixCls = getPrefixCls('row', customizePrefixCls);
-  const [wrapCSSVar, hashId, cssVarCls] = useRowStyle(prefixCls);
-  const gutters = getGutter();
-  const classes = classnames_default()(prefixCls, {
-    [`${prefixCls}-no-wrap`]: wrap === false,
-    [`${prefixCls}-${mergedJustify}`]: mergedJustify,
-    [`${prefixCls}-${mergedAlign}`]: mergedAlign,
-    [`${prefixCls}-rtl`]: direction === 'rtl'
-  }, className, hashId, cssVarCls);
-  // Add gutter related style
-  const rowStyle = {};
-  const horizontalGutter = gutters[0] != null && gutters[0] > 0 ? gutters[0] / -2 : undefined;
-  if (horizontalGutter) {
-    rowStyle.marginLeft = horizontalGutter;
-    rowStyle.marginRight = horizontalGutter;
-  }
-  // "gutters" is a new array in each rendering phase, it'll make 'React.useMemo' effectless.
-  // So we deconstruct "gutters" variable here.
-  const [gutterH, gutterV] = gutters;
-  rowStyle.rowGap = gutterV;
-  const rowContext = react.useMemo(() => ({
-    gutter: [gutterH, gutterV],
-    wrap
-  }), [gutterH, gutterV, wrap]);
-  return wrapCSSVar( /*#__PURE__*/react.createElement(grid_RowContext.Provider, {
-    value: rowContext
-  }, /*#__PURE__*/react.createElement("div", Object.assign({}, others, {
-    className: classes,
-    style: Object.assign(Object.assign({}, rowStyle), style),
-    ref: ref
-  }), children)));
-});
-if (false) {}
-/* harmony default export */ const row = (Row);
-;// CONCATENATED MODULE: ./node_modules/antd/es/grid/col.js
-"use client";
-
-var col_rest = undefined && undefined.__rest || function (s, e) {
-  var t = {};
-  for (var p in s) if (Object.prototype.hasOwnProperty.call(s, p) && e.indexOf(p) < 0) t[p] = s[p];
-  if (s != null && typeof Object.getOwnPropertySymbols === "function") for (var i = 0, p = Object.getOwnPropertySymbols(s); i < p.length; i++) {
-    if (e.indexOf(p[i]) < 0 && Object.prototype.propertyIsEnumerable.call(s, p[i])) t[p[i]] = s[p[i]];
-  }
-  return t;
-};
-
-
-
-
-
-function parseFlex(flex) {
-  if (typeof flex === 'number') {
-    return `${flex} ${flex} auto`;
-  }
-  if (/^\d+(\.\d+)?(px|em|rem|%)$/.test(flex)) {
-    return `0 0 ${flex}`;
-  }
-  return flex;
-}
-const sizes = ['xs', 'sm', 'md', 'lg', 'xl', 'xxl'];
-const Col = /*#__PURE__*/react.forwardRef((props, ref) => {
-  const {
-    getPrefixCls,
-    direction
-  } = react.useContext(context_ConfigContext);
-  const {
-    gutter,
-    wrap
-  } = react.useContext(grid_RowContext);
-  const {
-      prefixCls: customizePrefixCls,
-      span,
-      order,
-      offset,
-      push,
-      pull,
-      className,
-      children,
-      flex,
-      style
-    } = props,
-    others = col_rest(props, ["prefixCls", "span", "order", "offset", "push", "pull", "className", "children", "flex", "style"]);
-  const prefixCls = getPrefixCls('col', customizePrefixCls);
-  const [wrapCSSVar, hashId, cssVarCls] = useColStyle(prefixCls);
-  // ===================== Size ======================
-  const sizeStyle = {};
-  let sizeClassObj = {};
-  sizes.forEach(size => {
-    let sizeProps = {};
-    const propSize = props[size];
-    if (typeof propSize === 'number') {
-      sizeProps.span = propSize;
-    } else if (typeof propSize === 'object') {
-      sizeProps = propSize || {};
-    }
-    delete others[size];
-    sizeClassObj = Object.assign(Object.assign({}, sizeClassObj), {
-      [`${prefixCls}-${size}-${sizeProps.span}`]: sizeProps.span !== undefined,
-      [`${prefixCls}-${size}-order-${sizeProps.order}`]: sizeProps.order || sizeProps.order === 0,
-      [`${prefixCls}-${size}-offset-${sizeProps.offset}`]: sizeProps.offset || sizeProps.offset === 0,
-      [`${prefixCls}-${size}-push-${sizeProps.push}`]: sizeProps.push || sizeProps.push === 0,
-      [`${prefixCls}-${size}-pull-${sizeProps.pull}`]: sizeProps.pull || sizeProps.pull === 0,
-      [`${prefixCls}-rtl`]: direction === 'rtl'
-    });
-    // Responsive flex layout
-    if (sizeProps.flex) {
-      sizeClassObj[`${prefixCls}-${size}-flex`] = true;
-      sizeStyle[`--${prefixCls}-${size}-flex`] = parseFlex(sizeProps.flex);
-    }
-  });
-  // ==================== Normal =====================
-  const classes = classnames_default()(prefixCls, {
-    [`${prefixCls}-${span}`]: span !== undefined,
-    [`${prefixCls}-order-${order}`]: order,
-    [`${prefixCls}-offset-${offset}`]: offset,
-    [`${prefixCls}-push-${push}`]: push,
-    [`${prefixCls}-pull-${pull}`]: pull
-  }, className, sizeClassObj, hashId, cssVarCls);
-  const mergedStyle = {};
-  // Horizontal gutter use padding
-  if (gutter && gutter[0] > 0) {
-    const horizontalGutter = gutter[0] / 2;
-    mergedStyle.paddingLeft = horizontalGutter;
-    mergedStyle.paddingRight = horizontalGutter;
-  }
-  if (flex) {
-    mergedStyle.flex = parseFlex(flex);
-    // Hack for Firefox to avoid size issue
-    // https://github.com/ant-design/ant-design/pull/20023#issuecomment-564389553
-    if (wrap === false && !mergedStyle.minWidth) {
-      mergedStyle.minWidth = 0;
-    }
-  }
-  // ==================== Render =====================
-  return wrapCSSVar( /*#__PURE__*/react.createElement("div", Object.assign({}, others, {
-    style: Object.assign(Object.assign(Object.assign({}, mergedStyle), style), sizeStyle),
-    className: classes,
-    ref: ref
-  }), children));
-});
-if (false) {}
-/* harmony default export */ const col = (Col);
-;// CONCATENATED MODULE: ./node_modules/antd/es/form/style/fallbackCmp.js
-/**
- * Fallback of IE.
- * Safe to remove.
- */
-// Style as inline component
-
-
-// ============================= Fallback =============================
-const genFallbackStyle = token => {
-  const {
-    formItemCls
-  } = token;
-  return {
-    '@media screen and (-ms-high-contrast: active), (-ms-high-contrast: none)': {
-      // Fallback for IE, safe to remove we not support it anymore
-      [`${formItemCls}-control`]: {
-        display: 'flex'
-      }
-    }
-  };
-};
-// ============================== Export ==============================
-/* harmony default export */ const fallbackCmp = (genSubStyleComponent(['Form', 'item-item'], (token, _ref) => {
-  let {
-    rootPrefixCls
-  } = _ref;
-  const formToken = style_prepareToken(token, rootPrefixCls);
-  return [genFallbackStyle(formToken)];
-}));
-;// CONCATENATED MODULE: ./node_modules/antd/es/form/FormItemInput.js
-"use client";
-
-
-
-
-
-
-
-const FormItemInput = props => {
-  const {
-    prefixCls,
-    status,
-    wrapperCol,
-    children,
-    errors,
-    warnings,
-    _internalItemRender: formItemRender,
-    extra,
-    help,
-    fieldId,
-    marginBottom,
-    onErrorVisibleChanged
-  } = props;
-  const baseClassName = `${prefixCls}-item`;
-  const formContext = react.useContext(context_FormContext);
-  const mergedWrapperCol = wrapperCol || formContext.wrapperCol || {};
-  const className = classnames_default()(`${baseClassName}-control`, mergedWrapperCol.className);
-  // Pass to sub FormItem should not with col info
-  const subFormContext = react.useMemo(() => Object.assign({}, formContext), [formContext]);
-  delete subFormContext.labelCol;
-  delete subFormContext.wrapperCol;
-  const inputDom = /*#__PURE__*/react.createElement("div", {
-    className: `${baseClassName}-control-input`
-  }, /*#__PURE__*/react.createElement("div", {
-    className: `${baseClassName}-control-input-content`
-  }, children));
-  const formItemContext = react.useMemo(() => ({
-    prefixCls,
-    status
-  }), [prefixCls, status]);
-  const errorListDom = marginBottom !== null || errors.length || warnings.length ? ( /*#__PURE__*/react.createElement("div", {
-    style: {
-      display: 'flex',
-      flexWrap: 'nowrap'
-    }
-  }, /*#__PURE__*/react.createElement(FormItemPrefixContext.Provider, {
-    value: formItemContext
-  }, /*#__PURE__*/react.createElement(form_ErrorList, {
-    fieldId: fieldId,
-    errors: errors,
-    warnings: warnings,
-    help: help,
-    helpStatus: status,
-    className: `${baseClassName}-explain-connected`,
-    onVisibleChanged: onErrorVisibleChanged
-  })), !!marginBottom && /*#__PURE__*/react.createElement("div", {
-    style: {
-      width: 0,
-      height: marginBottom
-    }
-  }))) : null;
-  const extraProps = {};
-  if (fieldId) {
-    extraProps.id = `${fieldId}_extra`;
-  }
-  // If extra = 0, && will goes wrong
-  // 0&&error -> 0
-  const extraDom = extra ? ( /*#__PURE__*/react.createElement("div", Object.assign({}, extraProps, {
-    className: `${baseClassName}-extra`
-  }), extra)) : null;
-  const dom = formItemRender && formItemRender.mark === 'pro_table_render' && formItemRender.render ? formItemRender.render(props, {
-    input: inputDom,
-    errorList: errorListDom,
-    extra: extraDom
-  }) : ( /*#__PURE__*/react.createElement(react.Fragment, null, inputDom, errorListDom, extraDom));
-  return /*#__PURE__*/react.createElement(context_FormContext.Provider, {
-    value: subFormContext
-  }, /*#__PURE__*/react.createElement(col, Object.assign({}, mergedWrapperCol, {
-    className: className
-  }), dom), /*#__PURE__*/react.createElement(fallbackCmp, {
-    prefixCls: prefixCls
-  }));
-};
-/* harmony default export */ const form_FormItemInput = (FormItemInput);
-;// CONCATENATED MODULE: ./node_modules/@ant-design/icons-svg/es/asn/QuestionCircleOutlined.js
-// This icon file is generated automatically.
-var QuestionCircleOutlined = { "icon": { "tag": "svg", "attrs": { "viewBox": "64 64 896 896", "focusable": "false" }, "children": [{ "tag": "path", "attrs": { "d": "M512 64C264.6 64 64 264.6 64 512s200.6 448 448 448 448-200.6 448-448S759.4 64 512 64zm0 820c-205.4 0-372-166.6-372-372s166.6-372 372-372 372 166.6 372 372-166.6 372-372 372z" } }, { "tag": "path", "attrs": { "d": "M623.6 316.7C593.6 290.4 554 276 512 276s-81.6 14.5-111.6 40.7C369.2 344 352 380.7 352 420v7.6c0 4.4 3.6 8 8 8h48c4.4 0 8-3.6 8-8V420c0-44.1 43.1-80 96-80s96 35.9 96 80c0 31.1-22 59.6-56.1 72.7-21.2 8.1-39.2 22.3-52.1 40.9-13.1 19-19.9 41.8-19.9 64.9V620c0 4.4 3.6 8 8 8h48c4.4 0 8-3.6 8-8v-22.7a48.3 48.3 0 0130.9-44.8c59-22.7 97.1-74.7 97.1-132.5.1-39.3-17.1-76-48.3-103.3zM472 732a40 40 0 1080 0 40 40 0 10-80 0z" } }] }, "name": "question-circle", "theme": "outlined" };
-/* harmony default export */ const asn_QuestionCircleOutlined = (QuestionCircleOutlined);
-
-;// CONCATENATED MODULE: ./node_modules/@ant-design/icons/es/icons/QuestionCircleOutlined.js
-
-// GENERATE BY ./scripts/generate.ts
-// DON NOT EDIT IT MANUALLY
-
-
-
-
-var QuestionCircleOutlined_QuestionCircleOutlined = function QuestionCircleOutlined(props, ref) {
-  return /*#__PURE__*/react.createElement(AntdIcon, extends_extends({}, props, {
-    ref: ref,
-    icon: asn_QuestionCircleOutlined
-  }));
-};
-
-/**![question-circle](data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNTAiIGhlaWdodD0iNTAiIGZpbGw9IiNjYWNhY2EiIHZpZXdCb3g9IjY0IDY0IDg5NiA4OTYiIGZvY3VzYWJsZT0iZmFsc2UiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PHBhdGggZD0iTTUxMiA2NEMyNjQuNiA2NCA2NCAyNjQuNiA2NCA1MTJzMjAwLjYgNDQ4IDQ0OCA0NDggNDQ4LTIwMC42IDQ0OC00NDhTNzU5LjQgNjQgNTEyIDY0em0wIDgyMGMtMjA1LjQgMC0zNzItMTY2LjYtMzcyLTM3MnMxNjYuNi0zNzIgMzcyLTM3MiAzNzIgMTY2LjYgMzcyIDM3Mi0xNjYuNiAzNzItMzcyIDM3MnoiIC8+PHBhdGggZD0iTTYyMy42IDMxNi43QzU5My42IDI5MC40IDU1NCAyNzYgNTEyIDI3NnMtODEuNiAxNC41LTExMS42IDQwLjdDMzY5LjIgMzQ0IDM1MiAzODAuNyAzNTIgNDIwdjcuNmMwIDQuNCAzLjYgOCA4IDhoNDhjNC40IDAgOC0zLjYgOC04VjQyMGMwLTQ0LjEgNDMuMS04MCA5Ni04MHM5NiAzNS45IDk2IDgwYzAgMzEuMS0yMiA1OS42LTU2LjEgNzIuNy0yMS4yIDguMS0zOS4yIDIyLjMtNTIuMSA0MC45LTEzLjEgMTktMTkuOSA0MS44LTE5LjkgNjQuOVY2MjBjMCA0LjQgMy42IDggOCA4aDQ4YzQuNCAwIDgtMy42IDgtOHYtMjIuN2E0OC4zIDQ4LjMgMCAwMTMwLjktNDQuOGM1OS0yMi43IDk3LjEtNzQuNyA5Ny4xLTEzMi41LjEtMzkuMy0xNy4xLTc2LTQ4LjMtMTAzLjN6TTQ3MiA3MzJhNDAgNDAgMCAxMDgwIDAgNDAgNDAgMCAxMC04MCAweiIgLz48L3N2Zz4=) */
-var QuestionCircleOutlined_RefIcon = /*#__PURE__*/react.forwardRef(QuestionCircleOutlined_QuestionCircleOutlined);
-if (false) {}
-/* harmony default export */ const icons_QuestionCircleOutlined = (QuestionCircleOutlined_RefIcon);
-;// CONCATENATED MODULE: ./node_modules/antd/es/locale/context.js
-
-const LocaleContext = /*#__PURE__*/(0,react.createContext)(undefined);
-/* harmony default export */ const locale_context = (LocaleContext);
-;// CONCATENATED MODULE: ./node_modules/rc-pagination/es/locale/en_US.js
-var locale = {
-  // Options
-  items_per_page: '/ page',
-  jump_to: 'Go to',
-  jump_to_confirm: 'confirm',
-  page: 'Page',
-  // Pagination
-  prev_page: 'Previous Page',
-  next_page: 'Next Page',
-  prev_5: 'Previous 5 Pages',
-  next_5: 'Next 5 Pages',
-  prev_3: 'Previous 3 Pages',
-  next_3: 'Next 3 Pages',
-  page_size: 'Page Size'
-};
-/* harmony default export */ const en_US = (locale);
-;// CONCATENATED MODULE: ./node_modules/rc-picker/es/locale/en_US.js
-var en_US_locale = {
-  locale: 'en_US',
-  today: 'Today',
-  now: 'Now',
-  backToToday: 'Back to today',
-  ok: 'OK',
-  clear: 'Clear',
-  month: 'Month',
-  year: 'Year',
-  timeSelect: 'select time',
-  dateSelect: 'select date',
-  weekSelect: 'Choose a week',
-  monthSelect: 'Choose a month',
-  yearSelect: 'Choose a year',
-  decadeSelect: 'Choose a decade',
-  yearFormat: 'YYYY',
-  dateFormat: 'M/D/YYYY',
-  dayFormat: 'D',
-  dateTimeFormat: 'M/D/YYYY HH:mm:ss',
-  monthBeforeYear: true,
-  previousMonth: 'Previous month (PageUp)',
-  nextMonth: 'Next month (PageDown)',
-  previousYear: 'Last year (Control + left)',
-  nextYear: 'Next year (Control + right)',
-  previousDecade: 'Last decade',
-  nextDecade: 'Next decade',
-  previousCentury: 'Last century',
-  nextCentury: 'Next century'
-};
-/* harmony default export */ const locale_en_US = (en_US_locale);
-;// CONCATENATED MODULE: ./node_modules/antd/es/time-picker/locale/en_US.js
-const locale_en_US_locale = {
-  placeholder: 'Select time',
-  rangePlaceholder: ['Start time', 'End time']
-};
-/* harmony default export */ const time_picker_locale_en_US = (locale_en_US_locale);
-;// CONCATENATED MODULE: ./node_modules/antd/es/date-picker/locale/en_US.js
-
-
-// Merge into a locale object
-const date_picker_locale_en_US_locale = {
-  lang: Object.assign({
-    placeholder: 'Select date',
-    yearPlaceholder: 'Select year',
-    quarterPlaceholder: 'Select quarter',
-    monthPlaceholder: 'Select month',
-    weekPlaceholder: 'Select week',
-    rangePlaceholder: ['Start date', 'End date'],
-    rangeYearPlaceholder: ['Start year', 'End year'],
-    rangeQuarterPlaceholder: ['Start quarter', 'End quarter'],
-    rangeMonthPlaceholder: ['Start month', 'End month'],
-    rangeWeekPlaceholder: ['Start week', 'End week']
-  }, locale_en_US),
-  timePickerLocale: Object.assign({}, time_picker_locale_en_US)
-};
-// All settings at:
-// https://github.com/ant-design/ant-design/blob/master/components/date-picker/locale/example.json
-/* harmony default export */ const date_picker_locale_en_US = (date_picker_locale_en_US_locale);
-;// CONCATENATED MODULE: ./node_modules/antd/es/calendar/locale/en_US.js
-
-/* harmony default export */ const calendar_locale_en_US = (date_picker_locale_en_US);
-;// CONCATENATED MODULE: ./node_modules/antd/es/locale/en_US.js
-/* eslint-disable no-template-curly-in-string */
-
-
-
-
-const en_US_typeTemplate = '${label} is not a valid ${type}';
-const localeValues = {
-  locale: 'en',
-  Pagination: en_US,
-  DatePicker: date_picker_locale_en_US,
-  TimePicker: time_picker_locale_en_US,
-  Calendar: calendar_locale_en_US,
-  global: {
-    placeholder: 'Please select'
-  },
-  Table: {
-    filterTitle: 'Filter menu',
-    filterConfirm: 'OK',
-    filterReset: 'Reset',
-    filterEmptyText: 'No filters',
-    filterCheckall: 'Select all items',
-    filterSearchPlaceholder: 'Search in filters',
-    emptyText: 'No data',
-    selectAll: 'Select current page',
-    selectInvert: 'Invert current page',
-    selectNone: 'Clear all data',
-    selectionAll: 'Select all data',
-    sortTitle: 'Sort',
-    expand: 'Expand row',
-    collapse: 'Collapse row',
-    triggerDesc: 'Click to sort descending',
-    triggerAsc: 'Click to sort ascending',
-    cancelSort: 'Click to cancel sorting'
-  },
-  Tour: {
-    Next: 'Next',
-    Previous: 'Previous',
-    Finish: 'Finish'
-  },
-  Modal: {
-    okText: 'OK',
-    cancelText: 'Cancel',
-    justOkText: 'OK'
-  },
-  Popconfirm: {
-    okText: 'OK',
-    cancelText: 'Cancel'
-  },
-  Transfer: {
-    titles: ['', ''],
-    searchPlaceholder: 'Search here',
-    itemUnit: 'item',
-    itemsUnit: 'items',
-    remove: 'Remove',
-    selectCurrent: 'Select current page',
-    removeCurrent: 'Remove current page',
-    selectAll: 'Select all data',
-    removeAll: 'Remove all data',
-    selectInvert: 'Invert current page'
-  },
-  Upload: {
-    uploading: 'Uploading...',
-    removeFile: 'Remove file',
-    uploadError: 'Upload error',
-    previewFile: 'Preview file',
-    downloadFile: 'Download file'
-  },
-  Empty: {
-    description: 'No data'
-  },
-  Icon: {
-    icon: 'icon'
-  },
-  Text: {
-    edit: 'Edit',
-    copy: 'Copy',
-    copied: 'Copied',
-    expand: 'Expand',
-    collapse: 'Collapse'
-  },
-  Form: {
-    optional: '(optional)',
-    defaultValidateMessages: {
-      default: 'Field validation error for ${label}',
-      required: 'Please enter ${label}',
-      enum: '${label} must be one of [${enum}]',
-      whitespace: '${label} cannot be a blank character',
-      date: {
-        format: '${label} date format is invalid',
-        parse: '${label} cannot be converted to a date',
-        invalid: '${label} is an invalid date'
-      },
-      types: {
-        string: en_US_typeTemplate,
-        method: en_US_typeTemplate,
-        array: en_US_typeTemplate,
-        object: en_US_typeTemplate,
-        number: en_US_typeTemplate,
-        date: en_US_typeTemplate,
-        boolean: en_US_typeTemplate,
-        integer: en_US_typeTemplate,
-        float: en_US_typeTemplate,
-        regexp: en_US_typeTemplate,
-        email: en_US_typeTemplate,
-        url: en_US_typeTemplate,
-        hex: en_US_typeTemplate
-      },
-      string: {
-        len: '${label} must be ${len} characters',
-        min: '${label} must be at least ${min} characters',
-        max: '${label} must be up to ${max} characters',
-        range: '${label} must be between ${min}-${max} characters'
-      },
-      number: {
-        len: '${label} must be equal to ${len}',
-        min: '${label} must be minimum ${min}',
-        max: '${label} must be maximum ${max}',
-        range: '${label} must be between ${min}-${max}'
-      },
-      array: {
-        len: 'Must be ${len} ${label}',
-        min: 'At least ${min} ${label}',
-        max: 'At most ${max} ${label}',
-        range: 'The amount of ${label} must be between ${min}-${max}'
-      },
-      pattern: {
-        mismatch: '${label} does not match the pattern ${pattern}'
-      }
-    }
-  },
-  Image: {
-    preview: 'Preview'
-  },
-  QRCode: {
-    expired: 'QR code expired',
-    refresh: 'Refresh',
-    scanned: 'Scanned'
-  },
-  ColorPicker: {
-    presetEmpty: 'Empty'
-  }
-};
-/* harmony default export */ const es_locale_en_US = (localeValues);
-;// CONCATENATED MODULE: ./node_modules/antd/es/locale/useLocale.js
-
-
-
-const useLocale = (componentName, defaultLocale) => {
-  const fullLocale = react.useContext(locale_context);
-  const getLocale = react.useMemo(() => {
-    var _a;
-    const locale = defaultLocale || es_locale_en_US[componentName];
-    const localeFromContext = (_a = fullLocale === null || fullLocale === void 0 ? void 0 : fullLocale[componentName]) !== null && _a !== void 0 ? _a : {};
-    return Object.assign(Object.assign({}, typeof locale === 'function' ? locale() : locale), localeFromContext || {});
-  }, [componentName, defaultLocale, fullLocale]);
-  const getLocaleCode = react.useMemo(() => {
-    const localeCode = fullLocale === null || fullLocale === void 0 ? void 0 : fullLocale.locale;
-    // Had use LocaleProvide but didn't set locale
-    if ((fullLocale === null || fullLocale === void 0 ? void 0 : fullLocale.exist) && !localeCode) {
-      return es_locale_en_US.locale;
-    }
-    return localeCode;
-  }, [fullLocale]);
-  return [getLocale, getLocaleCode];
-};
-/* harmony default export */ const locale_useLocale = (useLocale);
-;// CONCATENATED MODULE: ./node_modules/antd/es/form/FormItemLabel.js
-"use client";
-
-var FormItemLabel_rest = undefined && undefined.__rest || function (s, e) {
-  var t = {};
-  for (var p in s) if (Object.prototype.hasOwnProperty.call(s, p) && e.indexOf(p) < 0) t[p] = s[p];
-  if (s != null && typeof Object.getOwnPropertySymbols === "function") for (var i = 0, p = Object.getOwnPropertySymbols(s); i < p.length; i++) {
-    if (e.indexOf(p[i]) < 0 && Object.prototype.propertyIsEnumerable.call(s, p[i])) t[p[i]] = s[p[i]];
-  }
-  return t;
-};
-
-
-
-
-
-
-
-
-function toTooltipProps(tooltip) {
-  if (!tooltip) {
-    return null;
-  }
-  if (typeof tooltip === 'object' && ! /*#__PURE__*/react.isValidElement(tooltip)) {
-    return tooltip;
-  }
-  return {
-    title: tooltip
-  };
-}
-const FormItemLabel = _ref => {
-  let {
-    prefixCls,
-    label,
-    htmlFor,
-    labelCol,
-    labelAlign,
-    colon,
-    required,
-    requiredMark,
-    tooltip
-  } = _ref;
-  var _a;
-  const [formLocale] = locale_useLocale('Form');
-  const {
-    vertical,
-    labelAlign: contextLabelAlign,
-    labelCol: contextLabelCol,
-    labelWrap,
-    colon: contextColon
-  } = react.useContext(context_FormContext);
-  if (!label) {
-    return null;
-  }
-  const mergedLabelCol = labelCol || contextLabelCol || {};
-  const mergedLabelAlign = labelAlign || contextLabelAlign;
-  const labelClsBasic = `${prefixCls}-item-label`;
-  const labelColClassName = classnames_default()(labelClsBasic, mergedLabelAlign === 'left' && `${labelClsBasic}-left`, mergedLabelCol.className, {
-    [`${labelClsBasic}-wrap`]: !!labelWrap
-  });
-  let labelChildren = label;
-  // Keep label is original where there should have no colon
-  const computedColon = colon === true || contextColon !== false && colon !== false;
-  const haveColon = computedColon && !vertical;
-  // Remove duplicated user input colon
-  if (haveColon && typeof label === 'string' && label.trim() !== '') {
-    labelChildren = label.replace(/[:|：]\s*$/, '');
-  }
-  // Tooltip
-  const tooltipProps = toTooltipProps(tooltip);
-  if (tooltipProps) {
-    const {
-        icon = /*#__PURE__*/react.createElement(icons_QuestionCircleOutlined, null)
-      } = tooltipProps,
-      restTooltipProps = FormItemLabel_rest(tooltipProps, ["icon"]);
-    const tooltipNode = /*#__PURE__*/react.createElement(es_tooltip, Object.assign({}, restTooltipProps), /*#__PURE__*/react.cloneElement(icon, {
-      className: `${prefixCls}-item-tooltip`,
-      title: '',
-      onClick: e => {
-        // Prevent label behavior in tooltip icon
-        // https://github.com/ant-design/ant-design/issues/46154
-        e.preventDefault();
-      },
-      tabIndex: null
-    }));
-    labelChildren = /*#__PURE__*/react.createElement(react.Fragment, null, labelChildren, tooltipNode);
-  }
-  // Required Mark
-  const isOptionalMark = requiredMark === 'optional';
-  const isRenderMark = typeof requiredMark === 'function';
-  if (isRenderMark) {
-    labelChildren = requiredMark(labelChildren, {
-      required: !!required
-    });
-  } else if (isOptionalMark && !required) {
-    labelChildren = /*#__PURE__*/react.createElement(react.Fragment, null, labelChildren, /*#__PURE__*/react.createElement("span", {
-      className: `${prefixCls}-item-optional`,
-      title: ""
-    }, (formLocale === null || formLocale === void 0 ? void 0 : formLocale.optional) || ((_a = es_locale_en_US.Form) === null || _a === void 0 ? void 0 : _a.optional)));
-  }
-  const labelClassName = classnames_default()({
-    [`${prefixCls}-item-required`]: required,
-    [`${prefixCls}-item-required-mark-optional`]: isOptionalMark || isRenderMark,
-    [`${prefixCls}-item-no-colon`]: !computedColon
-  });
-  return /*#__PURE__*/react.createElement(col, Object.assign({}, mergedLabelCol, {
-    className: labelColClassName
-  }), /*#__PURE__*/react.createElement("label", {
-    htmlFor: htmlFor,
-    className: labelClassName,
-    title: typeof label === 'string' ? label : ''
-  }, labelChildren));
-};
-/* harmony default export */ const form_FormItemLabel = (FormItemLabel);
-;// CONCATENATED MODULE: ./node_modules/@ant-design/icons-svg/es/asn/CheckCircleFilled.js
-// This icon file is generated automatically.
-var CheckCircleFilled = { "icon": { "tag": "svg", "attrs": { "viewBox": "64 64 896 896", "focusable": "false" }, "children": [{ "tag": "path", "attrs": { "d": "M512 64C264.6 64 64 264.6 64 512s200.6 448 448 448 448-200.6 448-448S759.4 64 512 64zm193.5 301.7l-210.6 292a31.8 31.8 0 01-51.7 0L318.5 484.9c-3.8-5.3 0-12.7 6.5-12.7h46.9c10.2 0 19.9 4.9 25.9 13.3l71.2 98.8 157.2-218c6-8.3 15.6-13.3 25.9-13.3H699c6.5 0 10.3 7.4 6.5 12.7z" } }] }, "name": "check-circle", "theme": "filled" };
-/* harmony default export */ const asn_CheckCircleFilled = (CheckCircleFilled);
-
-;// CONCATENATED MODULE: ./node_modules/@ant-design/icons/es/icons/CheckCircleFilled.js
-
-// GENERATE BY ./scripts/generate.ts
-// DON NOT EDIT IT MANUALLY
-
-
-
-
-var CheckCircleFilled_CheckCircleFilled = function CheckCircleFilled(props, ref) {
-  return /*#__PURE__*/react.createElement(AntdIcon, extends_extends({}, props, {
-    ref: ref,
-    icon: asn_CheckCircleFilled
-  }));
-};
-
-/**![check-circle](data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNTAiIGhlaWdodD0iNTAiIGZpbGw9IiNjYWNhY2EiIHZpZXdCb3g9IjY0IDY0IDg5NiA4OTYiIGZvY3VzYWJsZT0iZmFsc2UiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PHBhdGggZD0iTTUxMiA2NEMyNjQuNiA2NCA2NCAyNjQuNiA2NCA1MTJzMjAwLjYgNDQ4IDQ0OCA0NDggNDQ4LTIwMC42IDQ0OC00NDhTNzU5LjQgNjQgNTEyIDY0em0xOTMuNSAzMDEuN2wtMjEwLjYgMjkyYTMxLjggMzEuOCAwIDAxLTUxLjcgMEwzMTguNSA0ODQuOWMtMy44LTUuMyAwLTEyLjcgNi41LTEyLjdoNDYuOWMxMC4yIDAgMTkuOSA0LjkgMjUuOSAxMy4zbDcxLjIgOTguOCAxNTcuMi0yMThjNi04LjMgMTUuNi0xMy4zIDI1LjktMTMuM0g2OTljNi41IDAgMTAuMyA3LjQgNi41IDEyLjd6IiAvPjwvc3ZnPg==) */
-var CheckCircleFilled_RefIcon = /*#__PURE__*/react.forwardRef(CheckCircleFilled_CheckCircleFilled);
-if (false) {}
-/* harmony default export */ const icons_CheckCircleFilled = (CheckCircleFilled_RefIcon);
-;// CONCATENATED MODULE: ./node_modules/@ant-design/icons-svg/es/asn/ExclamationCircleFilled.js
-// This icon file is generated automatically.
-var ExclamationCircleFilled = { "icon": { "tag": "svg", "attrs": { "viewBox": "64 64 896 896", "focusable": "false" }, "children": [{ "tag": "path", "attrs": { "d": "M512 64C264.6 64 64 264.6 64 512s200.6 448 448 448 448-200.6 448-448S759.4 64 512 64zm-32 232c0-4.4 3.6-8 8-8h48c4.4 0 8 3.6 8 8v272c0 4.4-3.6 8-8 8h-48c-4.4 0-8-3.6-8-8V296zm32 440a48.01 48.01 0 010-96 48.01 48.01 0 010 96z" } }] }, "name": "exclamation-circle", "theme": "filled" };
-/* harmony default export */ const asn_ExclamationCircleFilled = (ExclamationCircleFilled);
-
-;// CONCATENATED MODULE: ./node_modules/@ant-design/icons/es/icons/ExclamationCircleFilled.js
-
-// GENERATE BY ./scripts/generate.ts
-// DON NOT EDIT IT MANUALLY
-
-
-
-
-var ExclamationCircleFilled_ExclamationCircleFilled = function ExclamationCircleFilled(props, ref) {
-  return /*#__PURE__*/react.createElement(AntdIcon, extends_extends({}, props, {
-    ref: ref,
-    icon: asn_ExclamationCircleFilled
-  }));
-};
-
-/**![exclamation-circle](data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNTAiIGhlaWdodD0iNTAiIGZpbGw9IiNjYWNhY2EiIHZpZXdCb3g9IjY0IDY0IDg5NiA4OTYiIGZvY3VzYWJsZT0iZmFsc2UiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PHBhdGggZD0iTTUxMiA2NEMyNjQuNiA2NCA2NCAyNjQuNiA2NCA1MTJzMjAwLjYgNDQ4IDQ0OCA0NDggNDQ4LTIwMC42IDQ0OC00NDhTNzU5LjQgNjQgNTEyIDY0em0tMzIgMjMyYzAtNC40IDMuNi04IDgtOGg0OGM0LjQgMCA4IDMuNiA4IDh2MjcyYzAgNC40LTMuNiA4LTggOGgtNDhjLTQuNCAwLTgtMy42LTgtOFYyOTZ6bTMyIDQ0MGE0OC4wMSA0OC4wMSAwIDAxMC05NiA0OC4wMSA0OC4wMSAwIDAxMCA5NnoiIC8+PC9zdmc+) */
-var ExclamationCircleFilled_RefIcon = /*#__PURE__*/react.forwardRef(ExclamationCircleFilled_ExclamationCircleFilled);
-if (false) {}
-/* harmony default export */ const icons_ExclamationCircleFilled = (ExclamationCircleFilled_RefIcon);
-;// CONCATENATED MODULE: ./node_modules/antd/es/form/FormItem/StatusProvider.js
-"use client";
-
-
-
-
-
-
-
-
-
-const iconMap = {
-  success: icons_CheckCircleFilled,
-  warning: icons_ExclamationCircleFilled,
-  error: icons_CloseCircleFilled,
-  validating: icons_LoadingOutlined
-};
-function StatusProvider(_ref) {
-  let {
-    children,
-    errors,
-    warnings,
-    hasFeedback,
-    validateStatus,
-    prefixCls,
-    meta,
-    noStyle
-  } = _ref;
-  const itemPrefixCls = `${prefixCls}-item`;
-  const {
-    feedbackIcons
-  } = react.useContext(context_FormContext);
-  const mergedValidateStatus = getStatus(errors, warnings, meta, null, !!hasFeedback, validateStatus);
-  const {
-    isFormItemInput: parentIsFormItemInput,
-    status: parentStatus,
-    hasFeedback: parentHasFeedback,
-    feedbackIcon: parentFeedbackIcon
-  } = react.useContext(FormItemInputContext);
-  // ====================== Context =======================
-  const formItemStatusContext = react.useMemo(() => {
-    var _a;
-    let feedbackIcon;
-    if (hasFeedback) {
-      const customIcons = hasFeedback !== true && hasFeedback.icons || feedbackIcons;
-      const customIconNode = mergedValidateStatus && ((_a = customIcons === null || customIcons === void 0 ? void 0 : customIcons({
-        status: mergedValidateStatus,
-        errors,
-        warnings
-      })) === null || _a === void 0 ? void 0 : _a[mergedValidateStatus]);
-      const IconNode = mergedValidateStatus && iconMap[mergedValidateStatus];
-      feedbackIcon = customIconNode !== false && IconNode ? ( /*#__PURE__*/react.createElement("span", {
-        className: classnames_default()(`${itemPrefixCls}-feedback-icon`, `${itemPrefixCls}-feedback-icon-${mergedValidateStatus}`)
-      }, customIconNode || /*#__PURE__*/react.createElement(IconNode, null))) : null;
-    }
-    const context = {
-      status: mergedValidateStatus || '',
-      errors,
-      warnings,
-      hasFeedback: !!hasFeedback,
-      feedbackIcon,
-      isFormItemInput: true
-    };
-    // No style will follow parent context
-    if (noStyle) {
-      context.status = (mergedValidateStatus !== null && mergedValidateStatus !== void 0 ? mergedValidateStatus : parentStatus) || '';
-      context.isFormItemInput = parentIsFormItemInput;
-      context.hasFeedback = !!(hasFeedback !== null && hasFeedback !== void 0 ? hasFeedback : parentHasFeedback);
-      context.feedbackIcon = hasFeedback !== undefined ? context.feedbackIcon : parentFeedbackIcon;
-    }
-    return context;
-  }, [mergedValidateStatus, hasFeedback, noStyle, parentIsFormItemInput, parentStatus]);
-  // ======================= Render =======================
-  return /*#__PURE__*/react.createElement(FormItemInputContext.Provider, {
-    value: formItemStatusContext
-  }, children);
-}
-;// CONCATENATED MODULE: ./node_modules/antd/es/form/FormItem/ItemHolder.js
-"use client";
-
-var ItemHolder_rest = undefined && undefined.__rest || function (s, e) {
-  var t = {};
-  for (var p in s) if (Object.prototype.hasOwnProperty.call(s, p) && e.indexOf(p) < 0) t[p] = s[p];
-  if (s != null && typeof Object.getOwnPropertySymbols === "function") for (var i = 0, p = Object.getOwnPropertySymbols(s); i < p.length; i++) {
-    if (e.indexOf(p[i]) < 0 && Object.prototype.propertyIsEnumerable.call(s, p[i])) t[p[i]] = s[p[i]];
-  }
-  return t;
-};
-
-
-
-
-
-
-
-
-
-
-
-
-function ItemHolder(props) {
-  const {
-      prefixCls,
-      className,
-      rootClassName,
-      style,
-      help,
-      errors,
-      warnings,
-      validateStatus,
-      meta,
-      hasFeedback,
-      hidden,
-      children,
-      fieldId,
-      required,
-      isRequired,
-      onSubItemMetaChange
-    } = props,
-    restProps = ItemHolder_rest(props, ["prefixCls", "className", "rootClassName", "style", "help", "errors", "warnings", "validateStatus", "meta", "hasFeedback", "hidden", "children", "fieldId", "required", "isRequired", "onSubItemMetaChange"]);
-  const itemPrefixCls = `${prefixCls}-item`;
-  const {
-    requiredMark
-  } = react.useContext(context_FormContext);
-  // ======================== Margin ========================
-  const itemRef = react.useRef(null);
-  const debounceErrors = useDebounce(errors);
-  const debounceWarnings = useDebounce(warnings);
-  const hasHelp = help !== undefined && help !== null;
-  const hasError = !!(hasHelp || errors.length || warnings.length);
-  const isOnScreen = !!itemRef.current && isVisible(itemRef.current);
-  const [marginBottom, setMarginBottom] = react.useState(null);
-  hooks_useLayoutEffect(() => {
-    if (hasError && itemRef.current) {
-      // The element must be part of the DOMTree to use getComputedStyle
-      // https://stackoverflow.com/questions/35360711/getcomputedstyle-returns-a-cssstyledeclaration-but-all-properties-are-empty-on-a
-      const itemStyle = getComputedStyle(itemRef.current);
-      setMarginBottom(parseInt(itemStyle.marginBottom, 10));
-    }
-  }, [hasError, isOnScreen]);
-  const onErrorVisibleChanged = nextVisible => {
-    if (!nextVisible) {
-      setMarginBottom(null);
-    }
-  };
-  // ======================== Status ========================
-  const getValidateState = function () {
-    let isDebounce = arguments.length > 0 && arguments[0] !== undefined ? arguments[0] : false;
-    const _errors = isDebounce ? debounceErrors : meta.errors;
-    const _warnings = isDebounce ? debounceWarnings : meta.warnings;
-    return getStatus(_errors, _warnings, meta, '', !!hasFeedback, validateStatus);
-  };
-  const mergedValidateStatus = getValidateState();
-  // ======================== Render ========================
-  const itemClassName = classnames_default()(itemPrefixCls, className, rootClassName, {
-    [`${itemPrefixCls}-with-help`]: hasHelp || debounceErrors.length || debounceWarnings.length,
-    // Status
-    [`${itemPrefixCls}-has-feedback`]: mergedValidateStatus && hasFeedback,
-    [`${itemPrefixCls}-has-success`]: mergedValidateStatus === 'success',
-    [`${itemPrefixCls}-has-warning`]: mergedValidateStatus === 'warning',
-    [`${itemPrefixCls}-has-error`]: mergedValidateStatus === 'error',
-    [`${itemPrefixCls}-is-validating`]: mergedValidateStatus === 'validating',
-    [`${itemPrefixCls}-hidden`]: hidden
-  });
-  return /*#__PURE__*/react.createElement("div", {
-    className: itemClassName,
-    style: style,
-    ref: itemRef
-  }, /*#__PURE__*/react.createElement(row, Object.assign({
-    className: `${itemPrefixCls}-row`
-  }, omit(restProps, ['_internalItemRender', 'colon', 'dependencies', 'extra', 'fieldKey', 'getValueFromEvent', 'getValueProps', 'htmlFor', 'id',
-  // It is deprecated because `htmlFor` is its replacement.
-  'initialValue', 'isListField', 'label', 'labelAlign', 'labelCol', 'labelWrap', 'messageVariables', 'name', 'normalize', 'noStyle', 'preserve', 'requiredMark', 'rules', 'shouldUpdate', 'trigger', 'tooltip', 'validateFirst', 'validateTrigger', 'valuePropName', 'wrapperCol', 'validateDebounce'])), /*#__PURE__*/react.createElement(form_FormItemLabel, Object.assign({
-    htmlFor: fieldId
-  }, props, {
-    requiredMark: requiredMark,
-    required: required !== null && required !== void 0 ? required : isRequired,
-    prefixCls: prefixCls
-  })), /*#__PURE__*/react.createElement(form_FormItemInput, Object.assign({}, props, meta, {
-    errors: debounceErrors,
-    warnings: debounceWarnings,
-    prefixCls: prefixCls,
-    status: mergedValidateStatus,
-    help: help,
-    marginBottom: marginBottom,
-    onErrorVisibleChanged: onErrorVisibleChanged
-  }), /*#__PURE__*/react.createElement(NoStyleItemContext.Provider, {
-    value: onSubItemMetaChange
-  }, /*#__PURE__*/react.createElement(StatusProvider, {
-    prefixCls: prefixCls,
-    meta: meta,
-    errors: meta.errors,
-    warnings: meta.warnings,
-    hasFeedback: hasFeedback,
-    // Already calculated
-    validateStatus: mergedValidateStatus
-  }, children)))), !!marginBottom && ( /*#__PURE__*/react.createElement("div", {
-    className: `${itemPrefixCls}-margin-offset`,
-    style: {
-      marginBottom: -marginBottom
-    }
-  })));
-}
-;// CONCATENATED MODULE: ./node_modules/antd/es/form/FormItem/index.js
-"use client";
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-const NAME_SPLIT = '__SPLIT__';
-const ValidateStatuses = (/* unused pure expression or super */ null && (['success', 'warning', 'error', 'validating', '']));
-// https://github.com/ant-design/ant-design/issues/46417
-// `getValueProps` may modify the value props name,
-// we should check if the control is similar.
-function isSimilarControl(a, b) {
-  const keysA = Object.keys(a);
-  const keysB = Object.keys(b);
-  return keysA.length === keysB.length && keysA.every(key => {
-    const propValueA = a[key];
-    const propValueB = b[key];
-    return propValueA === propValueB || typeof propValueA === 'function' || typeof propValueB === 'function';
-  });
-}
-const MemoInput = /*#__PURE__*/react.memo(_ref => {
-  let {
-    children
-  } = _ref;
-  return children;
-}, (prev, next) => isSimilarControl(prev.control, next.control) && prev.update === next.update && prev.childProps.length === next.childProps.length && prev.childProps.every((value, index) => value === next.childProps[index]));
-function genEmptyMeta() {
-  return {
-    errors: [],
-    warnings: [],
-    touched: false,
-    validating: false,
-    name: [],
-    validated: false
-  };
-}
-function InternalFormItem(props) {
-  const {
-    name,
-    noStyle,
-    className,
-    dependencies,
-    prefixCls: customizePrefixCls,
-    shouldUpdate,
-    rules,
-    children,
-    required,
-    label,
-    messageVariables,
-    trigger = 'onChange',
-    validateTrigger,
-    hidden,
-    help
-  } = props;
-  const {
-    getPrefixCls
-  } = react.useContext(context_ConfigContext);
-  const {
-    name: formName
-  } = react.useContext(context_FormContext);
-  const mergedChildren = useChildren(children);
-  const isRenderProps = typeof mergedChildren === 'function';
-  const notifyParentMetaChange = react.useContext(NoStyleItemContext);
-  const {
-    validateTrigger: contextValidateTrigger
-  } = react.useContext(FieldContext);
-  const mergedValidateTrigger = validateTrigger !== undefined ? validateTrigger : contextValidateTrigger;
-  const hasName = !(name === undefined || name === null);
-  const prefixCls = getPrefixCls('form', customizePrefixCls);
-  // Style
-  const rootCls = hooks_useCSSVarCls(prefixCls);
-  const [wrapCSSVar, hashId, cssVarCls] = form_style(prefixCls, rootCls);
-  // ========================= Warn =========================
-  const warning = warning_devUseWarning('Form.Item');
-  if (false) {}
-  // ========================= MISC =========================
-  // Get `noStyle` required info
-  const listContext = react.useContext(es_ListContext);
-  const fieldKeyPathRef = react.useRef();
-  // ======================== Errors ========================
-  // >>>>> Collect sub field errors
-  const [subFieldErrors, setSubFieldErrors] = useFrameState({});
-  // >>>>> Current field errors
-  const [meta, setMeta] = useSafeState(() => genEmptyMeta());
-  const onMetaChange = nextMeta => {
-    // This keyInfo is not correct when field is removed
-    // Since origin keyManager no longer keep the origin key anymore
-    // Which means we need cache origin one and reuse when removed
-    const keyInfo = listContext === null || listContext === void 0 ? void 0 : listContext.getKey(nextMeta.name);
-    // Destroy will reset all the meta
-    setMeta(nextMeta.destroy ? genEmptyMeta() : nextMeta, true);
-    // Bump to parent since noStyle
-    if (noStyle && help !== false && notifyParentMetaChange) {
-      let namePath = nextMeta.name;
-      if (!nextMeta.destroy) {
-        if (keyInfo !== undefined) {
-          const [fieldKey, restPath] = keyInfo;
-          namePath = [fieldKey].concat(_toConsumableArray(restPath));
-          fieldKeyPathRef.current = namePath;
-        }
-      } else {
-        // Use origin cache data
-        namePath = fieldKeyPathRef.current || namePath;
-      }
-      notifyParentMetaChange(nextMeta, namePath);
-    }
-  };
-  // >>>>> Collect noStyle Field error to the top FormItem
-  const onSubItemMetaChange = (subMeta, uniqueKeys) => {
-    // Only `noStyle` sub item will trigger
-    setSubFieldErrors(prevSubFieldErrors => {
-      const clone = Object.assign({}, prevSubFieldErrors);
-      // name: ['user', 1] + key: [4] = ['user', 4]
-      const mergedNamePath = [].concat(_toConsumableArray(subMeta.name.slice(0, -1)), _toConsumableArray(uniqueKeys));
-      const mergedNameKey = mergedNamePath.join(NAME_SPLIT);
-      if (subMeta.destroy) {
-        // Remove
-        delete clone[mergedNameKey];
-      } else {
-        // Update
-        clone[mergedNameKey] = subMeta;
-      }
-      return clone;
-    });
-  };
-  // >>>>> Get merged errors
-  const [mergedErrors, mergedWarnings] = react.useMemo(() => {
-    const errorList = _toConsumableArray(meta.errors);
-    const warningList = _toConsumableArray(meta.warnings);
-    Object.values(subFieldErrors).forEach(subFieldError => {
-      errorList.push.apply(errorList, _toConsumableArray(subFieldError.errors || []));
-      warningList.push.apply(warningList, _toConsumableArray(subFieldError.warnings || []));
-    });
-    return [errorList, warningList];
-  }, [subFieldErrors, meta.errors, meta.warnings]);
-  // ===================== Children Ref =====================
-  const getItemRef = useItemRef();
-  // ======================== Render ========================
-  function renderLayout(baseChildren, fieldId, isRequired) {
-    if (noStyle && !hidden) {
-      return /*#__PURE__*/react.createElement(StatusProvider, {
-        prefixCls: prefixCls,
-        hasFeedback: props.hasFeedback,
-        validateStatus: props.validateStatus,
-        meta: meta,
-        errors: mergedErrors,
-        warnings: mergedWarnings,
-        noStyle: true
-      }, baseChildren);
-    }
-    return /*#__PURE__*/react.createElement(ItemHolder, Object.assign({
-      key: "row"
-    }, props, {
-      className: classnames_default()(className, cssVarCls, rootCls, hashId),
-      prefixCls: prefixCls,
-      fieldId: fieldId,
-      isRequired: isRequired,
-      errors: mergedErrors,
-      warnings: mergedWarnings,
-      meta: meta,
-      onSubItemMetaChange: onSubItemMetaChange
-    }), baseChildren);
-  }
-  if (!hasName && !isRenderProps && !dependencies) {
-    return wrapCSSVar(renderLayout(mergedChildren));
-  }
-  let variables = {};
-  if (typeof label === 'string') {
-    variables.label = label;
-  } else if (name) {
-    variables.label = String(name);
-  }
-  if (messageVariables) {
-    variables = Object.assign(Object.assign({}, variables), messageVariables);
-  }
-  // >>>>> With Field
-  return wrapCSSVar( /*#__PURE__*/react.createElement(es_Field, Object.assign({}, props, {
-    messageVariables: variables,
-    trigger: trigger,
-    validateTrigger: mergedValidateTrigger,
-    onMetaChange: onMetaChange
-  }), (control, renderMeta, context) => {
-    const mergedName = util_toArray(name).length && renderMeta ? renderMeta.name : [];
-    const fieldId = getFieldId(mergedName, formName);
-    const isRequired = required !== undefined ? required : !!(rules && rules.some(rule => {
-      if (rule && typeof rule === 'object' && rule.required && !rule.warningOnly) {
-        return true;
-      }
-      if (typeof rule === 'function') {
-        const ruleEntity = rule(context);
-        return ruleEntity && ruleEntity.required && !ruleEntity.warningOnly;
-      }
-      return false;
-    }));
-    // ======================= Children =======================
-    const mergedControl = Object.assign({}, control);
-    let childNode = null;
-     false ? 0 : void 0;
-    if (Array.isArray(mergedChildren) && hasName) {
-       false ? 0 : void 0;
-      childNode = mergedChildren;
-    } else if (isRenderProps && (!(shouldUpdate || dependencies) || hasName)) {
-       false ? 0 : void 0;
-       false ? 0 : void 0;
-    } else if (dependencies && !isRenderProps && !hasName) {
-       false ? 0 : void 0;
-    } else if ( /*#__PURE__*/react.isValidElement(mergedChildren)) {
-       false ? 0 : void 0;
-      const childProps = Object.assign(Object.assign({}, mergedChildren.props), mergedControl);
-      if (!childProps.id) {
-        childProps.id = fieldId;
-      }
-      if (help || mergedErrors.length > 0 || mergedWarnings.length > 0 || props.extra) {
-        const describedbyArr = [];
-        if (help || mergedErrors.length > 0) {
-          describedbyArr.push(`${fieldId}_help`);
-        }
-        if (props.extra) {
-          describedbyArr.push(`${fieldId}_extra`);
-        }
-        childProps['aria-describedby'] = describedbyArr.join(' ');
-      }
-      if (mergedErrors.length > 0) {
-        childProps['aria-invalid'] = 'true';
-      }
-      if (isRequired) {
-        childProps['aria-required'] = 'true';
-      }
-      if (supportRef(mergedChildren)) {
-        childProps.ref = getItemRef(mergedName, mergedChildren);
-      }
-      // We should keep user origin event handler
-      const triggers = new Set([].concat(_toConsumableArray(util_toArray(trigger)), _toConsumableArray(util_toArray(mergedValidateTrigger))));
-      triggers.forEach(eventName => {
-        childProps[eventName] = function () {
-          var _a2, _c2;
-          var _a, _b, _c;
-          for (var _len = arguments.length, args = new Array(_len), _key = 0; _key < _len; _key++) {
-            args[_key] = arguments[_key];
-          }
-          (_a = mergedControl[eventName]) === null || _a === void 0 ? void 0 : (_a2 = _a).call.apply(_a2, [mergedControl].concat(args));
-          (_c = (_b = mergedChildren.props)[eventName]) === null || _c === void 0 ? void 0 : (_c2 = _c).call.apply(_c2, [_b].concat(args));
-        };
-      });
-      // List of props that need to be watched for changes -> if changes are detected in MemoInput -> rerender
-      const watchingChildProps = [childProps['aria-required'], childProps['aria-invalid'], childProps['aria-describedby']];
-      childNode = /*#__PURE__*/react.createElement(MemoInput, {
-        control: mergedControl,
-        update: mergedChildren,
-        childProps: watchingChildProps
-      }, cloneElement(mergedChildren, childProps));
-    } else if (isRenderProps && (shouldUpdate || dependencies) && !hasName) {
-      childNode = mergedChildren(context);
-    } else {
-       false ? 0 : void 0;
-      childNode = mergedChildren;
-    }
-    return renderLayout(childNode, fieldId, isRequired);
-  }));
-}
-const FormItem = InternalFormItem;
-FormItem.useStatus = hooks_useFormItemStatus;
-/* harmony default export */ const form_FormItem = (FormItem);
-;// CONCATENATED MODULE: ./node_modules/antd/es/form/FormList.js
-"use client";
-
-var FormList_rest = undefined && undefined.__rest || function (s, e) {
-  var t = {};
-  for (var p in s) if (Object.prototype.hasOwnProperty.call(s, p) && e.indexOf(p) < 0) t[p] = s[p];
-  if (s != null && typeof Object.getOwnPropertySymbols === "function") for (var i = 0, p = Object.getOwnPropertySymbols(s); i < p.length; i++) {
-    if (e.indexOf(p[i]) < 0 && Object.prototype.propertyIsEnumerable.call(s, p[i])) t[p[i]] = s[p[i]];
-  }
-  return t;
-};
-
-
-
-
-
-const FormList = _a => {
-  var {
-      prefixCls: customizePrefixCls,
-      children
-    } = _a,
-    props = FormList_rest(_a, ["prefixCls", "children"]);
-  if (false) {}
-  const {
-    getPrefixCls
-  } = react.useContext(context_ConfigContext);
-  const prefixCls = getPrefixCls('form', customizePrefixCls);
-  const contextValue = react.useMemo(() => ({
-    prefixCls,
-    status: 'error'
-  }), [prefixCls]);
-  return /*#__PURE__*/react.createElement(es_List, Object.assign({}, props), (fields, operation, meta) => ( /*#__PURE__*/react.createElement(FormItemPrefixContext.Provider, {
-    value: contextValue
-  }, children(fields.map(field => Object.assign(Object.assign({}, field), {
-    fieldKey: field.key
-  })), operation, {
-    errors: meta.errors,
-    warnings: meta.warnings
-  }))));
-};
-/* harmony default export */ const form_FormList = (FormList);
-;// CONCATENATED MODULE: ./node_modules/antd/es/form/hooks/useFormInstance.js
-
-
-function useFormInstance() {
-  const {
-    form
-  } = (0,react.useContext)(context_FormContext);
-  return form;
-}
-;// CONCATENATED MODULE: ./node_modules/antd/es/form/index.js
-"use client";
-
-
-
-
-
-
-
-
-const es_form_Form = form_Form;
-es_form_Form.Item = form_FormItem;
-es_form_Form.List = form_FormList;
-es_form_Form.ErrorList = form_ErrorList;
-es_form_Form.useForm = useForm_useForm;
-es_form_Form.useFormInstance = useFormInstance;
-es_form_Form.useWatch = es_useWatch;
-es_form_Form.Provider = context_FormProvider;
-es_form_Form.create = () => {
-   false ? 0 : void 0;
-};
-/* harmony default export */ const es_form = (es_form_Form);
+const useAuth = () => [login, signup, logout];
 ;// CONCATENATED MODULE: ./node_modules/antd/es/_util/gapSize.js
 function isPresetSize(size) {
   return ['small', 'middle', 'large'].includes(size);
@@ -45711,65 +43200,2565 @@ es_card_Card.Grid = card_Grid;
 es_card_Card.Meta = card_Meta;
 if (false) {}
 /* harmony default export */ const card = (es_card_Card);
-;// CONCATENATED MODULE: ./client/hooks/useAuth.js
-const devURL = "http://localhost:3000";
-const prodURL = "https://tempie-server-b490ad9cab9b.herokuapp.com";
-const targetURL = devURL;
-const sendPost = async (url, data, handler) => {
-  const response = await fetch(url, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json"
-    },
-    body: JSON.stringify(data)
-  });
-  const result = await response.json();
-  if (handler) handler(result);
+;// CONCATENATED MODULE: ./node_modules/antd/es/form/hooks/useDebounce.js
+
+function useDebounce(value) {
+  const [cacheValue, setCacheValue] = react.useState(value);
+  react.useEffect(() => {
+    const timeout = setTimeout(() => {
+      setCacheValue(value);
+    }, value.length ? 0 : 10);
+    return () => {
+      clearTimeout(timeout);
+    };
+  }, [value]);
+  return cacheValue;
+}
+;// CONCATENATED MODULE: ./node_modules/antd/es/form/style/explain.js
+const genFormValidateMotionStyle = token => {
+  const {
+    componentCls
+  } = token;
+  const helpCls = `${componentCls}-show-help`;
+  const helpItemCls = `${componentCls}-show-help-item`;
+  return {
+    [helpCls]: {
+      // Explain holder
+      transition: `opacity ${token.motionDurationSlow} ${token.motionEaseInOut}`,
+      '&-appear, &-enter': {
+        opacity: 0,
+        '&-active': {
+          opacity: 1
+        }
+      },
+      '&-leave': {
+        opacity: 1,
+        '&-active': {
+          opacity: 0
+        }
+      },
+      // Explain
+      [helpItemCls]: {
+        overflow: 'hidden',
+        transition: `height ${token.motionDurationSlow} ${token.motionEaseInOut},
+                     opacity ${token.motionDurationSlow} ${token.motionEaseInOut},
+                     transform ${token.motionDurationSlow} ${token.motionEaseInOut} !important`,
+        [`&${helpItemCls}-appear, &${helpItemCls}-enter`]: {
+          transform: `translateY(-5px)`,
+          opacity: 0,
+          [`&-active`]: {
+            transform: 'translateY(0)',
+            opacity: 1
+          }
+        },
+        [`&${helpItemCls}-leave-active`]: {
+          transform: `translateY(-5px)`
+        }
+      }
+    }
+  };
 };
-const sendGet = async (url, handler) => {
-  const response = await fetch(url, {
-    method: "GET",
-    headers: {
-      "Content-Type": "application/json"
+/* harmony default export */ const explain = (genFormValidateMotionStyle);
+;// CONCATENATED MODULE: ./node_modules/antd/es/form/style/index.js
+
+
+
+
+
+const resetForm = token => ({
+  legend: {
+    display: 'block',
+    width: '100%',
+    marginBottom: token.marginLG,
+    padding: 0,
+    color: token.colorTextDescription,
+    fontSize: token.fontSizeLG,
+    lineHeight: 'inherit',
+    border: 0,
+    borderBottom: `${unit(token.lineWidth)} ${token.lineType} ${token.colorBorder}`
+  },
+  'input[type="search"]': {
+    boxSizing: 'border-box'
+  },
+  // Position radios and checkboxes better
+  'input[type="radio"], input[type="checkbox"]': {
+    lineHeight: 'normal'
+  },
+  'input[type="file"]': {
+    display: 'block'
+  },
+  // Make range inputs behave like textual form controls
+  'input[type="range"]': {
+    display: 'block',
+    width: '100%'
+  },
+  // Make multiple select elements height not fixed
+  'select[multiple], select[size]': {
+    height: 'auto'
+  },
+  // Focus for file, radio, and checkbox
+  [`input[type='file']:focus,
+  input[type='radio']:focus,
+  input[type='checkbox']:focus`]: {
+    outline: 0,
+    boxShadow: `0 0 0 ${unit(token.controlOutlineWidth)} ${token.controlOutline}`
+  },
+  // Adjust output element
+  output: {
+    display: 'block',
+    paddingTop: 15,
+    color: token.colorText,
+    fontSize: token.fontSize,
+    lineHeight: token.lineHeight
+  }
+});
+const genFormSize = (token, height) => {
+  const {
+    formItemCls
+  } = token;
+  return {
+    [formItemCls]: {
+      [`${formItemCls}-label > label`]: {
+        height
+      },
+      [`${formItemCls}-control-input`]: {
+        minHeight: height
+      }
+    }
+  };
+};
+const genFormStyle = token => {
+  const {
+    componentCls
+  } = token;
+  return {
+    [token.componentCls]: Object.assign(Object.assign(Object.assign({}, resetComponent(token)), resetForm(token)), {
+      [`${componentCls}-text`]: {
+        display: 'inline-block',
+        paddingInlineEnd: token.paddingSM
+      },
+      // ================================================================
+      // =                             Size                             =
+      // ================================================================
+      '&-small': Object.assign({}, genFormSize(token, token.controlHeightSM)),
+      '&-large': Object.assign({}, genFormSize(token, token.controlHeightLG))
+    })
+  };
+};
+const genFormItemStyle = token => {
+  const {
+    formItemCls,
+    iconCls,
+    componentCls,
+    rootPrefixCls,
+    labelRequiredMarkColor,
+    labelColor,
+    labelFontSize,
+    labelHeight,
+    labelColonMarginInlineStart,
+    labelColonMarginInlineEnd,
+    itemMarginBottom
+  } = token;
+  return {
+    [formItemCls]: Object.assign(Object.assign({}, resetComponent(token)), {
+      marginBottom: itemMarginBottom,
+      verticalAlign: 'top',
+      '&-with-help': {
+        transition: 'none'
+      },
+      [`&-hidden,
+        &-hidden.${rootPrefixCls}-row`]: {
+        // https://github.com/ant-design/ant-design/issues/26141
+        display: 'none'
+      },
+      '&-has-warning': {
+        [`${formItemCls}-split`]: {
+          color: token.colorError
+        }
+      },
+      '&-has-error': {
+        [`${formItemCls}-split`]: {
+          color: token.colorWarning
+        }
+      },
+      // ==============================================================
+      // =                            Label                           =
+      // ==============================================================
+      [`${formItemCls}-label`]: {
+        flexGrow: 0,
+        overflow: 'hidden',
+        whiteSpace: 'nowrap',
+        textAlign: 'end',
+        verticalAlign: 'middle',
+        '&-left': {
+          textAlign: 'start'
+        },
+        '&-wrap': {
+          overflow: 'unset',
+          lineHeight: token.lineHeight,
+          whiteSpace: 'unset'
+        },
+        '> label': {
+          position: 'relative',
+          display: 'inline-flex',
+          alignItems: 'center',
+          maxWidth: '100%',
+          height: labelHeight,
+          color: labelColor,
+          fontSize: labelFontSize,
+          [`> ${iconCls}`]: {
+            fontSize: token.fontSize,
+            verticalAlign: 'top'
+          },
+          // Required mark
+          [`&${formItemCls}-required:not(${formItemCls}-required-mark-optional)::before`]: {
+            display: 'inline-block',
+            marginInlineEnd: token.marginXXS,
+            color: labelRequiredMarkColor,
+            fontSize: token.fontSize,
+            fontFamily: 'SimSun, sans-serif',
+            lineHeight: 1,
+            content: '"*"',
+            [`${componentCls}-hide-required-mark &`]: {
+              display: 'none'
+            }
+          },
+          // Optional mark
+          [`${formItemCls}-optional`]: {
+            display: 'inline-block',
+            marginInlineStart: token.marginXXS,
+            color: token.colorTextDescription,
+            [`${componentCls}-hide-required-mark &`]: {
+              display: 'none'
+            }
+          },
+          // Optional mark
+          [`${formItemCls}-tooltip`]: {
+            color: token.colorTextDescription,
+            cursor: 'help',
+            writingMode: 'horizontal-tb',
+            marginInlineStart: token.marginXXS
+          },
+          '&::after': {
+            content: '":"',
+            position: 'relative',
+            marginBlock: 0,
+            marginInlineStart: labelColonMarginInlineStart,
+            marginInlineEnd: labelColonMarginInlineEnd
+          },
+          [`&${formItemCls}-no-colon::after`]: {
+            content: '"\\a0"'
+          }
+        }
+      },
+      // ==============================================================
+      // =                            Input                           =
+      // ==============================================================
+      [`${formItemCls}-control`]: {
+        ['--ant-display']: 'flex',
+        flexDirection: 'column',
+        flexGrow: 1,
+        [`&:first-child:not([class^="'${rootPrefixCls}-col-'"]):not([class*="' ${rootPrefixCls}-col-'"])`]: {
+          width: '100%'
+        },
+        '&-input': {
+          position: 'relative',
+          display: 'flex',
+          alignItems: 'center',
+          minHeight: token.controlHeight,
+          '&-content': {
+            flex: 'auto',
+            maxWidth: '100%'
+          }
+        }
+      },
+      // ==============================================================
+      // =                           Explain                          =
+      // ==============================================================
+      [formItemCls]: {
+        '&-explain, &-extra': {
+          clear: 'both',
+          color: token.colorTextDescription,
+          fontSize: token.fontSize,
+          lineHeight: token.lineHeight
+        },
+        '&-explain-connected': {
+          width: '100%'
+        },
+        '&-extra': {
+          minHeight: token.controlHeightSM,
+          transition: `color ${token.motionDurationMid} ${token.motionEaseOut}` // sync input color transition
+        },
+        '&-explain': {
+          '&-error': {
+            color: token.colorError
+          },
+          '&-warning': {
+            color: token.colorWarning
+          }
+        }
+      },
+      [`&-with-help ${formItemCls}-explain`]: {
+        height: 'auto',
+        opacity: 1
+      },
+      // ==============================================================
+      // =                        Feedback Icon                       =
+      // ==============================================================
+      [`${formItemCls}-feedback-icon`]: {
+        fontSize: token.fontSize,
+        textAlign: 'center',
+        visibility: 'visible',
+        animationName: zoomIn,
+        animationDuration: token.motionDurationMid,
+        animationTimingFunction: token.motionEaseOutBack,
+        pointerEvents: 'none',
+        '&-success': {
+          color: token.colorSuccess
+        },
+        '&-error': {
+          color: token.colorError
+        },
+        '&-warning': {
+          color: token.colorWarning
+        },
+        '&-validating': {
+          color: token.colorPrimary
+        }
+      }
+    })
+  };
+};
+const genHorizontalStyle = token => {
+  const {
+    componentCls,
+    formItemCls
+  } = token;
+  return {
+    [`${componentCls}-horizontal`]: {
+      [`${formItemCls}-label`]: {
+        flexGrow: 0
+      },
+      [`${formItemCls}-control`]: {
+        flex: '1 1 0',
+        // https://github.com/ant-design/ant-design/issues/32777
+        // https://github.com/ant-design/ant-design/issues/33773
+        minWidth: 0
+      },
+      // Do not change this to `ant-col-24`! `-24` match all the responsive rules
+      // https://github.com/ant-design/ant-design/issues/32980
+      // https://github.com/ant-design/ant-design/issues/34903
+      // https://github.com/ant-design/ant-design/issues/44538
+      [`${formItemCls}-label[class$='-24'], ${formItemCls}-label[class*='-24 ']`]: {
+        [`& + ${formItemCls}-control`]: {
+          minWidth: 'unset'
+        }
+      }
+    }
+  };
+};
+const genInlineStyle = token => {
+  const {
+    componentCls,
+    formItemCls
+  } = token;
+  return {
+    [`${componentCls}-inline`]: {
+      display: 'flex',
+      flexWrap: 'wrap',
+      [formItemCls]: {
+        flex: 'none',
+        marginInlineEnd: token.margin,
+        marginBottom: 0,
+        '&-row': {
+          flexWrap: 'nowrap'
+        },
+        [`> ${formItemCls}-label,
+        > ${formItemCls}-control`]: {
+          display: 'inline-block',
+          verticalAlign: 'top'
+        },
+        [`> ${formItemCls}-label`]: {
+          flex: 'none'
+        },
+        [`${componentCls}-text`]: {
+          display: 'inline-block'
+        },
+        [`${formItemCls}-has-feedback`]: {
+          display: 'inline-block'
+        }
+      }
+    }
+  };
+};
+const makeVerticalLayoutLabel = token => ({
+  padding: token.verticalLabelPadding,
+  margin: token.verticalLabelMargin,
+  whiteSpace: 'initial',
+  textAlign: 'start',
+  '> label': {
+    margin: 0,
+    '&::after': {
+      // https://github.com/ant-design/ant-design/issues/43538
+      visibility: 'hidden'
+    }
+  }
+});
+const makeVerticalLayout = token => {
+  const {
+    componentCls,
+    formItemCls,
+    rootPrefixCls
+  } = token;
+  return {
+    [`${formItemCls} ${formItemCls}-label`]: makeVerticalLayoutLabel(token),
+    // ref: https://github.com/ant-design/ant-design/issues/45122
+    [`${componentCls}:not(${componentCls}-inline)`]: {
+      [formItemCls]: {
+        flexWrap: 'wrap',
+        [`${formItemCls}-label, ${formItemCls}-control`]: {
+          // When developer pass `xs: { span }`,
+          // It should follow the `xs` screen config
+          // ref: https://github.com/ant-design/ant-design/issues/44386
+          [`&:not([class*=" ${rootPrefixCls}-col-xs"])`]: {
+            flex: '0 0 100%',
+            maxWidth: '100%'
+          }
+        }
+      }
+    }
+  };
+};
+const genVerticalStyle = token => {
+  const {
+    componentCls,
+    formItemCls,
+    rootPrefixCls
+  } = token;
+  return {
+    [`${componentCls}-vertical`]: {
+      [formItemCls]: {
+        '&-row': {
+          flexDirection: 'column'
+        },
+        '&-label > label': {
+          height: 'auto'
+        },
+        [`${componentCls}-item-control`]: {
+          width: '100%'
+        }
+      }
+    },
+    [`${componentCls}-vertical ${formItemCls}-label,
+      .${rootPrefixCls}-col-24${formItemCls}-label,
+      .${rootPrefixCls}-col-xl-24${formItemCls}-label`]: makeVerticalLayoutLabel(token),
+    [`@media (max-width: ${unit(token.screenXSMax)})`]: [makeVerticalLayout(token), {
+      [componentCls]: {
+        [`.${rootPrefixCls}-col-xs-24${formItemCls}-label`]: makeVerticalLayoutLabel(token)
+      }
+    }],
+    [`@media (max-width: ${unit(token.screenSMMax)})`]: {
+      [componentCls]: {
+        [`.${rootPrefixCls}-col-sm-24${formItemCls}-label`]: makeVerticalLayoutLabel(token)
+      }
+    },
+    [`@media (max-width: ${unit(token.screenMDMax)})`]: {
+      [componentCls]: {
+        [`.${rootPrefixCls}-col-md-24${formItemCls}-label`]: makeVerticalLayoutLabel(token)
+      }
+    },
+    [`@media (max-width: ${unit(token.screenLGMax)})`]: {
+      [componentCls]: {
+        [`.${rootPrefixCls}-col-lg-24${formItemCls}-label`]: makeVerticalLayoutLabel(token)
+      }
+    }
+  };
+};
+// ============================== Export ==============================
+const form_style_prepareComponentToken = token => ({
+  labelRequiredMarkColor: token.colorError,
+  labelColor: token.colorTextHeading,
+  labelFontSize: token.fontSize,
+  labelHeight: token.controlHeight,
+  labelColonMarginInlineStart: token.marginXXS / 2,
+  labelColonMarginInlineEnd: token.marginXS,
+  itemMarginBottom: token.marginLG,
+  verticalLabelPadding: `0 0 ${token.paddingXS}px`,
+  verticalLabelMargin: 0
+});
+const style_prepareToken = (token, rootPrefixCls) => {
+  const formToken = statistic_merge(token, {
+    formItemCls: `${token.componentCls}-item`,
+    rootPrefixCls
+  });
+  return formToken;
+};
+/* harmony default export */ const form_style = (genStyleHooks('Form', (token, _ref) => {
+  let {
+    rootPrefixCls
+  } = _ref;
+  const formToken = style_prepareToken(token, rootPrefixCls);
+  return [genFormStyle(formToken), genFormItemStyle(formToken), explain(formToken), genHorizontalStyle(formToken), genInlineStyle(formToken), genVerticalStyle(formToken), collapse(formToken), zoomIn];
+}, form_style_prepareComponentToken, {
+  // Let From style before the Grid
+  // ref https://github.com/ant-design/ant-design/issues/44386
+  order: -1000
+}));
+;// CONCATENATED MODULE: ./node_modules/antd/es/form/ErrorList.js
+"use client";
+
+
+
+
+
+
+
+
+
+
+
+const ErrorList_EMPTY_LIST = [];
+function toErrorEntity(error, prefix, errorStatus) {
+  let index = arguments.length > 3 && arguments[3] !== undefined ? arguments[3] : 0;
+  return {
+    key: typeof error === 'string' ? error : `${prefix}-${index}`,
+    error,
+    errorStatus
+  };
+}
+const ErrorList = _ref => {
+  let {
+    help,
+    helpStatus,
+    errors = ErrorList_EMPTY_LIST,
+    warnings = ErrorList_EMPTY_LIST,
+    className: rootClassName,
+    fieldId,
+    onVisibleChanged
+  } = _ref;
+  const {
+    prefixCls
+  } = react.useContext(FormItemPrefixContext);
+  const baseClassName = `${prefixCls}-item-explain`;
+  const rootCls = hooks_useCSSVarCls(prefixCls);
+  const [wrapCSSVar, hashId, cssVarCls] = form_style(prefixCls, rootCls);
+  const collapseMotion = (0,react.useMemo)(() => motion(prefixCls), [prefixCls]);
+  // We have to debounce here again since somewhere use ErrorList directly still need no shaking
+  // ref: https://github.com/ant-design/ant-design/issues/36336
+  const debounceErrors = useDebounce(errors);
+  const debounceWarnings = useDebounce(warnings);
+  const fullKeyList = react.useMemo(() => {
+    if (help !== undefined && help !== null) {
+      return [toErrorEntity(help, 'help', helpStatus)];
+    }
+    return [].concat(_toConsumableArray(debounceErrors.map((error, index) => toErrorEntity(error, 'error', 'error', index))), _toConsumableArray(debounceWarnings.map((warning, index) => toErrorEntity(warning, 'warning', 'warning', index))));
+  }, [help, helpStatus, debounceErrors, debounceWarnings]);
+  const helpProps = {};
+  if (fieldId) {
+    helpProps.id = `${fieldId}_help`;
+  }
+  return wrapCSSVar( /*#__PURE__*/react.createElement(rc_motion_es, {
+    motionDeadline: collapseMotion.motionDeadline,
+    motionName: `${prefixCls}-show-help`,
+    visible: !!fullKeyList.length,
+    onVisibleChanged: onVisibleChanged
+  }, holderProps => {
+    const {
+      className: holderClassName,
+      style: holderStyle
+    } = holderProps;
+    return /*#__PURE__*/react.createElement("div", Object.assign({}, helpProps, {
+      className: classnames_default()(baseClassName, holderClassName, cssVarCls, rootCls, rootClassName, hashId),
+      style: holderStyle,
+      role: "alert"
+    }), /*#__PURE__*/react.createElement(CSSMotionList, Object.assign({
+      keys: fullKeyList
+    }, motion(prefixCls), {
+      motionName: `${prefixCls}-show-help-item`,
+      component: false
+    }), itemProps => {
+      const {
+        key,
+        error,
+        errorStatus,
+        className: itemClassName,
+        style: itemStyle
+      } = itemProps;
+      return /*#__PURE__*/react.createElement("div", {
+        key: key,
+        className: classnames_default()(itemClassName, {
+          [`${baseClassName}-${errorStatus}`]: errorStatus
+        }),
+        style: itemStyle
+      }, error);
+    }));
+  }));
+};
+/* harmony default export */ const form_ErrorList = (ErrorList);
+;// CONCATENATED MODULE: ./node_modules/compute-scroll-into-view/dist/index.js
+const t=t=>"object"==typeof t&&null!=t&&1===t.nodeType,e=(t,e)=>(!e||"hidden"!==t)&&("visible"!==t&&"clip"!==t),n=(t,n)=>{if(t.clientHeight<t.scrollHeight||t.clientWidth<t.scrollWidth){const o=getComputedStyle(t,null);return e(o.overflowY,n)||e(o.overflowX,n)||(t=>{const e=(t=>{if(!t.ownerDocument||!t.ownerDocument.defaultView)return null;try{return t.ownerDocument.defaultView.frameElement}catch(t){return null}})(t);return!!e&&(e.clientHeight<t.scrollHeight||e.clientWidth<t.scrollWidth)})(t)}return!1},o=(t,e,n,o,l,r,i,s)=>r<t&&i>e||r>t&&i<e?0:r<=t&&s<=n||i>=e&&s>=n?r-t-o:i>e&&s<n||r<t&&s>n?i-e+l:0,l=t=>{const e=t.parentElement;return null==e?t.getRootNode().host||null:e},dist_r=(e,r)=>{var i,s,d,h;if("undefined"==typeof document)return[];const{scrollMode:c,block:f,inline:u,boundary:a,skipOverflowHiddenElements:g}=r,p="function"==typeof a?a:t=>t!==a;if(!t(e))throw new TypeError("Invalid target");const m=document.scrollingElement||document.documentElement,w=[];let W=e;for(;t(W)&&p(W);){if(W=l(W),W===m){w.push(W);break}null!=W&&W===document.body&&n(W)&&!n(document.documentElement)||null!=W&&n(W,g)&&w.push(W)}const b=null!=(s=null==(i=window.visualViewport)?void 0:i.width)?s:innerWidth,H=null!=(h=null==(d=window.visualViewport)?void 0:d.height)?h:innerHeight,{scrollX:y,scrollY:M}=window,{height:v,width:E,top:x,right:C,bottom:I,left:R}=e.getBoundingClientRect(),{top:T,right:B,bottom:F,left:V}=(t=>{const e=window.getComputedStyle(t);return{top:parseFloat(e.scrollMarginTop)||0,right:parseFloat(e.scrollMarginRight)||0,bottom:parseFloat(e.scrollMarginBottom)||0,left:parseFloat(e.scrollMarginLeft)||0}})(e);let k="start"===f||"nearest"===f?x-T:"end"===f?I+F:x+v/2-T+F,D="center"===u?R+E/2-V+B:"end"===u?C+B:R-V;const L=[];for(let t=0;t<w.length;t++){const e=w[t],{height:n,width:l,top:r,right:i,bottom:s,left:d}=e.getBoundingClientRect();if("if-needed"===c&&x>=0&&R>=0&&I<=H&&C<=b&&x>=r&&I<=s&&R>=d&&C<=i)return L;const h=getComputedStyle(e),a=parseInt(h.borderLeftWidth,10),g=parseInt(h.borderTopWidth,10),p=parseInt(h.borderRightWidth,10),W=parseInt(h.borderBottomWidth,10);let T=0,B=0;const F="offsetWidth"in e?e.offsetWidth-e.clientWidth-a-p:0,V="offsetHeight"in e?e.offsetHeight-e.clientHeight-g-W:0,S="offsetWidth"in e?0===e.offsetWidth?0:l/e.offsetWidth:0,X="offsetHeight"in e?0===e.offsetHeight?0:n/e.offsetHeight:0;if(m===e)T="start"===f?k:"end"===f?k-H:"nearest"===f?o(M,M+H,H,g,W,M+k,M+k+v,v):k-H/2,B="start"===u?D:"center"===u?D-b/2:"end"===u?D-b:o(y,y+b,b,a,p,y+D,y+D+E,E),T=Math.max(0,T+M),B=Math.max(0,B+y);else{T="start"===f?k-r-g:"end"===f?k-s+W+V:"nearest"===f?o(r,s,n,g,W+V,k,k+v,v):k-(r+n/2)+V/2,B="start"===u?D-d-a:"center"===u?D-(d+l/2)+F/2:"end"===u?D-i+p+F:o(d,i,l,a,p+F,D,D+E,E);const{scrollLeft:t,scrollTop:h}=e;T=0===X?0:Math.max(0,Math.min(h+T/X,e.scrollHeight-n/X+V)),B=0===S?0:Math.max(0,Math.min(t+B/S,e.scrollWidth-l/S+F)),k+=h-T,D+=t-B}L.push({el:e,top:T,left:B})}return L};//# sourceMappingURL=index.js.map
+
+;// CONCATENATED MODULE: ./node_modules/scroll-into-view-if-needed/dist/index.js
+const dist_o=t=>!1===t?{block:"end",inline:"nearest"}:(t=>t===Object(t)&&0!==Object.keys(t).length)(t)?t:{block:"start",inline:"nearest"};function dist_e(e,r){if(!e.isConnected||!(t=>{let o=t;for(;o&&o.parentNode;){if(o.parentNode===document)return!0;o=o.parentNode instanceof ShadowRoot?o.parentNode.host:o.parentNode}return!1})(e))return;const n=(t=>{const o=window.getComputedStyle(t);return{top:parseFloat(o.scrollMarginTop)||0,right:parseFloat(o.scrollMarginRight)||0,bottom:parseFloat(o.scrollMarginBottom)||0,left:parseFloat(o.scrollMarginLeft)||0}})(e);if((t=>"object"==typeof t&&"function"==typeof t.behavior)(r))return r.behavior(dist_r(e,r));const l="boolean"==typeof r||null==r?void 0:r.behavior;for(const{el:a,top:i,left:s}of dist_r(e,dist_o(r))){const t=i-n.top+n.bottom,o=s-n.left+n.right;a.scroll({top:t,left:o,behavior:l})}}//# sourceMappingURL=index.js.map
+
+;// CONCATENATED MODULE: ./node_modules/antd/es/form/util.js
+// form item name black list.  in form ,you can use form.id get the form item element.
+// use object hasOwnProperty will get better performance if black list is longer.
+const formItemNameBlackList = ['parentNode'];
+// default form item id prefix.
+const defaultItemNamePrefixCls = 'form_item';
+function util_toArray(candidate) {
+  if (candidate === undefined || candidate === false) return [];
+  return Array.isArray(candidate) ? candidate : [candidate];
+}
+function getFieldId(namePath, formName) {
+  if (!namePath.length) {
+    return undefined;
+  }
+  const mergedId = namePath.join('_');
+  if (formName) {
+    return `${formName}_${mergedId}`;
+  }
+  const isIllegalName = formItemNameBlackList.includes(mergedId);
+  return isIllegalName ? `${defaultItemNamePrefixCls}_${mergedId}` : mergedId;
+}
+/**
+ * Get merged status by meta or passed `validateStatus`.
+ */
+function getStatus(errors, warnings, meta, defaultValidateStatus, hasFeedback, validateStatus) {
+  let status = defaultValidateStatus;
+  if (validateStatus !== undefined) {
+    status = validateStatus;
+  } else if (meta.validating) {
+    status = 'validating';
+  } else if (errors.length) {
+    status = 'error';
+  } else if (warnings.length) {
+    status = 'warning';
+  } else if (meta.touched || hasFeedback && meta.validated) {
+    // success feedback should display when pass hasFeedback prop and current value is valid value
+    status = 'success';
+  }
+  return status;
+}
+;// CONCATENATED MODULE: ./node_modules/antd/es/form/hooks/useForm.js
+
+
+
+
+function toNamePathStr(name) {
+  const namePath = util_toArray(name);
+  return namePath.join('_');
+}
+function useForm_useForm(form) {
+  const [rcForm] = es_useForm();
+  const itemsRef = react.useRef({});
+  const wrapForm = react.useMemo(() => form !== null && form !== void 0 ? form : Object.assign(Object.assign({}, rcForm), {
+    __INTERNAL__: {
+      itemRef: name => node => {
+        const namePathStr = toNamePathStr(name);
+        if (node) {
+          itemsRef.current[namePathStr] = node;
+        } else {
+          delete itemsRef.current[namePathStr];
+        }
+      }
+    },
+    scrollToField: function (name) {
+      let options = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : {};
+      const namePath = util_toArray(name);
+      const fieldId = getFieldId(namePath, wrapForm.__INTERNAL__.name);
+      const node = fieldId ? document.getElementById(fieldId) : null;
+      if (node) {
+        dist_e(node, Object.assign({
+          scrollMode: 'if-needed',
+          block: 'nearest'
+        }, options));
+      }
+    },
+    getFieldInstance: name => {
+      const namePathStr = toNamePathStr(name);
+      return itemsRef.current[namePathStr];
+    }
+  }), [form, rcForm]);
+  return [wrapForm];
+}
+;// CONCATENATED MODULE: ./node_modules/antd/es/form/validateMessagesContext.js
+"use client";
+
+
+// ZombieJ: We export single file here since
+// ConfigProvider use this which will make loop deps
+// to import whole `rc-field-form`
+/* harmony default export */ const validateMessagesContext = (/*#__PURE__*/(0,react.createContext)(undefined));
+;// CONCATENATED MODULE: ./node_modules/antd/es/form/Form.js
+"use client";
+
+var Form_rest = undefined && undefined.__rest || function (s, e) {
+  var t = {};
+  for (var p in s) if (Object.prototype.hasOwnProperty.call(s, p) && e.indexOf(p) < 0) t[p] = s[p];
+  if (s != null && typeof Object.getOwnPropertySymbols === "function") for (var i = 0, p = Object.getOwnPropertySymbols(s); i < p.length; i++) {
+    if (e.indexOf(p[i]) < 0 && Object.prototype.propertyIsEnumerable.call(s, p[i])) t[p[i]] = s[p[i]];
+  }
+  return t;
+};
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+const Form_InternalForm = (props, ref) => {
+  const contextDisabled = react.useContext(config_provider_DisabledContext);
+  const {
+    getPrefixCls,
+    direction,
+    form: contextForm
+  } = react.useContext(context_ConfigContext);
+  const {
+      prefixCls: customizePrefixCls,
+      className,
+      rootClassName,
+      size,
+      disabled = contextDisabled,
+      form,
+      colon,
+      labelAlign,
+      labelWrap,
+      labelCol,
+      wrapperCol,
+      hideRequiredMark,
+      layout = 'horizontal',
+      scrollToFirstError,
+      requiredMark,
+      onFinishFailed,
+      name,
+      style,
+      feedbackIcons,
+      variant
+    } = props,
+    restFormProps = Form_rest(props, ["prefixCls", "className", "rootClassName", "size", "disabled", "form", "colon", "labelAlign", "labelWrap", "labelCol", "wrapperCol", "hideRequiredMark", "layout", "scrollToFirstError", "requiredMark", "onFinishFailed", "name", "style", "feedbackIcons", "variant"]);
+  const mergedSize = hooks_useSize(size);
+  const contextValidateMessages = react.useContext(validateMessagesContext);
+  if (false) {}
+  const mergedRequiredMark = (0,react.useMemo)(() => {
+    if (requiredMark !== undefined) {
+      return requiredMark;
+    }
+    if (hideRequiredMark) {
+      return false;
+    }
+    if (contextForm && contextForm.requiredMark !== undefined) {
+      return contextForm.requiredMark;
+    }
+    return true;
+  }, [hideRequiredMark, requiredMark, contextForm]);
+  const mergedColon = colon !== null && colon !== void 0 ? colon : contextForm === null || contextForm === void 0 ? void 0 : contextForm.colon;
+  const prefixCls = getPrefixCls('form', customizePrefixCls);
+  // Style
+  const rootCls = hooks_useCSSVarCls(prefixCls);
+  const [wrapCSSVar, hashId, cssVarCls] = form_style(prefixCls, rootCls);
+  const formClassName = classnames_default()(prefixCls, `${prefixCls}-${layout}`, {
+    [`${prefixCls}-hide-required-mark`]: mergedRequiredMark === false,
+    [`${prefixCls}-rtl`]: direction === 'rtl',
+    [`${prefixCls}-${mergedSize}`]: mergedSize
+  }, cssVarCls, rootCls, hashId, contextForm === null || contextForm === void 0 ? void 0 : contextForm.className, className, rootClassName);
+  const [wrapForm] = useForm_useForm(form);
+  const {
+    __INTERNAL__
+  } = wrapForm;
+  __INTERNAL__.name = name;
+  const formContextValue = (0,react.useMemo)(() => ({
+    name,
+    labelAlign,
+    labelCol,
+    labelWrap,
+    wrapperCol,
+    vertical: layout === 'vertical',
+    colon: mergedColon,
+    requiredMark: mergedRequiredMark,
+    itemRef: __INTERNAL__.itemRef,
+    form: wrapForm,
+    feedbackIcons
+  }), [name, labelAlign, labelCol, wrapperCol, layout, mergedColon, mergedRequiredMark, wrapForm, feedbackIcons]);
+  react.useImperativeHandle(ref, () => wrapForm);
+  const scrollToField = (options, fieldName) => {
+    if (options) {
+      let defaultScrollToFirstError = {
+        block: 'nearest'
+      };
+      if (typeof options === 'object') {
+        defaultScrollToFirstError = options;
+      }
+      wrapForm.scrollToField(fieldName, defaultScrollToFirstError);
+    }
+  };
+  const onInternalFinishFailed = errorInfo => {
+    onFinishFailed === null || onFinishFailed === void 0 ? void 0 : onFinishFailed(errorInfo);
+    if (errorInfo.errorFields.length) {
+      const fieldName = errorInfo.errorFields[0].name;
+      if (scrollToFirstError !== undefined) {
+        scrollToField(scrollToFirstError, fieldName);
+        return;
+      }
+      if (contextForm && contextForm.scrollToFirstError !== undefined) {
+        scrollToField(contextForm.scrollToFirstError, fieldName);
+      }
+    }
+  };
+  return wrapCSSVar( /*#__PURE__*/react.createElement(VariantContext.Provider, {
+    value: variant
+  }, /*#__PURE__*/react.createElement(DisabledContextProvider, {
+    disabled: disabled
+  }, /*#__PURE__*/react.createElement(config_provider_SizeContext.Provider, {
+    value: mergedSize
+  }, /*#__PURE__*/react.createElement(context_FormProvider, {
+    // This is not list in API, we pass with spread
+    validateMessages: contextValidateMessages
+  }, /*#__PURE__*/react.createElement(context_FormContext.Provider, {
+    value: formContextValue
+  }, /*#__PURE__*/react.createElement(rc_field_form_es, Object.assign({
+    id: name
+  }, restFormProps, {
+    name: name,
+    onFinishFailed: onInternalFinishFailed,
+    form: wrapForm,
+    style: Object.assign(Object.assign({}, contextForm === null || contextForm === void 0 ? void 0 : contextForm.style), style),
+    className: formClassName
+  }))))))));
+};
+const form_Form_Form = /*#__PURE__*/react.forwardRef(Form_InternalForm);
+if (false) {}
+
+/* harmony default export */ const form_Form = (form_Form_Form);
+;// CONCATENATED MODULE: ./node_modules/antd/es/form/hooks/useChildren.js
+
+function useChildren(children) {
+  if (typeof children === 'function') {
+    return children;
+  }
+  const childList = toArray_toArray(children);
+  return childList.length <= 1 ? childList[0] : childList;
+}
+;// CONCATENATED MODULE: ./node_modules/antd/es/form/hooks/useFormItemStatus.js
+
+
+
+const useFormItemStatus = () => {
+  const {
+    status,
+    errors = [],
+    warnings = []
+  } = (0,react.useContext)(FormItemInputContext);
+  if (false) {}
+  return {
+    status,
+    errors,
+    warnings
+  };
+};
+// Only used for compatible package. Not promise this will work on future version.
+useFormItemStatus.Context = FormItemInputContext;
+/* harmony default export */ const hooks_useFormItemStatus = (useFormItemStatus);
+;// CONCATENATED MODULE: ./node_modules/antd/es/form/hooks/useFrameState.js
+
+
+
+function useFrameState(defaultValue) {
+  const [value, setValue] = react.useState(defaultValue);
+  const frameRef = (0,react.useRef)(null);
+  const batchRef = (0,react.useRef)([]);
+  const destroyRef = (0,react.useRef)(false);
+  react.useEffect(() => {
+    destroyRef.current = false;
+    return () => {
+      destroyRef.current = true;
+      es_raf.cancel(frameRef.current);
+      frameRef.current = null;
+    };
+  }, []);
+  function setFrameValue(updater) {
+    if (destroyRef.current) {
+      return;
+    }
+    if (frameRef.current === null) {
+      batchRef.current = [];
+      frameRef.current = es_raf(() => {
+        frameRef.current = null;
+        setValue(prevValue => {
+          let current = prevValue;
+          batchRef.current.forEach(func => {
+            current = func(current);
+          });
+          return current;
+        });
+      });
+    }
+    batchRef.current.push(updater);
+  }
+  return [value, setFrameValue];
+}
+;// CONCATENATED MODULE: ./node_modules/antd/es/form/hooks/useItemRef.js
+
+
+
+function useItemRef() {
+  const {
+    itemRef
+  } = react.useContext(context_FormContext);
+  const cacheRef = react.useRef({});
+  function getRef(name, children) {
+    const childrenRef = children && typeof children === 'object' && children.ref;
+    const nameStr = name.join('_');
+    if (cacheRef.current.name !== nameStr || cacheRef.current.originRef !== childrenRef) {
+      cacheRef.current.name = nameStr;
+      cacheRef.current.originRef = childrenRef;
+      cacheRef.current.ref = composeRef(itemRef(name), childrenRef);
+    }
+    return cacheRef.current.ref;
+  }
+  return getRef;
+}
+;// CONCATENATED MODULE: ./node_modules/antd/es/_util/responsiveObserver.js
+
+
+const responsiveArray = ['xxl', 'xl', 'lg', 'md', 'sm', 'xs'];
+const getResponsiveMap = token => ({
+  xs: `(max-width: ${token.screenXSMax}px)`,
+  sm: `(min-width: ${token.screenSM}px)`,
+  md: `(min-width: ${token.screenMD}px)`,
+  lg: `(min-width: ${token.screenLG}px)`,
+  xl: `(min-width: ${token.screenXL}px)`,
+  xxl: `(min-width: ${token.screenXXL}px)`
+});
+/**
+ * Ensures that the breakpoints token are valid, in good order
+ * For each breakpoint : screenMin <= screen <= screenMax and screenMax <= nextScreenMin
+ */
+const validateBreakpoints = token => {
+  const indexableToken = token;
+  const revBreakpoints = [].concat(responsiveArray).reverse();
+  revBreakpoints.forEach((breakpoint, i) => {
+    const breakpointUpper = breakpoint.toUpperCase();
+    const screenMin = `screen${breakpointUpper}Min`;
+    const screen = `screen${breakpointUpper}`;
+    if (!(indexableToken[screenMin] <= indexableToken[screen])) {
+      throw new Error(`${screenMin}<=${screen} fails : !(${indexableToken[screenMin]}<=${indexableToken[screen]})`);
+    }
+    if (i < revBreakpoints.length - 1) {
+      const screenMax = `screen${breakpointUpper}Max`;
+      if (!(indexableToken[screen] <= indexableToken[screenMax])) {
+        throw new Error(`${screen}<=${screenMax} fails : !(${indexableToken[screen]}<=${indexableToken[screenMax]})`);
+      }
+      const nextBreakpointUpperMin = revBreakpoints[i + 1].toUpperCase();
+      const nextScreenMin = `screen${nextBreakpointUpperMin}Min`;
+      if (!(indexableToken[screenMax] <= indexableToken[nextScreenMin])) {
+        throw new Error(`${screenMax}<=${nextScreenMin} fails : !(${indexableToken[screenMax]}<=${indexableToken[nextScreenMin]})`);
+      }
     }
   });
-  const result = await response.json();
-  if (handler) handler(result);
+  return token;
 };
-const login = (e, handler) => {
-  if (!e.email || !e.password) {
-    return false;
+function useResponsiveObserver() {
+  const [, token] = useToken();
+  const responsiveMap = getResponsiveMap(validateBreakpoints(token));
+  // To avoid repeat create instance, we add `useMemo` here.
+  return react.useMemo(() => {
+    const subscribers = new Map();
+    let subUid = -1;
+    let screens = {};
+    return {
+      matchHandlers: {},
+      dispatch(pointMap) {
+        screens = pointMap;
+        subscribers.forEach(func => func(screens));
+        return subscribers.size >= 1;
+      },
+      subscribe(func) {
+        if (!subscribers.size) this.register();
+        subUid += 1;
+        subscribers.set(subUid, func);
+        func(screens);
+        return subUid;
+      },
+      unsubscribe(paramToken) {
+        subscribers.delete(paramToken);
+        if (!subscribers.size) this.unregister();
+      },
+      unregister() {
+        Object.keys(responsiveMap).forEach(screen => {
+          const matchMediaQuery = responsiveMap[screen];
+          const handler = this.matchHandlers[matchMediaQuery];
+          handler === null || handler === void 0 ? void 0 : handler.mql.removeListener(handler === null || handler === void 0 ? void 0 : handler.listener);
+        });
+        subscribers.clear();
+      },
+      register() {
+        Object.keys(responsiveMap).forEach(screen => {
+          const matchMediaQuery = responsiveMap[screen];
+          const listener = _ref => {
+            let {
+              matches
+            } = _ref;
+            this.dispatch(Object.assign(Object.assign({}, screens), {
+              [screen]: matches
+            }));
+          };
+          const mql = window.matchMedia(matchMediaQuery);
+          mql.addListener(listener);
+          this.matchHandlers[matchMediaQuery] = {
+            mql,
+            listener
+          };
+          listener(mql);
+        });
+      },
+      responsiveMap
+    };
+  }, [token]);
+}
+const matchScreen = (screens, screenSizes) => {
+  if (screenSizes && typeof screenSizes === 'object') {
+    for (let i = 0; i < responsiveArray.length; i++) {
+      const breakpoint = responsiveArray[i];
+      if (screens[breakpoint] && screenSizes[breakpoint] !== undefined) {
+        return screenSizes[breakpoint];
+      }
+    }
   }
-  sendPost(`${targetURL}/login`, e, handler);
-  return false;
 };
-const signup = (e, handler) => {
-  if (!e.email || !e.username || !e.password) {
-    return false;
+;// CONCATENATED MODULE: ./node_modules/antd/es/grid/RowContext.js
+
+const RowContext = /*#__PURE__*/(0,react.createContext)({});
+/* harmony default export */ const grid_RowContext = (RowContext);
+;// CONCATENATED MODULE: ./node_modules/antd/es/grid/style/index.js
+
+
+// ============================== Row-Shared ==============================
+const genGridRowStyle = token => {
+  const {
+    componentCls
+  } = token;
+  return {
+    // Grid system
+    [componentCls]: {
+      display: 'flex',
+      flexFlow: 'row wrap',
+      minWidth: 0,
+      '&::before, &::after': {
+        display: 'flex'
+      },
+      '&-no-wrap': {
+        flexWrap: 'nowrap'
+      },
+      // The origin of the X-axis
+      '&-start': {
+        justifyContent: 'flex-start'
+      },
+      // The center of the X-axis
+      '&-center': {
+        justifyContent: 'center'
+      },
+      // The opposite of the X-axis
+      '&-end': {
+        justifyContent: 'flex-end'
+      },
+      '&-space-between': {
+        justifyContent: 'space-between'
+      },
+      '&-space-around': {
+        justifyContent: 'space-around'
+      },
+      '&-space-evenly': {
+        justifyContent: 'space-evenly'
+      },
+      // Align at the top
+      '&-top': {
+        alignItems: 'flex-start'
+      },
+      // Align at the center
+      '&-middle': {
+        alignItems: 'center'
+      },
+      '&-bottom': {
+        alignItems: 'flex-end'
+      }
+    }
+  };
+};
+// ============================== Col-Shared ==============================
+const genGridColStyle = token => {
+  const {
+    componentCls
+  } = token;
+  return {
+    // Grid system
+    [componentCls]: {
+      position: 'relative',
+      maxWidth: '100%',
+      // Prevent columns from collapsing when empty
+      minHeight: 1
+    }
+  };
+};
+const genLoopGridColumnsStyle = (token, sizeCls) => {
+  const {
+    prefixCls,
+    componentCls,
+    gridColumns
+  } = token;
+  const gridColumnsStyle = {};
+  for (let i = gridColumns; i >= 0; i--) {
+    if (i === 0) {
+      gridColumnsStyle[`${componentCls}${sizeCls}-${i}`] = {
+        display: 'none'
+      };
+      gridColumnsStyle[`${componentCls}-push-${i}`] = {
+        insetInlineStart: 'auto'
+      };
+      gridColumnsStyle[`${componentCls}-pull-${i}`] = {
+        insetInlineEnd: 'auto'
+      };
+      gridColumnsStyle[`${componentCls}${sizeCls}-push-${i}`] = {
+        insetInlineStart: 'auto'
+      };
+      gridColumnsStyle[`${componentCls}${sizeCls}-pull-${i}`] = {
+        insetInlineEnd: 'auto'
+      };
+      gridColumnsStyle[`${componentCls}${sizeCls}-offset-${i}`] = {
+        marginInlineStart: 0
+      };
+      gridColumnsStyle[`${componentCls}${sizeCls}-order-${i}`] = {
+        order: 0
+      };
+    } else {
+      gridColumnsStyle[`${componentCls}${sizeCls}-${i}`] = [
+      // https://github.com/ant-design/ant-design/issues/44456
+      // Form set `display: flex` on Col which will override `display: block`.
+      // Let's get it from css variable to support override.
+      {
+        ['--ant-display']: 'block',
+        // Fallback to display if variable not support
+        display: 'block'
+      }, {
+        display: 'var(--ant-display)',
+        flex: `0 0 ${i / gridColumns * 100}%`,
+        maxWidth: `${i / gridColumns * 100}%`
+      }];
+      gridColumnsStyle[`${componentCls}${sizeCls}-push-${i}`] = {
+        insetInlineStart: `${i / gridColumns * 100}%`
+      };
+      gridColumnsStyle[`${componentCls}${sizeCls}-pull-${i}`] = {
+        insetInlineEnd: `${i / gridColumns * 100}%`
+      };
+      gridColumnsStyle[`${componentCls}${sizeCls}-offset-${i}`] = {
+        marginInlineStart: `${i / gridColumns * 100}%`
+      };
+      gridColumnsStyle[`${componentCls}${sizeCls}-order-${i}`] = {
+        order: i
+      };
+    }
   }
-  sendPost(`${targetURL}/signup`, e, handler);
-  return false;
+  // Flex CSS Var
+  gridColumnsStyle[`${componentCls}${sizeCls}-flex`] = {
+    flex: `var(--${prefixCls}${sizeCls}-flex)`
+  };
+  return gridColumnsStyle;
 };
-const logout = handler => {
-  sendGet(`${targetURL}/logout`, handler);
-  return false;
+const genGridStyle = (token, sizeCls) => genLoopGridColumnsStyle(token, sizeCls);
+const genGridMediaStyle = (token, screenSize, sizeCls) => ({
+  [`@media (min-width: ${unit(screenSize)})`]: Object.assign({}, genGridStyle(token, sizeCls))
+});
+const prepareRowComponentToken = () => ({});
+const prepareColComponentToken = () => ({});
+// ============================== Export ==============================
+const useRowStyle = genStyleHooks('Grid', genGridRowStyle, prepareRowComponentToken);
+const useColStyle = genStyleHooks('Grid', token => {
+  const gridToken = statistic_merge(token, {
+    gridColumns: 24 // Row is divided into 24 parts in Grid
+  });
+  const gridMediaSizesMap = {
+    '-sm': gridToken.screenSMMin,
+    '-md': gridToken.screenMDMin,
+    '-lg': gridToken.screenLGMin,
+    '-xl': gridToken.screenXLMin,
+    '-xxl': gridToken.screenXXLMin
+  };
+  return [genGridColStyle(gridToken), genGridStyle(gridToken, ''), genGridStyle(gridToken, '-xs'), Object.keys(gridMediaSizesMap).map(key => genGridMediaStyle(gridToken, gridMediaSizesMap[key], key)).reduce((pre, cur) => Object.assign(Object.assign({}, pre), cur), {})];
+}, prepareColComponentToken);
+;// CONCATENATED MODULE: ./node_modules/antd/es/grid/row.js
+"use client";
+
+var row_rest = undefined && undefined.__rest || function (s, e) {
+  var t = {};
+  for (var p in s) if (Object.prototype.hasOwnProperty.call(s, p) && e.indexOf(p) < 0) t[p] = s[p];
+  if (s != null && typeof Object.getOwnPropertySymbols === "function") for (var i = 0, p = Object.getOwnPropertySymbols(s); i < p.length; i++) {
+    if (e.indexOf(p[i]) < 0 && Object.prototype.propertyIsEnumerable.call(s, p[i])) t[p[i]] = s[p[i]];
+  }
+  return t;
 };
-const useAuth = () => [login, signup, logout];
-;// CONCATENATED MODULE: ./client/Login.jsx
 
 
 
 
-const {
-  Content: Login_Content
-} = es_layout;
-const flexStyle = {
-  height: "100vh"
+
+
+const RowAligns = (/* unused pure expression or super */ null && (['top', 'middle', 'bottom', 'stretch']));
+const RowJustify = (/* unused pure expression or super */ null && (['start', 'end', 'center', 'space-around', 'space-between', 'space-evenly']));
+function useMergedPropByScreen(oriProp, screen) {
+  const [prop, setProp] = react.useState(typeof oriProp === 'string' ? oriProp : '');
+  const calcMergedAlignOrJustify = () => {
+    if (typeof oriProp === 'string') {
+      setProp(oriProp);
+    }
+    if (typeof oriProp !== 'object') {
+      return;
+    }
+    for (let i = 0; i < responsiveArray.length; i++) {
+      const breakpoint = responsiveArray[i];
+      // if do not match, do nothing
+      if (!screen[breakpoint]) {
+        continue;
+      }
+      const curVal = oriProp[breakpoint];
+      if (curVal !== undefined) {
+        setProp(curVal);
+        return;
+      }
+    }
+  };
+  react.useEffect(() => {
+    calcMergedAlignOrJustify();
+  }, [JSON.stringify(oriProp), screen]);
+  return prop;
+}
+const Row = /*#__PURE__*/react.forwardRef((props, ref) => {
+  const {
+      prefixCls: customizePrefixCls,
+      justify,
+      align,
+      className,
+      style,
+      children,
+      gutter = 0,
+      wrap
+    } = props,
+    others = row_rest(props, ["prefixCls", "justify", "align", "className", "style", "children", "gutter", "wrap"]);
+  const {
+    getPrefixCls,
+    direction
+  } = react.useContext(context_ConfigContext);
+  const [screens, setScreens] = react.useState({
+    xs: true,
+    sm: true,
+    md: true,
+    lg: true,
+    xl: true,
+    xxl: true
+  });
+  // to save screens info when responsiveObserve callback had been call
+  const [curScreens, setCurScreens] = react.useState({
+    xs: false,
+    sm: false,
+    md: false,
+    lg: false,
+    xl: false,
+    xxl: false
+  });
+  // ================================== calc responsive data ==================================
+  const mergedAlign = useMergedPropByScreen(align, curScreens);
+  const mergedJustify = useMergedPropByScreen(justify, curScreens);
+  const gutterRef = react.useRef(gutter);
+  const responsiveObserver = useResponsiveObserver();
+  // ================================== Effect ==================================
+  react.useEffect(() => {
+    const token = responsiveObserver.subscribe(screen => {
+      setCurScreens(screen);
+      const currentGutter = gutterRef.current || 0;
+      if (!Array.isArray(currentGutter) && typeof currentGutter === 'object' || Array.isArray(currentGutter) && (typeof currentGutter[0] === 'object' || typeof currentGutter[1] === 'object')) {
+        setScreens(screen);
+      }
+    });
+    return () => responsiveObserver.unsubscribe(token);
+  }, []);
+  // ================================== Render ==================================
+  const getGutter = () => {
+    const results = [undefined, undefined];
+    const normalizedGutter = Array.isArray(gutter) ? gutter : [gutter, undefined];
+    normalizedGutter.forEach((g, index) => {
+      if (typeof g === 'object') {
+        for (let i = 0; i < responsiveArray.length; i++) {
+          const breakpoint = responsiveArray[i];
+          if (screens[breakpoint] && g[breakpoint] !== undefined) {
+            results[index] = g[breakpoint];
+            break;
+          }
+        }
+      } else {
+        results[index] = g;
+      }
+    });
+    return results;
+  };
+  const prefixCls = getPrefixCls('row', customizePrefixCls);
+  const [wrapCSSVar, hashId, cssVarCls] = useRowStyle(prefixCls);
+  const gutters = getGutter();
+  const classes = classnames_default()(prefixCls, {
+    [`${prefixCls}-no-wrap`]: wrap === false,
+    [`${prefixCls}-${mergedJustify}`]: mergedJustify,
+    [`${prefixCls}-${mergedAlign}`]: mergedAlign,
+    [`${prefixCls}-rtl`]: direction === 'rtl'
+  }, className, hashId, cssVarCls);
+  // Add gutter related style
+  const rowStyle = {};
+  const horizontalGutter = gutters[0] != null && gutters[0] > 0 ? gutters[0] / -2 : undefined;
+  if (horizontalGutter) {
+    rowStyle.marginLeft = horizontalGutter;
+    rowStyle.marginRight = horizontalGutter;
+  }
+  // "gutters" is a new array in each rendering phase, it'll make 'React.useMemo' effectless.
+  // So we deconstruct "gutters" variable here.
+  const [gutterH, gutterV] = gutters;
+  rowStyle.rowGap = gutterV;
+  const rowContext = react.useMemo(() => ({
+    gutter: [gutterH, gutterV],
+    wrap
+  }), [gutterH, gutterV, wrap]);
+  return wrapCSSVar( /*#__PURE__*/react.createElement(grid_RowContext.Provider, {
+    value: rowContext
+  }, /*#__PURE__*/react.createElement("div", Object.assign({}, others, {
+    className: classes,
+    style: Object.assign(Object.assign({}, rowStyle), style),
+    ref: ref
+  }), children)));
+});
+if (false) {}
+/* harmony default export */ const row = (Row);
+;// CONCATENATED MODULE: ./node_modules/antd/es/grid/col.js
+"use client";
+
+var col_rest = undefined && undefined.__rest || function (s, e) {
+  var t = {};
+  for (var p in s) if (Object.prototype.hasOwnProperty.call(s, p) && e.indexOf(p) < 0) t[p] = s[p];
+  if (s != null && typeof Object.getOwnPropertySymbols === "function") for (var i = 0, p = Object.getOwnPropertySymbols(s); i < p.length; i++) {
+    if (e.indexOf(p[i]) < 0 && Object.prototype.propertyIsEnumerable.call(s, p[i])) t[p[i]] = s[p[i]];
+  }
+  return t;
 };
-const cardStyle = {
-  textAlign: "center",
-  width: "300px"
+
+
+
+
+
+function parseFlex(flex) {
+  if (typeof flex === 'number') {
+    return `${flex} ${flex} auto`;
+  }
+  if (/^\d+(\.\d+)?(px|em|rem|%)$/.test(flex)) {
+    return `0 0 ${flex}`;
+  }
+  return flex;
+}
+const sizes = ['xs', 'sm', 'md', 'lg', 'xl', 'xxl'];
+const Col = /*#__PURE__*/react.forwardRef((props, ref) => {
+  const {
+    getPrefixCls,
+    direction
+  } = react.useContext(context_ConfigContext);
+  const {
+    gutter,
+    wrap
+  } = react.useContext(grid_RowContext);
+  const {
+      prefixCls: customizePrefixCls,
+      span,
+      order,
+      offset,
+      push,
+      pull,
+      className,
+      children,
+      flex,
+      style
+    } = props,
+    others = col_rest(props, ["prefixCls", "span", "order", "offset", "push", "pull", "className", "children", "flex", "style"]);
+  const prefixCls = getPrefixCls('col', customizePrefixCls);
+  const [wrapCSSVar, hashId, cssVarCls] = useColStyle(prefixCls);
+  // ===================== Size ======================
+  const sizeStyle = {};
+  let sizeClassObj = {};
+  sizes.forEach(size => {
+    let sizeProps = {};
+    const propSize = props[size];
+    if (typeof propSize === 'number') {
+      sizeProps.span = propSize;
+    } else if (typeof propSize === 'object') {
+      sizeProps = propSize || {};
+    }
+    delete others[size];
+    sizeClassObj = Object.assign(Object.assign({}, sizeClassObj), {
+      [`${prefixCls}-${size}-${sizeProps.span}`]: sizeProps.span !== undefined,
+      [`${prefixCls}-${size}-order-${sizeProps.order}`]: sizeProps.order || sizeProps.order === 0,
+      [`${prefixCls}-${size}-offset-${sizeProps.offset}`]: sizeProps.offset || sizeProps.offset === 0,
+      [`${prefixCls}-${size}-push-${sizeProps.push}`]: sizeProps.push || sizeProps.push === 0,
+      [`${prefixCls}-${size}-pull-${sizeProps.pull}`]: sizeProps.pull || sizeProps.pull === 0,
+      [`${prefixCls}-rtl`]: direction === 'rtl'
+    });
+    // Responsive flex layout
+    if (sizeProps.flex) {
+      sizeClassObj[`${prefixCls}-${size}-flex`] = true;
+      sizeStyle[`--${prefixCls}-${size}-flex`] = parseFlex(sizeProps.flex);
+    }
+  });
+  // ==================== Normal =====================
+  const classes = classnames_default()(prefixCls, {
+    [`${prefixCls}-${span}`]: span !== undefined,
+    [`${prefixCls}-order-${order}`]: order,
+    [`${prefixCls}-offset-${offset}`]: offset,
+    [`${prefixCls}-push-${push}`]: push,
+    [`${prefixCls}-pull-${pull}`]: pull
+  }, className, sizeClassObj, hashId, cssVarCls);
+  const mergedStyle = {};
+  // Horizontal gutter use padding
+  if (gutter && gutter[0] > 0) {
+    const horizontalGutter = gutter[0] / 2;
+    mergedStyle.paddingLeft = horizontalGutter;
+    mergedStyle.paddingRight = horizontalGutter;
+  }
+  if (flex) {
+    mergedStyle.flex = parseFlex(flex);
+    // Hack for Firefox to avoid size issue
+    // https://github.com/ant-design/ant-design/pull/20023#issuecomment-564389553
+    if (wrap === false && !mergedStyle.minWidth) {
+      mergedStyle.minWidth = 0;
+    }
+  }
+  // ==================== Render =====================
+  return wrapCSSVar( /*#__PURE__*/react.createElement("div", Object.assign({}, others, {
+    style: Object.assign(Object.assign(Object.assign({}, mergedStyle), style), sizeStyle),
+    className: classes,
+    ref: ref
+  }), children));
+});
+if (false) {}
+/* harmony default export */ const col = (Col);
+;// CONCATENATED MODULE: ./node_modules/antd/es/form/style/fallbackCmp.js
+/**
+ * Fallback of IE.
+ * Safe to remove.
+ */
+// Style as inline component
+
+
+// ============================= Fallback =============================
+const genFallbackStyle = token => {
+  const {
+    formItemCls
+  } = token;
+  return {
+    '@media screen and (-ms-high-contrast: active), (-ms-high-contrast: none)': {
+      // Fallback for IE, safe to remove we not support it anymore
+      [`${formItemCls}-control`]: {
+        display: 'flex'
+      }
+    }
+  };
 };
+// ============================== Export ==============================
+/* harmony default export */ const fallbackCmp = (genSubStyleComponent(['Form', 'item-item'], (token, _ref) => {
+  let {
+    rootPrefixCls
+  } = _ref;
+  const formToken = style_prepareToken(token, rootPrefixCls);
+  return [genFallbackStyle(formToken)];
+}));
+;// CONCATENATED MODULE: ./node_modules/antd/es/form/FormItemInput.js
+"use client";
+
+
+
+
+
+
+
+const FormItemInput = props => {
+  const {
+    prefixCls,
+    status,
+    wrapperCol,
+    children,
+    errors,
+    warnings,
+    _internalItemRender: formItemRender,
+    extra,
+    help,
+    fieldId,
+    marginBottom,
+    onErrorVisibleChanged
+  } = props;
+  const baseClassName = `${prefixCls}-item`;
+  const formContext = react.useContext(context_FormContext);
+  const mergedWrapperCol = wrapperCol || formContext.wrapperCol || {};
+  const className = classnames_default()(`${baseClassName}-control`, mergedWrapperCol.className);
+  // Pass to sub FormItem should not with col info
+  const subFormContext = react.useMemo(() => Object.assign({}, formContext), [formContext]);
+  delete subFormContext.labelCol;
+  delete subFormContext.wrapperCol;
+  const inputDom = /*#__PURE__*/react.createElement("div", {
+    className: `${baseClassName}-control-input`
+  }, /*#__PURE__*/react.createElement("div", {
+    className: `${baseClassName}-control-input-content`
+  }, children));
+  const formItemContext = react.useMemo(() => ({
+    prefixCls,
+    status
+  }), [prefixCls, status]);
+  const errorListDom = marginBottom !== null || errors.length || warnings.length ? ( /*#__PURE__*/react.createElement("div", {
+    style: {
+      display: 'flex',
+      flexWrap: 'nowrap'
+    }
+  }, /*#__PURE__*/react.createElement(FormItemPrefixContext.Provider, {
+    value: formItemContext
+  }, /*#__PURE__*/react.createElement(form_ErrorList, {
+    fieldId: fieldId,
+    errors: errors,
+    warnings: warnings,
+    help: help,
+    helpStatus: status,
+    className: `${baseClassName}-explain-connected`,
+    onVisibleChanged: onErrorVisibleChanged
+  })), !!marginBottom && /*#__PURE__*/react.createElement("div", {
+    style: {
+      width: 0,
+      height: marginBottom
+    }
+  }))) : null;
+  const extraProps = {};
+  if (fieldId) {
+    extraProps.id = `${fieldId}_extra`;
+  }
+  // If extra = 0, && will goes wrong
+  // 0&&error -> 0
+  const extraDom = extra ? ( /*#__PURE__*/react.createElement("div", Object.assign({}, extraProps, {
+    className: `${baseClassName}-extra`
+  }), extra)) : null;
+  const dom = formItemRender && formItemRender.mark === 'pro_table_render' && formItemRender.render ? formItemRender.render(props, {
+    input: inputDom,
+    errorList: errorListDom,
+    extra: extraDom
+  }) : ( /*#__PURE__*/react.createElement(react.Fragment, null, inputDom, errorListDom, extraDom));
+  return /*#__PURE__*/react.createElement(context_FormContext.Provider, {
+    value: subFormContext
+  }, /*#__PURE__*/react.createElement(col, Object.assign({}, mergedWrapperCol, {
+    className: className
+  }), dom), /*#__PURE__*/react.createElement(fallbackCmp, {
+    prefixCls: prefixCls
+  }));
+};
+/* harmony default export */ const form_FormItemInput = (FormItemInput);
+;// CONCATENATED MODULE: ./node_modules/@ant-design/icons-svg/es/asn/QuestionCircleOutlined.js
+// This icon file is generated automatically.
+var QuestionCircleOutlined = { "icon": { "tag": "svg", "attrs": { "viewBox": "64 64 896 896", "focusable": "false" }, "children": [{ "tag": "path", "attrs": { "d": "M512 64C264.6 64 64 264.6 64 512s200.6 448 448 448 448-200.6 448-448S759.4 64 512 64zm0 820c-205.4 0-372-166.6-372-372s166.6-372 372-372 372 166.6 372 372-166.6 372-372 372z" } }, { "tag": "path", "attrs": { "d": "M623.6 316.7C593.6 290.4 554 276 512 276s-81.6 14.5-111.6 40.7C369.2 344 352 380.7 352 420v7.6c0 4.4 3.6 8 8 8h48c4.4 0 8-3.6 8-8V420c0-44.1 43.1-80 96-80s96 35.9 96 80c0 31.1-22 59.6-56.1 72.7-21.2 8.1-39.2 22.3-52.1 40.9-13.1 19-19.9 41.8-19.9 64.9V620c0 4.4 3.6 8 8 8h48c4.4 0 8-3.6 8-8v-22.7a48.3 48.3 0 0130.9-44.8c59-22.7 97.1-74.7 97.1-132.5.1-39.3-17.1-76-48.3-103.3zM472 732a40 40 0 1080 0 40 40 0 10-80 0z" } }] }, "name": "question-circle", "theme": "outlined" };
+/* harmony default export */ const asn_QuestionCircleOutlined = (QuestionCircleOutlined);
+
+;// CONCATENATED MODULE: ./node_modules/@ant-design/icons/es/icons/QuestionCircleOutlined.js
+
+// GENERATE BY ./scripts/generate.ts
+// DON NOT EDIT IT MANUALLY
+
+
+
+
+var QuestionCircleOutlined_QuestionCircleOutlined = function QuestionCircleOutlined(props, ref) {
+  return /*#__PURE__*/react.createElement(AntdIcon, extends_extends({}, props, {
+    ref: ref,
+    icon: asn_QuestionCircleOutlined
+  }));
+};
+
+/**![question-circle](data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNTAiIGhlaWdodD0iNTAiIGZpbGw9IiNjYWNhY2EiIHZpZXdCb3g9IjY0IDY0IDg5NiA4OTYiIGZvY3VzYWJsZT0iZmFsc2UiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PHBhdGggZD0iTTUxMiA2NEMyNjQuNiA2NCA2NCAyNjQuNiA2NCA1MTJzMjAwLjYgNDQ4IDQ0OCA0NDggNDQ4LTIwMC42IDQ0OC00NDhTNzU5LjQgNjQgNTEyIDY0em0wIDgyMGMtMjA1LjQgMC0zNzItMTY2LjYtMzcyLTM3MnMxNjYuNi0zNzIgMzcyLTM3MiAzNzIgMTY2LjYgMzcyIDM3Mi0xNjYuNiAzNzItMzcyIDM3MnoiIC8+PHBhdGggZD0iTTYyMy42IDMxNi43QzU5My42IDI5MC40IDU1NCAyNzYgNTEyIDI3NnMtODEuNiAxNC41LTExMS42IDQwLjdDMzY5LjIgMzQ0IDM1MiAzODAuNyAzNTIgNDIwdjcuNmMwIDQuNCAzLjYgOCA4IDhoNDhjNC40IDAgOC0zLjYgOC04VjQyMGMwLTQ0LjEgNDMuMS04MCA5Ni04MHM5NiAzNS45IDk2IDgwYzAgMzEuMS0yMiA1OS42LTU2LjEgNzIuNy0yMS4yIDguMS0zOS4yIDIyLjMtNTIuMSA0MC45LTEzLjEgMTktMTkuOSA0MS44LTE5LjkgNjQuOVY2MjBjMCA0LjQgMy42IDggOCA4aDQ4YzQuNCAwIDgtMy42IDgtOHYtMjIuN2E0OC4zIDQ4LjMgMCAwMTMwLjktNDQuOGM1OS0yMi43IDk3LjEtNzQuNyA5Ny4xLTEzMi41LjEtMzkuMy0xNy4xLTc2LTQ4LjMtMTAzLjN6TTQ3MiA3MzJhNDAgNDAgMCAxMDgwIDAgNDAgNDAgMCAxMC04MCAweiIgLz48L3N2Zz4=) */
+var QuestionCircleOutlined_RefIcon = /*#__PURE__*/react.forwardRef(QuestionCircleOutlined_QuestionCircleOutlined);
+if (false) {}
+/* harmony default export */ const icons_QuestionCircleOutlined = (QuestionCircleOutlined_RefIcon);
+;// CONCATENATED MODULE: ./node_modules/antd/es/locale/context.js
+
+const LocaleContext = /*#__PURE__*/(0,react.createContext)(undefined);
+/* harmony default export */ const locale_context = (LocaleContext);
+;// CONCATENATED MODULE: ./node_modules/rc-pagination/es/locale/en_US.js
+var locale = {
+  // Options
+  items_per_page: '/ page',
+  jump_to: 'Go to',
+  jump_to_confirm: 'confirm',
+  page: 'Page',
+  // Pagination
+  prev_page: 'Previous Page',
+  next_page: 'Next Page',
+  prev_5: 'Previous 5 Pages',
+  next_5: 'Next 5 Pages',
+  prev_3: 'Previous 3 Pages',
+  next_3: 'Next 3 Pages',
+  page_size: 'Page Size'
+};
+/* harmony default export */ const en_US = (locale);
+;// CONCATENATED MODULE: ./node_modules/rc-picker/es/locale/en_US.js
+var en_US_locale = {
+  locale: 'en_US',
+  today: 'Today',
+  now: 'Now',
+  backToToday: 'Back to today',
+  ok: 'OK',
+  clear: 'Clear',
+  month: 'Month',
+  year: 'Year',
+  timeSelect: 'select time',
+  dateSelect: 'select date',
+  weekSelect: 'Choose a week',
+  monthSelect: 'Choose a month',
+  yearSelect: 'Choose a year',
+  decadeSelect: 'Choose a decade',
+  yearFormat: 'YYYY',
+  dateFormat: 'M/D/YYYY',
+  dayFormat: 'D',
+  dateTimeFormat: 'M/D/YYYY HH:mm:ss',
+  monthBeforeYear: true,
+  previousMonth: 'Previous month (PageUp)',
+  nextMonth: 'Next month (PageDown)',
+  previousYear: 'Last year (Control + left)',
+  nextYear: 'Next year (Control + right)',
+  previousDecade: 'Last decade',
+  nextDecade: 'Next decade',
+  previousCentury: 'Last century',
+  nextCentury: 'Next century'
+};
+/* harmony default export */ const locale_en_US = (en_US_locale);
+;// CONCATENATED MODULE: ./node_modules/antd/es/time-picker/locale/en_US.js
+const locale_en_US_locale = {
+  placeholder: 'Select time',
+  rangePlaceholder: ['Start time', 'End time']
+};
+/* harmony default export */ const time_picker_locale_en_US = (locale_en_US_locale);
+;// CONCATENATED MODULE: ./node_modules/antd/es/date-picker/locale/en_US.js
+
+
+// Merge into a locale object
+const date_picker_locale_en_US_locale = {
+  lang: Object.assign({
+    placeholder: 'Select date',
+    yearPlaceholder: 'Select year',
+    quarterPlaceholder: 'Select quarter',
+    monthPlaceholder: 'Select month',
+    weekPlaceholder: 'Select week',
+    rangePlaceholder: ['Start date', 'End date'],
+    rangeYearPlaceholder: ['Start year', 'End year'],
+    rangeQuarterPlaceholder: ['Start quarter', 'End quarter'],
+    rangeMonthPlaceholder: ['Start month', 'End month'],
+    rangeWeekPlaceholder: ['Start week', 'End week']
+  }, locale_en_US),
+  timePickerLocale: Object.assign({}, time_picker_locale_en_US)
+};
+// All settings at:
+// https://github.com/ant-design/ant-design/blob/master/components/date-picker/locale/example.json
+/* harmony default export */ const date_picker_locale_en_US = (date_picker_locale_en_US_locale);
+;// CONCATENATED MODULE: ./node_modules/antd/es/calendar/locale/en_US.js
+
+/* harmony default export */ const calendar_locale_en_US = (date_picker_locale_en_US);
+;// CONCATENATED MODULE: ./node_modules/antd/es/locale/en_US.js
+/* eslint-disable no-template-curly-in-string */
+
+
+
+
+const en_US_typeTemplate = '${label} is not a valid ${type}';
+const localeValues = {
+  locale: 'en',
+  Pagination: en_US,
+  DatePicker: date_picker_locale_en_US,
+  TimePicker: time_picker_locale_en_US,
+  Calendar: calendar_locale_en_US,
+  global: {
+    placeholder: 'Please select'
+  },
+  Table: {
+    filterTitle: 'Filter menu',
+    filterConfirm: 'OK',
+    filterReset: 'Reset',
+    filterEmptyText: 'No filters',
+    filterCheckall: 'Select all items',
+    filterSearchPlaceholder: 'Search in filters',
+    emptyText: 'No data',
+    selectAll: 'Select current page',
+    selectInvert: 'Invert current page',
+    selectNone: 'Clear all data',
+    selectionAll: 'Select all data',
+    sortTitle: 'Sort',
+    expand: 'Expand row',
+    collapse: 'Collapse row',
+    triggerDesc: 'Click to sort descending',
+    triggerAsc: 'Click to sort ascending',
+    cancelSort: 'Click to cancel sorting'
+  },
+  Tour: {
+    Next: 'Next',
+    Previous: 'Previous',
+    Finish: 'Finish'
+  },
+  Modal: {
+    okText: 'OK',
+    cancelText: 'Cancel',
+    justOkText: 'OK'
+  },
+  Popconfirm: {
+    okText: 'OK',
+    cancelText: 'Cancel'
+  },
+  Transfer: {
+    titles: ['', ''],
+    searchPlaceholder: 'Search here',
+    itemUnit: 'item',
+    itemsUnit: 'items',
+    remove: 'Remove',
+    selectCurrent: 'Select current page',
+    removeCurrent: 'Remove current page',
+    selectAll: 'Select all data',
+    removeAll: 'Remove all data',
+    selectInvert: 'Invert current page'
+  },
+  Upload: {
+    uploading: 'Uploading...',
+    removeFile: 'Remove file',
+    uploadError: 'Upload error',
+    previewFile: 'Preview file',
+    downloadFile: 'Download file'
+  },
+  Empty: {
+    description: 'No data'
+  },
+  Icon: {
+    icon: 'icon'
+  },
+  Text: {
+    edit: 'Edit',
+    copy: 'Copy',
+    copied: 'Copied',
+    expand: 'Expand',
+    collapse: 'Collapse'
+  },
+  Form: {
+    optional: '(optional)',
+    defaultValidateMessages: {
+      default: 'Field validation error for ${label}',
+      required: 'Please enter ${label}',
+      enum: '${label} must be one of [${enum}]',
+      whitespace: '${label} cannot be a blank character',
+      date: {
+        format: '${label} date format is invalid',
+        parse: '${label} cannot be converted to a date',
+        invalid: '${label} is an invalid date'
+      },
+      types: {
+        string: en_US_typeTemplate,
+        method: en_US_typeTemplate,
+        array: en_US_typeTemplate,
+        object: en_US_typeTemplate,
+        number: en_US_typeTemplate,
+        date: en_US_typeTemplate,
+        boolean: en_US_typeTemplate,
+        integer: en_US_typeTemplate,
+        float: en_US_typeTemplate,
+        regexp: en_US_typeTemplate,
+        email: en_US_typeTemplate,
+        url: en_US_typeTemplate,
+        hex: en_US_typeTemplate
+      },
+      string: {
+        len: '${label} must be ${len} characters',
+        min: '${label} must be at least ${min} characters',
+        max: '${label} must be up to ${max} characters',
+        range: '${label} must be between ${min}-${max} characters'
+      },
+      number: {
+        len: '${label} must be equal to ${len}',
+        min: '${label} must be minimum ${min}',
+        max: '${label} must be maximum ${max}',
+        range: '${label} must be between ${min}-${max}'
+      },
+      array: {
+        len: 'Must be ${len} ${label}',
+        min: 'At least ${min} ${label}',
+        max: 'At most ${max} ${label}',
+        range: 'The amount of ${label} must be between ${min}-${max}'
+      },
+      pattern: {
+        mismatch: '${label} does not match the pattern ${pattern}'
+      }
+    }
+  },
+  Image: {
+    preview: 'Preview'
+  },
+  QRCode: {
+    expired: 'QR code expired',
+    refresh: 'Refresh',
+    scanned: 'Scanned'
+  },
+  ColorPicker: {
+    presetEmpty: 'Empty'
+  }
+};
+/* harmony default export */ const es_locale_en_US = (localeValues);
+;// CONCATENATED MODULE: ./node_modules/antd/es/locale/useLocale.js
+
+
+
+const useLocale = (componentName, defaultLocale) => {
+  const fullLocale = react.useContext(locale_context);
+  const getLocale = react.useMemo(() => {
+    var _a;
+    const locale = defaultLocale || es_locale_en_US[componentName];
+    const localeFromContext = (_a = fullLocale === null || fullLocale === void 0 ? void 0 : fullLocale[componentName]) !== null && _a !== void 0 ? _a : {};
+    return Object.assign(Object.assign({}, typeof locale === 'function' ? locale() : locale), localeFromContext || {});
+  }, [componentName, defaultLocale, fullLocale]);
+  const getLocaleCode = react.useMemo(() => {
+    const localeCode = fullLocale === null || fullLocale === void 0 ? void 0 : fullLocale.locale;
+    // Had use LocaleProvide but didn't set locale
+    if ((fullLocale === null || fullLocale === void 0 ? void 0 : fullLocale.exist) && !localeCode) {
+      return es_locale_en_US.locale;
+    }
+    return localeCode;
+  }, [fullLocale]);
+  return [getLocale, getLocaleCode];
+};
+/* harmony default export */ const locale_useLocale = (useLocale);
+;// CONCATENATED MODULE: ./node_modules/antd/es/form/FormItemLabel.js
+"use client";
+
+var FormItemLabel_rest = undefined && undefined.__rest || function (s, e) {
+  var t = {};
+  for (var p in s) if (Object.prototype.hasOwnProperty.call(s, p) && e.indexOf(p) < 0) t[p] = s[p];
+  if (s != null && typeof Object.getOwnPropertySymbols === "function") for (var i = 0, p = Object.getOwnPropertySymbols(s); i < p.length; i++) {
+    if (e.indexOf(p[i]) < 0 && Object.prototype.propertyIsEnumerable.call(s, p[i])) t[p[i]] = s[p[i]];
+  }
+  return t;
+};
+
+
+
+
+
+
+
+
+function toTooltipProps(tooltip) {
+  if (!tooltip) {
+    return null;
+  }
+  if (typeof tooltip === 'object' && ! /*#__PURE__*/react.isValidElement(tooltip)) {
+    return tooltip;
+  }
+  return {
+    title: tooltip
+  };
+}
+const FormItemLabel = _ref => {
+  let {
+    prefixCls,
+    label,
+    htmlFor,
+    labelCol,
+    labelAlign,
+    colon,
+    required,
+    requiredMark,
+    tooltip
+  } = _ref;
+  var _a;
+  const [formLocale] = locale_useLocale('Form');
+  const {
+    vertical,
+    labelAlign: contextLabelAlign,
+    labelCol: contextLabelCol,
+    labelWrap,
+    colon: contextColon
+  } = react.useContext(context_FormContext);
+  if (!label) {
+    return null;
+  }
+  const mergedLabelCol = labelCol || contextLabelCol || {};
+  const mergedLabelAlign = labelAlign || contextLabelAlign;
+  const labelClsBasic = `${prefixCls}-item-label`;
+  const labelColClassName = classnames_default()(labelClsBasic, mergedLabelAlign === 'left' && `${labelClsBasic}-left`, mergedLabelCol.className, {
+    [`${labelClsBasic}-wrap`]: !!labelWrap
+  });
+  let labelChildren = label;
+  // Keep label is original where there should have no colon
+  const computedColon = colon === true || contextColon !== false && colon !== false;
+  const haveColon = computedColon && !vertical;
+  // Remove duplicated user input colon
+  if (haveColon && typeof label === 'string' && label.trim() !== '') {
+    labelChildren = label.replace(/[:|：]\s*$/, '');
+  }
+  // Tooltip
+  const tooltipProps = toTooltipProps(tooltip);
+  if (tooltipProps) {
+    const {
+        icon = /*#__PURE__*/react.createElement(icons_QuestionCircleOutlined, null)
+      } = tooltipProps,
+      restTooltipProps = FormItemLabel_rest(tooltipProps, ["icon"]);
+    const tooltipNode = /*#__PURE__*/react.createElement(es_tooltip, Object.assign({}, restTooltipProps), /*#__PURE__*/react.cloneElement(icon, {
+      className: `${prefixCls}-item-tooltip`,
+      title: '',
+      onClick: e => {
+        // Prevent label behavior in tooltip icon
+        // https://github.com/ant-design/ant-design/issues/46154
+        e.preventDefault();
+      },
+      tabIndex: null
+    }));
+    labelChildren = /*#__PURE__*/react.createElement(react.Fragment, null, labelChildren, tooltipNode);
+  }
+  // Required Mark
+  const isOptionalMark = requiredMark === 'optional';
+  const isRenderMark = typeof requiredMark === 'function';
+  if (isRenderMark) {
+    labelChildren = requiredMark(labelChildren, {
+      required: !!required
+    });
+  } else if (isOptionalMark && !required) {
+    labelChildren = /*#__PURE__*/react.createElement(react.Fragment, null, labelChildren, /*#__PURE__*/react.createElement("span", {
+      className: `${prefixCls}-item-optional`,
+      title: ""
+    }, (formLocale === null || formLocale === void 0 ? void 0 : formLocale.optional) || ((_a = es_locale_en_US.Form) === null || _a === void 0 ? void 0 : _a.optional)));
+  }
+  const labelClassName = classnames_default()({
+    [`${prefixCls}-item-required`]: required,
+    [`${prefixCls}-item-required-mark-optional`]: isOptionalMark || isRenderMark,
+    [`${prefixCls}-item-no-colon`]: !computedColon
+  });
+  return /*#__PURE__*/react.createElement(col, Object.assign({}, mergedLabelCol, {
+    className: labelColClassName
+  }), /*#__PURE__*/react.createElement("label", {
+    htmlFor: htmlFor,
+    className: labelClassName,
+    title: typeof label === 'string' ? label : ''
+  }, labelChildren));
+};
+/* harmony default export */ const form_FormItemLabel = (FormItemLabel);
+;// CONCATENATED MODULE: ./node_modules/@ant-design/icons-svg/es/asn/CheckCircleFilled.js
+// This icon file is generated automatically.
+var CheckCircleFilled = { "icon": { "tag": "svg", "attrs": { "viewBox": "64 64 896 896", "focusable": "false" }, "children": [{ "tag": "path", "attrs": { "d": "M512 64C264.6 64 64 264.6 64 512s200.6 448 448 448 448-200.6 448-448S759.4 64 512 64zm193.5 301.7l-210.6 292a31.8 31.8 0 01-51.7 0L318.5 484.9c-3.8-5.3 0-12.7 6.5-12.7h46.9c10.2 0 19.9 4.9 25.9 13.3l71.2 98.8 157.2-218c6-8.3 15.6-13.3 25.9-13.3H699c6.5 0 10.3 7.4 6.5 12.7z" } }] }, "name": "check-circle", "theme": "filled" };
+/* harmony default export */ const asn_CheckCircleFilled = (CheckCircleFilled);
+
+;// CONCATENATED MODULE: ./node_modules/@ant-design/icons/es/icons/CheckCircleFilled.js
+
+// GENERATE BY ./scripts/generate.ts
+// DON NOT EDIT IT MANUALLY
+
+
+
+
+var CheckCircleFilled_CheckCircleFilled = function CheckCircleFilled(props, ref) {
+  return /*#__PURE__*/react.createElement(AntdIcon, extends_extends({}, props, {
+    ref: ref,
+    icon: asn_CheckCircleFilled
+  }));
+};
+
+/**![check-circle](data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNTAiIGhlaWdodD0iNTAiIGZpbGw9IiNjYWNhY2EiIHZpZXdCb3g9IjY0IDY0IDg5NiA4OTYiIGZvY3VzYWJsZT0iZmFsc2UiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PHBhdGggZD0iTTUxMiA2NEMyNjQuNiA2NCA2NCAyNjQuNiA2NCA1MTJzMjAwLjYgNDQ4IDQ0OCA0NDggNDQ4LTIwMC42IDQ0OC00NDhTNzU5LjQgNjQgNTEyIDY0em0xOTMuNSAzMDEuN2wtMjEwLjYgMjkyYTMxLjggMzEuOCAwIDAxLTUxLjcgMEwzMTguNSA0ODQuOWMtMy44LTUuMyAwLTEyLjcgNi41LTEyLjdoNDYuOWMxMC4yIDAgMTkuOSA0LjkgMjUuOSAxMy4zbDcxLjIgOTguOCAxNTcuMi0yMThjNi04LjMgMTUuNi0xMy4zIDI1LjktMTMuM0g2OTljNi41IDAgMTAuMyA3LjQgNi41IDEyLjd6IiAvPjwvc3ZnPg==) */
+var CheckCircleFilled_RefIcon = /*#__PURE__*/react.forwardRef(CheckCircleFilled_CheckCircleFilled);
+if (false) {}
+/* harmony default export */ const icons_CheckCircleFilled = (CheckCircleFilled_RefIcon);
+;// CONCATENATED MODULE: ./node_modules/@ant-design/icons-svg/es/asn/ExclamationCircleFilled.js
+// This icon file is generated automatically.
+var ExclamationCircleFilled = { "icon": { "tag": "svg", "attrs": { "viewBox": "64 64 896 896", "focusable": "false" }, "children": [{ "tag": "path", "attrs": { "d": "M512 64C264.6 64 64 264.6 64 512s200.6 448 448 448 448-200.6 448-448S759.4 64 512 64zm-32 232c0-4.4 3.6-8 8-8h48c4.4 0 8 3.6 8 8v272c0 4.4-3.6 8-8 8h-48c-4.4 0-8-3.6-8-8V296zm32 440a48.01 48.01 0 010-96 48.01 48.01 0 010 96z" } }] }, "name": "exclamation-circle", "theme": "filled" };
+/* harmony default export */ const asn_ExclamationCircleFilled = (ExclamationCircleFilled);
+
+;// CONCATENATED MODULE: ./node_modules/@ant-design/icons/es/icons/ExclamationCircleFilled.js
+
+// GENERATE BY ./scripts/generate.ts
+// DON NOT EDIT IT MANUALLY
+
+
+
+
+var ExclamationCircleFilled_ExclamationCircleFilled = function ExclamationCircleFilled(props, ref) {
+  return /*#__PURE__*/react.createElement(AntdIcon, extends_extends({}, props, {
+    ref: ref,
+    icon: asn_ExclamationCircleFilled
+  }));
+};
+
+/**![exclamation-circle](data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNTAiIGhlaWdodD0iNTAiIGZpbGw9IiNjYWNhY2EiIHZpZXdCb3g9IjY0IDY0IDg5NiA4OTYiIGZvY3VzYWJsZT0iZmFsc2UiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PHBhdGggZD0iTTUxMiA2NEMyNjQuNiA2NCA2NCAyNjQuNiA2NCA1MTJzMjAwLjYgNDQ4IDQ0OCA0NDggNDQ4LTIwMC42IDQ0OC00NDhTNzU5LjQgNjQgNTEyIDY0em0tMzIgMjMyYzAtNC40IDMuNi04IDgtOGg0OGM0LjQgMCA4IDMuNiA4IDh2MjcyYzAgNC40LTMuNiA4LTggOGgtNDhjLTQuNCAwLTgtMy42LTgtOFYyOTZ6bTMyIDQ0MGE0OC4wMSA0OC4wMSAwIDAxMC05NiA0OC4wMSA0OC4wMSAwIDAxMCA5NnoiIC8+PC9zdmc+) */
+var ExclamationCircleFilled_RefIcon = /*#__PURE__*/react.forwardRef(ExclamationCircleFilled_ExclamationCircleFilled);
+if (false) {}
+/* harmony default export */ const icons_ExclamationCircleFilled = (ExclamationCircleFilled_RefIcon);
+;// CONCATENATED MODULE: ./node_modules/antd/es/form/FormItem/StatusProvider.js
+"use client";
+
+
+
+
+
+
+
+
+
+const iconMap = {
+  success: icons_CheckCircleFilled,
+  warning: icons_ExclamationCircleFilled,
+  error: icons_CloseCircleFilled,
+  validating: icons_LoadingOutlined
+};
+function StatusProvider(_ref) {
+  let {
+    children,
+    errors,
+    warnings,
+    hasFeedback,
+    validateStatus,
+    prefixCls,
+    meta,
+    noStyle
+  } = _ref;
+  const itemPrefixCls = `${prefixCls}-item`;
+  const {
+    feedbackIcons
+  } = react.useContext(context_FormContext);
+  const mergedValidateStatus = getStatus(errors, warnings, meta, null, !!hasFeedback, validateStatus);
+  const {
+    isFormItemInput: parentIsFormItemInput,
+    status: parentStatus,
+    hasFeedback: parentHasFeedback,
+    feedbackIcon: parentFeedbackIcon
+  } = react.useContext(FormItemInputContext);
+  // ====================== Context =======================
+  const formItemStatusContext = react.useMemo(() => {
+    var _a;
+    let feedbackIcon;
+    if (hasFeedback) {
+      const customIcons = hasFeedback !== true && hasFeedback.icons || feedbackIcons;
+      const customIconNode = mergedValidateStatus && ((_a = customIcons === null || customIcons === void 0 ? void 0 : customIcons({
+        status: mergedValidateStatus,
+        errors,
+        warnings
+      })) === null || _a === void 0 ? void 0 : _a[mergedValidateStatus]);
+      const IconNode = mergedValidateStatus && iconMap[mergedValidateStatus];
+      feedbackIcon = customIconNode !== false && IconNode ? ( /*#__PURE__*/react.createElement("span", {
+        className: classnames_default()(`${itemPrefixCls}-feedback-icon`, `${itemPrefixCls}-feedback-icon-${mergedValidateStatus}`)
+      }, customIconNode || /*#__PURE__*/react.createElement(IconNode, null))) : null;
+    }
+    const context = {
+      status: mergedValidateStatus || '',
+      errors,
+      warnings,
+      hasFeedback: !!hasFeedback,
+      feedbackIcon,
+      isFormItemInput: true
+    };
+    // No style will follow parent context
+    if (noStyle) {
+      context.status = (mergedValidateStatus !== null && mergedValidateStatus !== void 0 ? mergedValidateStatus : parentStatus) || '';
+      context.isFormItemInput = parentIsFormItemInput;
+      context.hasFeedback = !!(hasFeedback !== null && hasFeedback !== void 0 ? hasFeedback : parentHasFeedback);
+      context.feedbackIcon = hasFeedback !== undefined ? context.feedbackIcon : parentFeedbackIcon;
+    }
+    return context;
+  }, [mergedValidateStatus, hasFeedback, noStyle, parentIsFormItemInput, parentStatus]);
+  // ======================= Render =======================
+  return /*#__PURE__*/react.createElement(FormItemInputContext.Provider, {
+    value: formItemStatusContext
+  }, children);
+}
+;// CONCATENATED MODULE: ./node_modules/antd/es/form/FormItem/ItemHolder.js
+"use client";
+
+var ItemHolder_rest = undefined && undefined.__rest || function (s, e) {
+  var t = {};
+  for (var p in s) if (Object.prototype.hasOwnProperty.call(s, p) && e.indexOf(p) < 0) t[p] = s[p];
+  if (s != null && typeof Object.getOwnPropertySymbols === "function") for (var i = 0, p = Object.getOwnPropertySymbols(s); i < p.length; i++) {
+    if (e.indexOf(p[i]) < 0 && Object.prototype.propertyIsEnumerable.call(s, p[i])) t[p[i]] = s[p[i]];
+  }
+  return t;
+};
+
+
+
+
+
+
+
+
+
+
+
+
+function ItemHolder(props) {
+  const {
+      prefixCls,
+      className,
+      rootClassName,
+      style,
+      help,
+      errors,
+      warnings,
+      validateStatus,
+      meta,
+      hasFeedback,
+      hidden,
+      children,
+      fieldId,
+      required,
+      isRequired,
+      onSubItemMetaChange
+    } = props,
+    restProps = ItemHolder_rest(props, ["prefixCls", "className", "rootClassName", "style", "help", "errors", "warnings", "validateStatus", "meta", "hasFeedback", "hidden", "children", "fieldId", "required", "isRequired", "onSubItemMetaChange"]);
+  const itemPrefixCls = `${prefixCls}-item`;
+  const {
+    requiredMark
+  } = react.useContext(context_FormContext);
+  // ======================== Margin ========================
+  const itemRef = react.useRef(null);
+  const debounceErrors = useDebounce(errors);
+  const debounceWarnings = useDebounce(warnings);
+  const hasHelp = help !== undefined && help !== null;
+  const hasError = !!(hasHelp || errors.length || warnings.length);
+  const isOnScreen = !!itemRef.current && isVisible(itemRef.current);
+  const [marginBottom, setMarginBottom] = react.useState(null);
+  hooks_useLayoutEffect(() => {
+    if (hasError && itemRef.current) {
+      // The element must be part of the DOMTree to use getComputedStyle
+      // https://stackoverflow.com/questions/35360711/getcomputedstyle-returns-a-cssstyledeclaration-but-all-properties-are-empty-on-a
+      const itemStyle = getComputedStyle(itemRef.current);
+      setMarginBottom(parseInt(itemStyle.marginBottom, 10));
+    }
+  }, [hasError, isOnScreen]);
+  const onErrorVisibleChanged = nextVisible => {
+    if (!nextVisible) {
+      setMarginBottom(null);
+    }
+  };
+  // ======================== Status ========================
+  const getValidateState = function () {
+    let isDebounce = arguments.length > 0 && arguments[0] !== undefined ? arguments[0] : false;
+    const _errors = isDebounce ? debounceErrors : meta.errors;
+    const _warnings = isDebounce ? debounceWarnings : meta.warnings;
+    return getStatus(_errors, _warnings, meta, '', !!hasFeedback, validateStatus);
+  };
+  const mergedValidateStatus = getValidateState();
+  // ======================== Render ========================
+  const itemClassName = classnames_default()(itemPrefixCls, className, rootClassName, {
+    [`${itemPrefixCls}-with-help`]: hasHelp || debounceErrors.length || debounceWarnings.length,
+    // Status
+    [`${itemPrefixCls}-has-feedback`]: mergedValidateStatus && hasFeedback,
+    [`${itemPrefixCls}-has-success`]: mergedValidateStatus === 'success',
+    [`${itemPrefixCls}-has-warning`]: mergedValidateStatus === 'warning',
+    [`${itemPrefixCls}-has-error`]: mergedValidateStatus === 'error',
+    [`${itemPrefixCls}-is-validating`]: mergedValidateStatus === 'validating',
+    [`${itemPrefixCls}-hidden`]: hidden
+  });
+  return /*#__PURE__*/react.createElement("div", {
+    className: itemClassName,
+    style: style,
+    ref: itemRef
+  }, /*#__PURE__*/react.createElement(row, Object.assign({
+    className: `${itemPrefixCls}-row`
+  }, omit(restProps, ['_internalItemRender', 'colon', 'dependencies', 'extra', 'fieldKey', 'getValueFromEvent', 'getValueProps', 'htmlFor', 'id',
+  // It is deprecated because `htmlFor` is its replacement.
+  'initialValue', 'isListField', 'label', 'labelAlign', 'labelCol', 'labelWrap', 'messageVariables', 'name', 'normalize', 'noStyle', 'preserve', 'requiredMark', 'rules', 'shouldUpdate', 'trigger', 'tooltip', 'validateFirst', 'validateTrigger', 'valuePropName', 'wrapperCol', 'validateDebounce'])), /*#__PURE__*/react.createElement(form_FormItemLabel, Object.assign({
+    htmlFor: fieldId
+  }, props, {
+    requiredMark: requiredMark,
+    required: required !== null && required !== void 0 ? required : isRequired,
+    prefixCls: prefixCls
+  })), /*#__PURE__*/react.createElement(form_FormItemInput, Object.assign({}, props, meta, {
+    errors: debounceErrors,
+    warnings: debounceWarnings,
+    prefixCls: prefixCls,
+    status: mergedValidateStatus,
+    help: help,
+    marginBottom: marginBottom,
+    onErrorVisibleChanged: onErrorVisibleChanged
+  }), /*#__PURE__*/react.createElement(NoStyleItemContext.Provider, {
+    value: onSubItemMetaChange
+  }, /*#__PURE__*/react.createElement(StatusProvider, {
+    prefixCls: prefixCls,
+    meta: meta,
+    errors: meta.errors,
+    warnings: meta.warnings,
+    hasFeedback: hasFeedback,
+    // Already calculated
+    validateStatus: mergedValidateStatus
+  }, children)))), !!marginBottom && ( /*#__PURE__*/react.createElement("div", {
+    className: `${itemPrefixCls}-margin-offset`,
+    style: {
+      marginBottom: -marginBottom
+    }
+  })));
+}
+;// CONCATENATED MODULE: ./node_modules/antd/es/form/FormItem/index.js
+"use client";
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+const NAME_SPLIT = '__SPLIT__';
+const ValidateStatuses = (/* unused pure expression or super */ null && (['success', 'warning', 'error', 'validating', '']));
+// https://github.com/ant-design/ant-design/issues/46417
+// `getValueProps` may modify the value props name,
+// we should check if the control is similar.
+function isSimilarControl(a, b) {
+  const keysA = Object.keys(a);
+  const keysB = Object.keys(b);
+  return keysA.length === keysB.length && keysA.every(key => {
+    const propValueA = a[key];
+    const propValueB = b[key];
+    return propValueA === propValueB || typeof propValueA === 'function' || typeof propValueB === 'function';
+  });
+}
+const MemoInput = /*#__PURE__*/react.memo(_ref => {
+  let {
+    children
+  } = _ref;
+  return children;
+}, (prev, next) => isSimilarControl(prev.control, next.control) && prev.update === next.update && prev.childProps.length === next.childProps.length && prev.childProps.every((value, index) => value === next.childProps[index]));
+function genEmptyMeta() {
+  return {
+    errors: [],
+    warnings: [],
+    touched: false,
+    validating: false,
+    name: [],
+    validated: false
+  };
+}
+function InternalFormItem(props) {
+  const {
+    name,
+    noStyle,
+    className,
+    dependencies,
+    prefixCls: customizePrefixCls,
+    shouldUpdate,
+    rules,
+    children,
+    required,
+    label,
+    messageVariables,
+    trigger = 'onChange',
+    validateTrigger,
+    hidden,
+    help
+  } = props;
+  const {
+    getPrefixCls
+  } = react.useContext(context_ConfigContext);
+  const {
+    name: formName
+  } = react.useContext(context_FormContext);
+  const mergedChildren = useChildren(children);
+  const isRenderProps = typeof mergedChildren === 'function';
+  const notifyParentMetaChange = react.useContext(NoStyleItemContext);
+  const {
+    validateTrigger: contextValidateTrigger
+  } = react.useContext(FieldContext);
+  const mergedValidateTrigger = validateTrigger !== undefined ? validateTrigger : contextValidateTrigger;
+  const hasName = !(name === undefined || name === null);
+  const prefixCls = getPrefixCls('form', customizePrefixCls);
+  // Style
+  const rootCls = hooks_useCSSVarCls(prefixCls);
+  const [wrapCSSVar, hashId, cssVarCls] = form_style(prefixCls, rootCls);
+  // ========================= Warn =========================
+  const warning = warning_devUseWarning('Form.Item');
+  if (false) {}
+  // ========================= MISC =========================
+  // Get `noStyle` required info
+  const listContext = react.useContext(es_ListContext);
+  const fieldKeyPathRef = react.useRef();
+  // ======================== Errors ========================
+  // >>>>> Collect sub field errors
+  const [subFieldErrors, setSubFieldErrors] = useFrameState({});
+  // >>>>> Current field errors
+  const [meta, setMeta] = useSafeState(() => genEmptyMeta());
+  const onMetaChange = nextMeta => {
+    // This keyInfo is not correct when field is removed
+    // Since origin keyManager no longer keep the origin key anymore
+    // Which means we need cache origin one and reuse when removed
+    const keyInfo = listContext === null || listContext === void 0 ? void 0 : listContext.getKey(nextMeta.name);
+    // Destroy will reset all the meta
+    setMeta(nextMeta.destroy ? genEmptyMeta() : nextMeta, true);
+    // Bump to parent since noStyle
+    if (noStyle && help !== false && notifyParentMetaChange) {
+      let namePath = nextMeta.name;
+      if (!nextMeta.destroy) {
+        if (keyInfo !== undefined) {
+          const [fieldKey, restPath] = keyInfo;
+          namePath = [fieldKey].concat(_toConsumableArray(restPath));
+          fieldKeyPathRef.current = namePath;
+        }
+      } else {
+        // Use origin cache data
+        namePath = fieldKeyPathRef.current || namePath;
+      }
+      notifyParentMetaChange(nextMeta, namePath);
+    }
+  };
+  // >>>>> Collect noStyle Field error to the top FormItem
+  const onSubItemMetaChange = (subMeta, uniqueKeys) => {
+    // Only `noStyle` sub item will trigger
+    setSubFieldErrors(prevSubFieldErrors => {
+      const clone = Object.assign({}, prevSubFieldErrors);
+      // name: ['user', 1] + key: [4] = ['user', 4]
+      const mergedNamePath = [].concat(_toConsumableArray(subMeta.name.slice(0, -1)), _toConsumableArray(uniqueKeys));
+      const mergedNameKey = mergedNamePath.join(NAME_SPLIT);
+      if (subMeta.destroy) {
+        // Remove
+        delete clone[mergedNameKey];
+      } else {
+        // Update
+        clone[mergedNameKey] = subMeta;
+      }
+      return clone;
+    });
+  };
+  // >>>>> Get merged errors
+  const [mergedErrors, mergedWarnings] = react.useMemo(() => {
+    const errorList = _toConsumableArray(meta.errors);
+    const warningList = _toConsumableArray(meta.warnings);
+    Object.values(subFieldErrors).forEach(subFieldError => {
+      errorList.push.apply(errorList, _toConsumableArray(subFieldError.errors || []));
+      warningList.push.apply(warningList, _toConsumableArray(subFieldError.warnings || []));
+    });
+    return [errorList, warningList];
+  }, [subFieldErrors, meta.errors, meta.warnings]);
+  // ===================== Children Ref =====================
+  const getItemRef = useItemRef();
+  // ======================== Render ========================
+  function renderLayout(baseChildren, fieldId, isRequired) {
+    if (noStyle && !hidden) {
+      return /*#__PURE__*/react.createElement(StatusProvider, {
+        prefixCls: prefixCls,
+        hasFeedback: props.hasFeedback,
+        validateStatus: props.validateStatus,
+        meta: meta,
+        errors: mergedErrors,
+        warnings: mergedWarnings,
+        noStyle: true
+      }, baseChildren);
+    }
+    return /*#__PURE__*/react.createElement(ItemHolder, Object.assign({
+      key: "row"
+    }, props, {
+      className: classnames_default()(className, cssVarCls, rootCls, hashId),
+      prefixCls: prefixCls,
+      fieldId: fieldId,
+      isRequired: isRequired,
+      errors: mergedErrors,
+      warnings: mergedWarnings,
+      meta: meta,
+      onSubItemMetaChange: onSubItemMetaChange
+    }), baseChildren);
+  }
+  if (!hasName && !isRenderProps && !dependencies) {
+    return wrapCSSVar(renderLayout(mergedChildren));
+  }
+  let variables = {};
+  if (typeof label === 'string') {
+    variables.label = label;
+  } else if (name) {
+    variables.label = String(name);
+  }
+  if (messageVariables) {
+    variables = Object.assign(Object.assign({}, variables), messageVariables);
+  }
+  // >>>>> With Field
+  return wrapCSSVar( /*#__PURE__*/react.createElement(es_Field, Object.assign({}, props, {
+    messageVariables: variables,
+    trigger: trigger,
+    validateTrigger: mergedValidateTrigger,
+    onMetaChange: onMetaChange
+  }), (control, renderMeta, context) => {
+    const mergedName = util_toArray(name).length && renderMeta ? renderMeta.name : [];
+    const fieldId = getFieldId(mergedName, formName);
+    const isRequired = required !== undefined ? required : !!(rules && rules.some(rule => {
+      if (rule && typeof rule === 'object' && rule.required && !rule.warningOnly) {
+        return true;
+      }
+      if (typeof rule === 'function') {
+        const ruleEntity = rule(context);
+        return ruleEntity && ruleEntity.required && !ruleEntity.warningOnly;
+      }
+      return false;
+    }));
+    // ======================= Children =======================
+    const mergedControl = Object.assign({}, control);
+    let childNode = null;
+     false ? 0 : void 0;
+    if (Array.isArray(mergedChildren) && hasName) {
+       false ? 0 : void 0;
+      childNode = mergedChildren;
+    } else if (isRenderProps && (!(shouldUpdate || dependencies) || hasName)) {
+       false ? 0 : void 0;
+       false ? 0 : void 0;
+    } else if (dependencies && !isRenderProps && !hasName) {
+       false ? 0 : void 0;
+    } else if ( /*#__PURE__*/react.isValidElement(mergedChildren)) {
+       false ? 0 : void 0;
+      const childProps = Object.assign(Object.assign({}, mergedChildren.props), mergedControl);
+      if (!childProps.id) {
+        childProps.id = fieldId;
+      }
+      if (help || mergedErrors.length > 0 || mergedWarnings.length > 0 || props.extra) {
+        const describedbyArr = [];
+        if (help || mergedErrors.length > 0) {
+          describedbyArr.push(`${fieldId}_help`);
+        }
+        if (props.extra) {
+          describedbyArr.push(`${fieldId}_extra`);
+        }
+        childProps['aria-describedby'] = describedbyArr.join(' ');
+      }
+      if (mergedErrors.length > 0) {
+        childProps['aria-invalid'] = 'true';
+      }
+      if (isRequired) {
+        childProps['aria-required'] = 'true';
+      }
+      if (supportRef(mergedChildren)) {
+        childProps.ref = getItemRef(mergedName, mergedChildren);
+      }
+      // We should keep user origin event handler
+      const triggers = new Set([].concat(_toConsumableArray(util_toArray(trigger)), _toConsumableArray(util_toArray(mergedValidateTrigger))));
+      triggers.forEach(eventName => {
+        childProps[eventName] = function () {
+          var _a2, _c2;
+          var _a, _b, _c;
+          for (var _len = arguments.length, args = new Array(_len), _key = 0; _key < _len; _key++) {
+            args[_key] = arguments[_key];
+          }
+          (_a = mergedControl[eventName]) === null || _a === void 0 ? void 0 : (_a2 = _a).call.apply(_a2, [mergedControl].concat(args));
+          (_c = (_b = mergedChildren.props)[eventName]) === null || _c === void 0 ? void 0 : (_c2 = _c).call.apply(_c2, [_b].concat(args));
+        };
+      });
+      // List of props that need to be watched for changes -> if changes are detected in MemoInput -> rerender
+      const watchingChildProps = [childProps['aria-required'], childProps['aria-invalid'], childProps['aria-describedby']];
+      childNode = /*#__PURE__*/react.createElement(MemoInput, {
+        control: mergedControl,
+        update: mergedChildren,
+        childProps: watchingChildProps
+      }, cloneElement(mergedChildren, childProps));
+    } else if (isRenderProps && (shouldUpdate || dependencies) && !hasName) {
+      childNode = mergedChildren(context);
+    } else {
+       false ? 0 : void 0;
+      childNode = mergedChildren;
+    }
+    return renderLayout(childNode, fieldId, isRequired);
+  }));
+}
+const FormItem = InternalFormItem;
+FormItem.useStatus = hooks_useFormItemStatus;
+/* harmony default export */ const form_FormItem = (FormItem);
+;// CONCATENATED MODULE: ./node_modules/antd/es/form/FormList.js
+"use client";
+
+var FormList_rest = undefined && undefined.__rest || function (s, e) {
+  var t = {};
+  for (var p in s) if (Object.prototype.hasOwnProperty.call(s, p) && e.indexOf(p) < 0) t[p] = s[p];
+  if (s != null && typeof Object.getOwnPropertySymbols === "function") for (var i = 0, p = Object.getOwnPropertySymbols(s); i < p.length; i++) {
+    if (e.indexOf(p[i]) < 0 && Object.prototype.propertyIsEnumerable.call(s, p[i])) t[p[i]] = s[p[i]];
+  }
+  return t;
+};
+
+
+
+
+
+const FormList = _a => {
+  var {
+      prefixCls: customizePrefixCls,
+      children
+    } = _a,
+    props = FormList_rest(_a, ["prefixCls", "children"]);
+  if (false) {}
+  const {
+    getPrefixCls
+  } = react.useContext(context_ConfigContext);
+  const prefixCls = getPrefixCls('form', customizePrefixCls);
+  const contextValue = react.useMemo(() => ({
+    prefixCls,
+    status: 'error'
+  }), [prefixCls]);
+  return /*#__PURE__*/react.createElement(es_List, Object.assign({}, props), (fields, operation, meta) => ( /*#__PURE__*/react.createElement(FormItemPrefixContext.Provider, {
+    value: contextValue
+  }, children(fields.map(field => Object.assign(Object.assign({}, field), {
+    fieldKey: field.key
+  })), operation, {
+    errors: meta.errors,
+    warnings: meta.warnings
+  }))));
+};
+/* harmony default export */ const form_FormList = (FormList);
+;// CONCATENATED MODULE: ./node_modules/antd/es/form/hooks/useFormInstance.js
+
+
+function useFormInstance() {
+  const {
+    form
+  } = (0,react.useContext)(context_FormContext);
+  return form;
+}
+;// CONCATENATED MODULE: ./node_modules/antd/es/form/index.js
+"use client";
+
+
+
+
+
+
+
+
+const es_form_Form = form_Form;
+es_form_Form.Item = form_FormItem;
+es_form_Form.List = form_FormList;
+es_form_Form.ErrorList = form_ErrorList;
+es_form_Form.useForm = useForm_useForm;
+es_form_Form.useFormInstance = useFormInstance;
+es_form_Form.useWatch = es_useWatch;
+es_form_Form.Provider = context_FormProvider;
+es_form_Form.create = () => {
+   false ? 0 : void 0;
+};
+/* harmony default export */ const es_form = (es_form_Form);
+;// CONCATENATED MODULE: ./client/components/LoginForm.jsx
+
+
+
 const buttonStyle = {
   width: "100%"
 };
@@ -45778,45 +45767,6 @@ const validateMessages = {
   types: {
     email: "Not a valid email!"
   }
-};
-const SignupForm = ({
-  signup
-}) => {
-  const navigate = dist_useNavigate();
-  const onSignup = res => {
-    console.log(res);
-    if (!res.error) navigate("/app", {
-      replace: true
-    });
-  };
-  return /*#__PURE__*/react.createElement(es_form, {
-    layout: "vertical",
-    onFinish: e => signup(e, onSignup),
-    validateMessages: validateMessages
-  }, /*#__PURE__*/react.createElement(es_form.Item, {
-    label: "Email",
-    name: "email",
-    rules: [{
-      type: "email",
-      required: true
-    }]
-  }, /*#__PURE__*/react.createElement(input, null)), /*#__PURE__*/react.createElement(es_form.Item, {
-    label: "Username",
-    name: "username",
-    rules: [{
-      required: true
-    }]
-  }, /*#__PURE__*/react.createElement(input, null)), /*#__PURE__*/react.createElement(es_form.Item, {
-    label: "Password",
-    name: "password",
-    rules: [{
-      required: true
-    }]
-  }, /*#__PURE__*/react.createElement(input, null)), /*#__PURE__*/react.createElement(es_form.Item, null, /*#__PURE__*/react.createElement(es_button, {
-    type: "primary",
-    htmlType: "submit",
-    style: buttonStyle
-  }, "Create Account")));
 };
 const LoginForm = ({
   login
@@ -45851,6 +45801,79 @@ const LoginForm = ({
     style: buttonStyle
   }, "Log In")));
 };
+/* harmony default export */ const components_LoginForm = (LoginForm);
+;// CONCATENATED MODULE: ./client/components/SignupForm.jsx
+
+
+
+const SignupForm_buttonStyle = {
+  width: "100%"
+};
+const SignupForm_validateMessages = {
+  required: "${label} is required!",
+  types: {
+    email: "Not a valid email!"
+  }
+};
+const SignupForm = ({
+  signup
+}) => {
+  const navigate = dist_useNavigate();
+  const onSignup = res => {
+    console.log(res);
+    if (!res.error) navigate("/app", {
+      replace: true
+    });
+  };
+  return /*#__PURE__*/react.createElement(es_form, {
+    layout: "vertical",
+    onFinish: e => signup(e, onSignup),
+    validateMessages: SignupForm_validateMessages
+  }, /*#__PURE__*/react.createElement(es_form.Item, {
+    label: "Email",
+    name: "email",
+    rules: [{
+      type: "email",
+      required: true
+    }]
+  }, /*#__PURE__*/react.createElement(input, null)), /*#__PURE__*/react.createElement(es_form.Item, {
+    label: "Username",
+    name: "username",
+    rules: [{
+      required: true
+    }]
+  }, /*#__PURE__*/react.createElement(input, null)), /*#__PURE__*/react.createElement(es_form.Item, {
+    label: "Password",
+    name: "password",
+    rules: [{
+      required: true
+    }]
+  }, /*#__PURE__*/react.createElement(input, null)), /*#__PURE__*/react.createElement(es_form.Item, null, /*#__PURE__*/react.createElement(es_button, {
+    type: "primary",
+    htmlType: "submit",
+    style: SignupForm_buttonStyle
+  }, "Create Account")));
+};
+/* harmony default export */ const components_SignupForm = (SignupForm);
+;// CONCATENATED MODULE: ./client/components/index.js
+
+
+
+;// CONCATENATED MODULE: ./client/pages/Login.jsx
+
+
+
+
+const {
+  Content: Login_Content
+} = es_layout;
+const flexStyle = {
+  height: "100vh"
+};
+const cardStyle = {
+  textAlign: "center",
+  width: "300px"
+};
 const Login = () => {
   const [displayLogin, setDisplayLogin] = (0,react.useState)(true);
   const [login, signup] = useAuth();
@@ -45863,15 +45886,15 @@ const Login = () => {
   }, /*#__PURE__*/react.createElement(card, {
     title: displayLogin ? "Log In" : "Sign Up",
     style: cardStyle
-  }, displayLogin ? /*#__PURE__*/react.createElement(LoginForm, {
+  }, displayLogin ? /*#__PURE__*/react.createElement(components_LoginForm, {
     login: login
-  }) : /*#__PURE__*/react.createElement(SignupForm, {
+  }) : /*#__PURE__*/react.createElement(components_SignupForm, {
     signup: signup
   }), /*#__PURE__*/react.createElement("a", {
     onClick: () => setDisplayLogin(!displayLogin)
   }, displayLogin ? "Need an account?" : "Already have an account?")))));
 };
-/* harmony default export */ const client_Login = (Login);
+/* harmony default export */ const pages_Login = (Login);
 ;// CONCATENATED MODULE: ./node_modules/antd/es/theme/getDesignToken.js
 
 
@@ -46680,10 +46703,10 @@ const App = () => {
     theme: appTheme
   }, /*#__PURE__*/react.createElement(HashRouter, null, /*#__PURE__*/react.createElement(Routes, null, /*#__PURE__*/react.createElement(Route, {
     path: "/",
-    element: /*#__PURE__*/react.createElement(client_Login, null)
+    element: /*#__PURE__*/react.createElement(pages_Login, null)
   }), /*#__PURE__*/react.createElement(Route, {
     path: "/app",
-    element: /*#__PURE__*/react.createElement(client_Chat, null)
+    element: /*#__PURE__*/react.createElement(pages_Chat, null)
   }))));
 };
 const init = () => {

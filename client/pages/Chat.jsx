@@ -1,9 +1,9 @@
 import React, { useEffect, useState } from "react";
 const { Sider, Content, Footer } = Layout;
 import { Layout, Menu, Input, Button, Flex } from "antd";
-import useSocket from "./hooks/useSocket";
+import useSocket from "../hooks/useSocket";
 import { useNavigate } from "react-router-dom";
-import { useAuth } from "./hooks/useAuth";
+import { useAuth } from "../hooks/useAuth";
 
 // Style objects
 const siderStyle = {
