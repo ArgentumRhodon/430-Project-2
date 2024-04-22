@@ -1,8 +1,7 @@
 import React from "react";
 import { createRoot } from "react-dom/client";
 import { HashRouter, Link, Route, Routes } from "react-router-dom";
-import Chat from "./pages/Chat.jsx";
-import Login from "./pages/Login.jsx";
+import { Chat, Login, Intro } from "./pages";
 
 import { theme, ConfigProvider } from "antd";
 
@@ -22,7 +21,8 @@ const App = () => {
       <HashRouter>
         <Routes>
           <Route path="/" element={<Login />} />
-          <Route path="/app" element={<Chat />}></Route>
+          <Route path="/intro" element={<Intro />} />
+          <Route path="/app" element={<Chat />} />
         </Routes>
       </HashRouter>
     </ConfigProvider>

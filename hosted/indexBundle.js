@@ -38546,6 +38546,53 @@ Object.assign(esm_lookup, {
 const socket = esm_lookup.connect("http://localhost:3000");
 const useSocket = () => socket;
 /* harmony default export */ const hooks_useSocket = (useSocket);
+;// CONCATENATED MODULE: ./client/hooks/useAuth.js
+const devURL = "http://localhost:3000";
+const prodURL = "https://tempie-server-b490ad9cab9b.herokuapp.com";
+const targetURL = devURL;
+const sendPost = async (url, data, handler) => {
+  const response = await fetch(url, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify(data)
+  });
+  const result = await response.json();
+  if (handler) handler(result);
+};
+const sendGet = async (url, handler) => {
+  const response = await fetch(url, {
+    method: "GET",
+    headers: {
+      "Content-Type": "application/json"
+    },
+    credentials: "include"
+  });
+  const result = await response.json();
+  if (handler) handler(result);
+  return result;
+};
+const login = (e, handler) => {
+  if (!e.email || !e.password) {
+    return false;
+  }
+  sendPost(`${targetURL}/login`, e, handler);
+  return false;
+};
+const signup = (e, handler) => {
+  if (!e.email || !e.username || !e.password) {
+    return false;
+  }
+  sendPost(`${targetURL}/signup`, e, handler);
+  return false;
+};
+const logout = handler => {
+  sendGet(`${targetURL}/logout`, handler);
+  return false;
+};
+const useAuth = () => [login, signup, logout];
+const useUser = () => sendGet(`${targetURL}/user`);
 ;// CONCATENATED MODULE: ./client/pages/Chat.jsx
 
 const {
@@ -38597,6 +38644,7 @@ const chats = [{
 const Chat = () => {
   const socket = hooks_useSocket();
   const navigate = dist_useNavigate();
+  const user = useUser();
   const [chat, setChat] = (0,react.useState)(chats[0]);
   const [message, setMessage] = (0,react.useState)("");
   const [messages, setMessages] = (0,react.useState)([]);
@@ -38642,50 +38690,6 @@ const Chat = () => {
   }))));
 };
 /* harmony default export */ const pages_Chat = (Chat);
-;// CONCATENATED MODULE: ./client/hooks/useAuth.js
-const devURL = "http://localhost:3000";
-const prodURL = "https://tempie-server-b490ad9cab9b.herokuapp.com";
-const targetURL = devURL;
-const sendPost = async (url, data, handler) => {
-  const response = await fetch(url, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json"
-    },
-    body: JSON.stringify(data)
-  });
-  const result = await response.json();
-  if (handler) handler(result);
-};
-const sendGet = async (url, handler) => {
-  const response = await fetch(url, {
-    method: "GET",
-    headers: {
-      "Content-Type": "application/json"
-    }
-  });
-  const result = await response.json();
-  if (handler) handler(result);
-};
-const login = (e, handler) => {
-  if (!e.email || !e.password) {
-    return false;
-  }
-  sendPost(`${targetURL}/login`, e, handler);
-  return false;
-};
-const signup = (e, handler) => {
-  if (!e.email || !e.username || !e.password) {
-    return false;
-  }
-  sendPost(`${targetURL}/signup`, e, handler);
-  return false;
-};
-const logout = handler => {
-  sendGet(`${targetURL}/logout`, handler);
-  return false;
-};
-const useAuth = () => [login, signup, logout];
 ;// CONCATENATED MODULE: ./node_modules/antd/es/_util/gapSize.js
 function isPresetSize(size) {
   return ['small', 'middle', 'large'].includes(size);
@@ -45820,7 +45824,6 @@ const SignupForm = ({
 }) => {
   const navigate = dist_useNavigate();
   const onSignup = res => {
-    console.log(res);
     if (!res.error) navigate("/app", {
       replace: true
     });
@@ -45895,6 +45898,19 @@ const Login = () => {
   }, displayLogin ? "Need an account?" : "Already have an account?")))));
 };
 /* harmony default export */ const pages_Login = (Login);
+;// CONCATENATED MODULE: ./client/pages/Intro.jsx
+
+
+const Intro = () => {
+  const user = useUser();
+  return /*#__PURE__*/react.createElement("h1", null, "Hello ", user.username);
+};
+/* harmony default export */ const pages_Intro = (Intro);
+;// CONCATENATED MODULE: ./client/pages/index.js
+
+
+
+
 ;// CONCATENATED MODULE: ./node_modules/antd/es/theme/getDesignToken.js
 
 
@@ -46688,7 +46704,6 @@ if (false) {}
 
 
 
-
 const appTheme = {
   algorithm: es_theme.darkAlgorithm,
   components: {
@@ -46704,6 +46719,9 @@ const App = () => {
   }, /*#__PURE__*/react.createElement(HashRouter, null, /*#__PURE__*/react.createElement(Routes, null, /*#__PURE__*/react.createElement(Route, {
     path: "/",
     element: /*#__PURE__*/react.createElement(pages_Login, null)
+  }), /*#__PURE__*/react.createElement(Route, {
+    path: "/intro",
+    element: /*#__PURE__*/react.createElement(pages_Intro, null)
   }), /*#__PURE__*/react.createElement(Route, {
     path: "/app",
     element: /*#__PURE__*/react.createElement(pages_Chat, null)

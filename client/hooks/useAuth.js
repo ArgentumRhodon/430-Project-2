@@ -22,11 +22,14 @@ export const sendGet = async (url, handler) => {
     headers: {
       "Content-Type": "application/json",
     },
+    credentials: "include",
   });
 
   const result = await response.json();
 
   if (handler) handler(result);
+
+  return result;
 };
 
 const login = (e, handler) => {
@@ -55,3 +58,4 @@ const logout = (handler) => {
 };
 
 export const useAuth = () => [login, signup, logout];
+export const useUser = () => sendGet(`${targetURL}/user`);

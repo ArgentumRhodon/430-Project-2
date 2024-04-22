@@ -3,7 +3,7 @@ const { Sider, Content, Footer } = Layout;
 import { Layout, Menu, Input, Button, Flex } from "antd";
 import useSocket from "../hooks/useSocket";
 import { useNavigate } from "react-router-dom";
-import { useAuth } from "../hooks/useAuth";
+import { useAuth, useUser } from "../hooks/useAuth";
 
 // Style objects
 const siderStyle = {
@@ -54,6 +54,7 @@ const chats = [
 const Chat = () => {
   const socket = useSocket();
   const navigate = useNavigate();
+  const user = useUser();
 
   const [chat, setChat] = useState(chats[0]);
   const [message, setMessage] = useState("");

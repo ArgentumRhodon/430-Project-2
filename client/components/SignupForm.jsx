@@ -17,8 +17,6 @@ const SignupForm = ({ signup }) => {
   const navigate = useNavigate();
 
   const onSignup = (res) => {
-    console.log(res);
-
     if (!res.error) navigate("/app", { replace: true });
   };
 
