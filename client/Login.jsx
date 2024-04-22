@@ -1,8 +1,7 @@
 import React, { useState } from "react";
 import { Layout, Flex, Card, Form, Input, Button } from "antd";
-import useSignup from "./hooks/useSignup";
-import useLogin from "./hooks/useLogin";
 import { useNavigate } from "react-router-dom";
+import { useAuth } from "./hooks/useAuth";
 const { Content } = Layout;
 
 const flexStyle = {
@@ -26,17 +25,19 @@ const validateMessages = {
 };
 
 const SignupForm = () => {
-  const signupHelper = useSignup();
+  const [signup] = useAuth();
   const navigate = useNavigate();
+
+  const onSignup = (res) => {
+    console.log(res);
+
+    if (res.ok) navigate("/app", { replace: true });
+  };
 
   return (
     <Form
       layout="vertical"
-      onFinish={(e) => {
-        signupHelper(e, (result) => {
-          if (result.loggedIn) navigate("/app", { replace: true });
-        });
-      }}
+      onFinish={(e) => signupHelper(e, onSignup)}
       validateMessages={validateMessages}
     >
       <Form.Item
@@ -83,17 +84,19 @@ const SignupForm = () => {
 };
 
 const LoginForm = () => {
-  const loginHelper = useLogin();
+  const [login] = useAuth();
   const navigate = useNavigate();
+
+  const onLogin = (res) => {
+    console.log(res);
+
+    if (!res.error) navigate("/app", { replace: true });
+  };
 
   return (
     <Form
       layout="vertical"
-      onFinish={(e) => {
-        loginHelper(e, (result) => {
-          if (result.loggedIn) navigate("/app", { replace: true });
-        });
-      }}
+      onFinish={(e) => login(e, onLogin)}
       validateMessages={validateMessages}
     >
       <Form.Item
