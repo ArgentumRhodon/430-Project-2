@@ -24,20 +24,19 @@ const validateMessages = {
   },
 };
 
-const SignupForm = () => {
-  const [signup] = useAuth();
+const SignupForm = ({ signup }) => {
   const navigate = useNavigate();
 
   const onSignup = (res) => {
     console.log(res);
 
-    if (res.ok) navigate("/app", { replace: true });
+    if (!res.error) navigate("/app", { replace: true });
   };
 
   return (
     <Form
       layout="vertical"
-      onFinish={(e) => signupHelper(e, onSignup)}
+      onFinish={(e) => signup(e, onSignup)}
       validateMessages={validateMessages}
     >
       <Form.Item
@@ -83,8 +82,7 @@ const SignupForm = () => {
   );
 };
 
-const LoginForm = () => {
-  const [login] = useAuth();
+const LoginForm = ({ login }) => {
   const navigate = useNavigate();
 
   const onLogin = (res) => {
@@ -133,6 +131,7 @@ const LoginForm = () => {
 
 const Login = () => {
   const [displayLogin, setDisplayLogin] = useState(true);
+  const [login, signup] = useAuth();
 
   return (
     <Layout>
@@ -145,7 +144,11 @@ const Login = () => {
           style={flexStyle}
         >
           <Card title={displayLogin ? "Log In" : "Sign Up"} style={cardStyle}>
-            {displayLogin ? <LoginForm /> : <SignupForm />}
+            {displayLogin ? (
+              <LoginForm login={login} />
+            ) : (
+              <SignupForm signup={signup} />
+            )}
             <a onClick={() => setDisplayLogin(!displayLogin)}>
               {displayLogin ? "Need an account?" : "Already have an account?"}
             </a>

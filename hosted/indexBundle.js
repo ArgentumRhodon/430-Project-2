@@ -45747,7 +45747,7 @@ const signup = (e, handler) => {
   if (!e.email || !e.username || !e.password) {
     return false;
   }
-  sendPost(`${targetURL}/singup`, e, handler);
+  sendPost(`${targetURL}/signup`, e, handler);
   return false;
 };
 const logout = handler => {
@@ -45779,18 +45779,19 @@ const validateMessages = {
     email: "Not a valid email!"
   }
 };
-const SignupForm = () => {
-  const [signup] = useAuth();
+const SignupForm = ({
+  signup
+}) => {
   const navigate = dist_useNavigate();
   const onSignup = res => {
     console.log(res);
-    if (res.ok) navigate("/app", {
+    if (!res.error) navigate("/app", {
       replace: true
     });
   };
   return /*#__PURE__*/react.createElement(es_form, {
     layout: "vertical",
-    onFinish: e => signupHelper(e, onSignup),
+    onFinish: e => signup(e, onSignup),
     validateMessages: validateMessages
   }, /*#__PURE__*/react.createElement(es_form.Item, {
     label: "Email",
@@ -45817,8 +45818,9 @@ const SignupForm = () => {
     style: buttonStyle
   }, "Create Account")));
 };
-const LoginForm = () => {
-  const [login] = useAuth();
+const LoginForm = ({
+  login
+}) => {
   const navigate = dist_useNavigate();
   const onLogin = res => {
     console.log(res);
@@ -45851,6 +45853,7 @@ const LoginForm = () => {
 };
 const Login = () => {
   const [displayLogin, setDisplayLogin] = (0,react.useState)(true);
+  const [login, signup] = useAuth();
   return /*#__PURE__*/react.createElement(es_layout, null, /*#__PURE__*/react.createElement(Login_Content, null, /*#__PURE__*/react.createElement(flex, {
     justify: "center",
     align: "center",
@@ -45860,7 +45863,11 @@ const Login = () => {
   }, /*#__PURE__*/react.createElement(card, {
     title: displayLogin ? "Log In" : "Sign Up",
     style: cardStyle
-  }, displayLogin ? /*#__PURE__*/react.createElement(LoginForm, null) : /*#__PURE__*/react.createElement(SignupForm, null), /*#__PURE__*/react.createElement("a", {
+  }, displayLogin ? /*#__PURE__*/react.createElement(LoginForm, {
+    login: login
+  }) : /*#__PURE__*/react.createElement(SignupForm, {
+    signup: signup
+  }), /*#__PURE__*/react.createElement("a", {
     onClick: () => setDisplayLogin(!displayLogin)
   }, displayLogin ? "Need an account?" : "Already have an account?")))));
 };

@@ -44,7 +44,7 @@ const signup = (e, handler) => {
     return false;
   }
 
-  sendPost(`${targetURL}/singup`, e, handler);
+  sendPost(`${targetURL}/signup`, e, handler);
 
   return false;
 };
