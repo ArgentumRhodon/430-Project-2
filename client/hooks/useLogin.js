@@ -28,13 +28,13 @@ import sendPost from "../utils/poster.js";
 //   }
 // };
 
-const handleLogin = (e) => {
+const handleLogin = (e, handler) => {
   if (!e.email || !e.password) {
     console.log("Username or password is empty!");
     return false;
   }
 
-  sendPost("http://localhost:3000/login", e);
+  sendPost("http://localhost:3000/login", e, handler);
   return false;
 };
 

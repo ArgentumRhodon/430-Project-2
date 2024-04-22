@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import { Layout, Flex, Card, Form, Input, Button } from "antd";
 import useSignup from "./hooks/useSignup";
 import useLogin from "./hooks/useLogin";
+import { useNavigate } from "react-router-dom";
 const { Content } = Layout;
 
 const flexStyle = {
@@ -26,11 +27,16 @@ const validateMessages = {
 
 const SignupForm = () => {
   const signupHelper = useSignup();
+  const navigate = useNavigate();
 
   return (
     <Form
       layout="vertical"
-      onFinish={signupHelper}
+      onFinish={(e) => {
+        signupHelper(e, (result) => {
+          if (result.loggedIn) navigate("/app", { replace: true });
+        });
+      }}
       validateMessages={validateMessages}
     >
       <Form.Item
@@ -78,11 +84,16 @@ const SignupForm = () => {
 
 const LoginForm = () => {
   const loginHelper = useLogin();
+  const navigate = useNavigate();
 
   return (
     <Form
       layout="vertical"
-      onFinish={loginHelper}
+      onFinish={(e) => {
+        loginHelper(e, (result) => {
+          if (result.loggedIn) navigate("/app", { replace: true });
+        });
+      }}
       validateMessages={validateMessages}
     >
       <Form.Item

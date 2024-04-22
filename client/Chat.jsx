@@ -1,7 +1,9 @@
 import React, { useEffect, useState } from "react";
 const { Sider, Content, Footer } = Layout;
-import { Layout, Menu, Input } from "antd";
+import { Layout, Menu, Input, Button, Flex } from "antd";
 import useSocket from "./hooks/useSocket";
+import useLogout from "./hooks/useLogout";
+import { useNavigate } from "react-router-dom";
 
 // Style objects
 const siderStyle = {
@@ -51,6 +53,8 @@ const chats = [
 
 const Chat = () => {
   const socket = useSocket();
+  const logoutHelper = useLogout();
+  const navigate = useNavigate();
 
   const [chat, setChat] = useState(chats[0]);
   const [message, setMessage] = useState("");
@@ -59,6 +63,8 @@ const Chat = () => {
 
   const onSend = (e) => {
     if (!e.target.value) return;
+
+    console.log(socket);
 
     if (e.code === "Enter") {
       socket.emit("send message", message);
@@ -84,13 +90,27 @@ const Chat = () => {
   return (
     <Layout>
       <Sider style={siderStyle}>
-        <Menu
-          mode="vertical"
-          items={chats}
-          defaultSelectedKeys={["0"]}
-          style={menuStyle}
-          onSelect={onChatSelect}
-        />
+        <Flex vertical justify="space-between" style={{ height: "100%" }}>
+          <Menu
+            mode="vertical"
+            items={chats}
+            defaultSelectedKeys={["0"]}
+            style={menuStyle}
+            onSelect={onChatSelect}
+          />
+          <Button
+            type="primary"
+            danger
+            style={{ margin: "1rem" }}
+            onClick={() =>
+              logoutHelper((result) => {
+                if (result.loggedOut) navigate("/", { replace: true });
+              })
+            }
+          >
+            Log Out
+          </Button>
+        </Flex>
       </Sider>
       <Layout style={innerLayoutStyle}>
         <Content style={contentStyles}>

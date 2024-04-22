@@ -5,7 +5,6 @@ import Chat from "./Chat";
 import Login from "./Login";
 
 import { theme, ConfigProvider } from "antd";
-import useSocket from "./hooks/useSocket";
 
 const appTheme = {
   algorithm: theme.darkAlgorithm,
@@ -21,10 +20,6 @@ const App = () => {
   return (
     <ConfigProvider theme={appTheme}>
       <HashRouter>
-        {/* <div>
-          <Link to="/">Login</Link>
-          <Link to="/app">Chat</Link>
-        </div> */}
         <Routes>
           <Route path="/" element={<Login />} />
           <Route path="/app" element={<Chat />}></Route>
